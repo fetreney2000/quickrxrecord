@@ -94,11 +94,18 @@ export default function PengurusanPage() {
 
   const resetPasswordMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await supabase.auth.admin.updateUserById(userId, { password: "password123" });
-      if (error) throw error;
+      const res = await fetch("/api/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Gagal");
+      }
     },
     onSuccess: () => toast.success("Kata laluan diset semula ke 'password123'."),
-    onError: () => toast.error("Gagal menetapkan semula kata laluan."),
+    onError: () => toast.error("Gagal menetapkan semula kata laluan. Sila cuba semula."),
   });
 
   if (!isAdmin) {
