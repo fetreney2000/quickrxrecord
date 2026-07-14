@@ -80,9 +80,19 @@ export default function PengurusanPage() {
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Profile> }) => {
+    mutationFn: async ({ id, updates, oldNamaPengguna }: { id: string; updates: Partial<Profile>; oldNamaPengguna?: string }) => {
       const { error } = await supabase.from("profiles").update(updates).eq("id", id);
       if (error) throw error;
+      
+      // If nama_pengguna changed, also update the auth email
+      if (updates.nama_pengguna && oldNamaPengguna && updates.nama_pengguna !== oldNamaPengguna) {
+        const { error: authError } = await supabase.auth.admin.updateUserById(id, {
+          email: `${updates.nama_pengguna}@quickrx.local`,
+        });
+        if (authError) {
+          console.error("Gagal mengemaskini e-mel pengesahan:", authError.message);
+        }
+      }
     },
     onSuccess: () => {
       toast.success("Pengguna dikemaskini.");
@@ -179,7 +189,13 @@ export default function PengurusanPage() {
                         user.nama
                       )}
                     </TableCell>
-                    <TableCell className="font-mono">{user.nama_pengguna}</TableCell>
+                    <TableCell className="font-mono">
+                      {editId === user.id ? (
+                        <Input value={editData.nama_pengguna || ""} onChange={e => setEditData({ ...editData, nama_pengguna: e.target.value })} className="h-7" />
+                      ) : (
+                        user.nama_pengguna
+                      )}
+                    </TableCell>
                     <TableCell>
                       {editId === user.id ? (
                         <Input value={editData.jawatan || ""} onChange={e => setEditData({ ...editData, jawatan: e.target.value })} className="h-7" />
@@ -208,7 +224,7 @@ export default function PengurusanPage() {
                       <div className="flex gap-1">
                         {editId === user.id ? (
                           <>
-                            <Button size="sm" onClick={() => updateUserMutation.mutate({ id: user.id, updates: editData })} disabled={updateUserMutation.isPending}>✓</Button>
+                            <Button size="sm" onClick={() => updateUserMutation.mutate({ id: user.id, updates: editData, oldNamaPengguna: user.nama_pengguna })} disabled={updateUserMutation.isPending}>✓</Button>
                             <Button size="sm" variant="ghost" onClick={() => setEditId(null)}>✕</Button>
                           </>
                         ) : (
