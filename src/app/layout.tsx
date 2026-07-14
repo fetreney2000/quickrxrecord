@@ -1,16 +1,30 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Roboto } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { QueryProvider } from "@/lib/query-provider";
 import { Toaster } from "sonner";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const roboto = Roboto({
+  weight: ["300", "400", "500", "700"],
+  subsets: ["latin"],
+  variable: "--font-roboto",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "QuickRx - Sistem Pengurusan Inventori & Pesakit",
-  description: "Sistem pengurusan inventori dan pesakit untuk klinik/farmasi",
+  title: "QuickRxRecord v4 - Sistem Pengurusan Inventori & Pesakit",
+  description: "Sistem pengurusan inventori dan pesakit untuk klinik/farmasi - Versi 4.0",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
@@ -19,12 +33,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ms" suppressHydrationWarning>
+    <html lang="ms" suppressHydrationWarning className={`${inter.variable} ${roboto.variable}`}>
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#0f172a" />
+        <meta name="theme-color" content="#6c3fc7" />
+        <meta name="application-name" content="QuickRxRecord v4" />
       </head>
-      <body className={inter.className}>
+      <body className="font-sans antialiased">
         <QueryProvider>
           <AuthProvider>
             {children}

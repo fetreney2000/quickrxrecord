@@ -23,7 +23,14 @@ import {
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { ArrowLeft, Plus, Pill, Edit, XCircle, Package, Merge, History, Save, X, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ArrowLeft, Plus, Pill, Edit, XCircle, Package, Merge, History, Save, X, Trash2, MoreHorizontal, ChevronDown, ClipboardList } from "lucide-react";
 import { MergeDialog } from "@/components/pesakit/merge-dialog";
 import type { Patient, PatientItemAssignment, Item, SupplyRecord, ItemBatch, Profile } from "@/types";
 
@@ -438,31 +445,48 @@ export default function PatientDetailPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1 flex-wrap">
-                        {assignment.aktif && (
-                          <Button size="sm" variant="outline" onClick={() => { setOpenUpdateDose(assignment.id); setDoseUpdate({ dos: assignment.dos || "", catatan: "" }); }}>
-                            <Edit className="mr-1 h-3 w-3" /> Kemaskini Dos
-                          </Button>
-                        )}
-                        <Button size="sm" variant="outline" onClick={() => setViewDoseHistory(assignment.id)}>
-                          <History className="mr-1 h-3 w-3" /> Riwayat Dos
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => setViewHistoryAssignment(assignment.id)}>
-                          <Package className="mr-1 h-3 w-3" /> Bekalan
-                        </Button>
-                        {canSupply && assignment.aktif && (
-                          <Button size="sm" onClick={() => {
-                            setOpenSupply(assignment.id);
-                            setSupplyData({ tempoh_nilai: "", tempoh_unit: "Hari", kuantiti: "", batch_id: "", catatan_bekalan: "" });
-                          }}>
-                            <Package className="mr-1 h-3 w-3" /> Bekal Baru
-                          </Button>
-                        )}
-                        {canEdit && assignment.aktif && (
-                          <Button size="sm" variant="destructive" onClick={() => stopAssignmentMutation.mutate(assignment.id)}>
-                            <XCircle className="mr-1 h-3 w-3" /> Tamat
-                          </Button>
-                        )}
+                      <div className="flex gap-2">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="outline" className="gap-1">
+                              <MoreHorizontal className="h-3.5 w-3.5" />
+                              Tindakan
+                              <ChevronDown className="h-3 w-3 opacity-50" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            {assignment.aktif && (
+                              <>
+                                <DropdownMenuItem onClick={() => { setOpenUpdateDose(assignment.id); setDoseUpdate({ dos: assignment.dos || "", catatan: "" }); }}>
+                                  <Edit className="mr-2 h-4 w-4" /> Kemaskini Dos
+                                </DropdownMenuItem>
+                                {canSupply && (
+                                  <DropdownMenuItem onClick={() => {
+                                    setOpenSupply(assignment.id);
+                                    setSupplyData({ tempoh_nilai: "", tempoh_unit: "Hari", kuantiti: "", batch_id: "", catatan_bekalan: "" });
+                                  }}>
+                                    <Package className="mr-2 h-4 w-4" /> Bekal Baru
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                              </>
+                            )}
+                            <DropdownMenuItem onClick={() => setViewDoseHistory(assignment.id)}>
+                              <History className="mr-2 h-4 w-4" /> Riwayat Dos
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setViewHistoryAssignment(assignment.id)}>
+                              <ClipboardList className="mr-2 h-4 w-4" /> Riwayat Bekalan
+                            </DropdownMenuItem>
+                            {canEdit && assignment.aktif && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => stopAssignmentMutation.mutate(assignment.id)}>
+                                  <XCircle className="mr-2 h-4 w-4" /> Tamatkan Penugasan
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </TableCell>
                   </TableRow>
