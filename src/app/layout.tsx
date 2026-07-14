@@ -45,9 +45,10 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme="monokai"
           enableSystem={false}
           disableTransitionOnChange
+          storageKey="quickrx-theme"
         >
           <QueryProvider>
             <AuthProvider>

@@ -30,7 +30,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!error && data) {
       const p = data as Profile;
       setProfile(p);
-      if (p.tema) setTheme(p.tema);
+      if (p.tema) {
+        setTheme(p.tema);
+        // Also save to localStorage for immediate persistence on refresh
+        try { localStorage.setItem("quickrx-theme", p.tema); } catch {}
+      }
     }
   }, [supabase, setTheme]);
 
@@ -42,6 +46,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     setTheme(tema);
     setProfile(prev => prev ? { ...prev, tema } : null);
+    // Save to localStorage for immediate persistence
+    try { localStorage.setItem("quickrx-theme", tema); } catch {}
     await supabase.from("profiles").update({ tema }).eq("id", user.id);
   }, [user, supabase, setTheme]);
 
