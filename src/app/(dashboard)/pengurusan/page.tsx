@@ -20,16 +20,13 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { ThemeSwitcher } from "@/components/layout/theme-switcher";
-import { useTheme } from "next-themes";
 import { Plus, Edit, Trash2, UserPlus, KeyRound } from "lucide-react";
 import type { Profile, Peranan } from "@/types";
 
 const ROLES: Peranan[] = ["Pentadbir", "Penjaga Stor", "Kakitangan Farmasi", "Kakitangan Klinik"];
 
 export default function PengurusanPage() {
-  const { profile, updateTheme } = useAuth();
-  const { theme } = useTheme();
+  const { profile } = useAuth();
   const supabase = createClient();
   const queryClient = useQueryClient();
 
@@ -139,7 +136,6 @@ export default function PengurusanPage() {
         </Dialog>
       </div>
 
-      {/* Senarai Pengguna */}
       <Card>
         <CardHeader><CardTitle>Senarai Pengguna</CardTitle></CardHeader>
         <CardContent>
@@ -188,22 +184,6 @@ export default function PengurusanPage() {
               )}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
-
-      {/* Tetapan Tema */}
-      <Card>
-        <CardHeader><CardTitle>Tetapan Tema</CardTitle></CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">Pilih tema warna untuk aplikasi. Tema akan disimpan dan digunakan semula apabila log masuk.</p>
-          <div className="flex items-center gap-3">
-            <span className="text-sm">Tema semasa:</span>
-            <ThemeSwitcher onThemeChange={(t) => updateTheme(t)} />
-            <span className="text-sm text-muted-foreground">Klik ikon untuk menukar tema</span>
-          </div>
-          <div className="mt-4 text-xs text-muted-foreground">
-            Tema disimpan ke pangkalan data dan akan dimuatkan secara automatik untuk setiap sesi log masuk.
-          </div>
         </CardContent>
       </Card>
     </div>

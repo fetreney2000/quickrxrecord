@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useTheme } from "next-themes";
 import type { Profile, Peranan } from "@/types";
 import type { User } from "@supabase/supabase-js";
 
@@ -13,7 +12,6 @@ interface AuthContextType {
   signIn: (nama_pengguna: string, kata_laluan: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  updateTheme: (tema: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,47 +21,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
-  const { setTheme } = useTheme();
 
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
-    if (!error && data) {
-      const p = data as Profile;
-      setProfile(p);
-      // Trust localStorage theme first (user explicitly chose it)
-      // Only override from DB if localStorage is empty
-      try {
-        const localTheme = localStorage.getItem("quickrx-theme");
-        if (localTheme) {
-          // User has a saved local preference - always trust it
-          setTheme(localTheme);
-          // Update DB to match if different
-          if (p.tema !== localTheme) {
-            await supabase.from("profiles").update({ tema: localTheme }).eq("id", userId);
-          }
-        } else if (p.tema) {
-          // No local preference - use DB theme
-          setTheme(p.tema);
-          localStorage.setItem("quickrx-theme", p.tema);
-        }
-      } catch {
-        if (p.tema) setTheme(p.tema);
-      }
-    }
-  }, [supabase, setTheme]);
+    if (!error && data) setProfile(data as Profile);
+  }, [supabase]);
 
   const refreshProfile = useCallback(async () => {
     if (user) await fetchProfile(user.id);
   }, [user, fetchProfile]);
-
-  const updateTheme = useCallback(async (tema: string) => {
-    if (!user) return;
-    setTheme(tema);
-    setProfile(prev => prev ? { ...prev, tema } : null);
-    // Save to localStorage for immediate persistence
-    try { localStorage.setItem("quickrx-theme", tema); } catch {}
-    await supabase.from("profiles").update({ tema }).eq("id", user.id);
-  }, [user, supabase, setTheme]);
 
   useEffect(() => {
     const getUser = async () => {
@@ -94,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signOut, refreshProfile, updateTheme }}>
+    <AuthContext.Provider value={{ user, profile, loading, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
