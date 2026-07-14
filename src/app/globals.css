@@ -2,6 +2,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ===== MONOKAI PRO (default dark) ===== */
 :root {
   --font-family: "Inter", "Roboto", "Segoe UI", system-ui, sans-serif;
   --background: #ffffff;
@@ -39,7 +40,44 @@
   --sidebar-ring: #7c3aed;
 }
 
-.dark {
+/* ===== DRACULA ===== */
+.dracula {
+  --background: #282a36;
+  --foreground: #f8f8f2;
+  --card: #2d2f3e;
+  --card-foreground: #f8f8f2;
+  --popover: #2d2f3e;
+  --popover-foreground: #f8f8f2;
+  --primary: #bd93f9;
+  --primary-foreground: #282a36;
+  --secondary: #44475a;
+  --secondary-foreground: #f8f8f2;
+  --muted: #44475a;
+  --muted-foreground: #6272a4;
+  --accent: #44475a;
+  --accent-foreground: #f8f8f2;
+  --destructive: #ff5555;
+  --destructive-foreground: #f8f8f2;
+  --border: #44475a;
+  --input: #44475a;
+  --ring: #bd93f9;
+  --chart-1: #bd93f9;
+  --chart-2: #8be9fd;
+  --chart-3: #f1fa8c;
+  --chart-4: #ff79c6;
+  --chart-5: #50fa7b;
+  --sidebar: #21222c;
+  --sidebar-foreground: #f8f8f2;
+  --sidebar-primary: #bd93f9;
+  --sidebar-primary-foreground: #282a36;
+  --sidebar-accent: #44475a;
+  --sidebar-accent-foreground: #f8f8f2;
+  --sidebar-border: #44475a;
+  --sidebar-ring: #bd93f9;
+}
+
+/* ===== MONOKAI ===== */
+.monokai {
   --background: #272822;
   --foreground: #f8f8f2;
   --card: #2d2e27;
@@ -72,6 +110,222 @@
   --sidebar-accent-foreground: #f8f8f2;
   --sidebar-border: #3e3d32;
   --sidebar-ring: #a6e22e;
+}
+
+/* ===== MONOKAI PRO ===== */
+.monokai-pro {
+  --background: #2d2a2e;
+  --foreground: #fcfcfa;
+  --card: #363438;
+  --card-foreground: #fcfcfa;
+  --popover: #363438;
+  --popover-foreground: #fcfcfa;
+  --primary: #ff6188;
+  --primary-foreground: #2d2a2e;
+  --secondary: #403e41;
+  --secondary-foreground: #fcfcfa;
+  --muted: #403e41;
+  --muted-foreground: #939293;
+  --accent: #403e41;
+  --accent-foreground: #fcfcfa;
+  --destructive: #ff6188;
+  --destructive-foreground: #fcfcfa;
+  --border: #403e41;
+  --input: #403e41;
+  --ring: #ff6188;
+  --chart-1: #ff6188;
+  --chart-2: #a9dc76;
+  --chart-3: #ffd866;
+  --chart-4: #fc9867;
+  --chart-5: #ab9df2;
+  --sidebar: #221f22;
+  --sidebar-foreground: #fcfcfa;
+  --sidebar-primary: #ff6188;
+  --sidebar-primary-foreground: #2d2a2e;
+  --sidebar-accent: #403e41;
+  --sidebar-accent-foreground: #fcfcfa;
+  --sidebar-border: #403e41;
+  --sidebar-ring: #ff6188;
+}
+
+/* ===== ONE MONOKAI ===== */
+.one-monokai {
+  --background: #1e1f1c;
+  --foreground: #d4d4d4;
+  --card: #252525;
+  --card-foreground: #d4d4d4;
+  --popover: #252525;
+  --popover-foreground: #d4d4d4;
+  --primary: #98c379;
+  --primary-foreground: #1e1f1c;
+  --secondary: #2d2d2d;
+  --secondary-foreground: #d4d4d4;
+  --muted: #2d2d2d;
+  --muted-foreground: #808080;
+  --accent: #2d2d2d;
+  --accent-foreground: #d4d4d4;
+  --destructive: #e06c75;
+  --destructive-foreground: #d4d4d4;
+  --border: #2d2d2d;
+  --input: #2d2d2d;
+  --ring: #98c379;
+  --chart-1: #98c379;
+  --chart-2: #61afef;
+  --chart-3: #e5c07b;
+  --chart-4: #c678dd;
+  --chart-5: #56b6c2;
+  --sidebar: #161616;
+  --sidebar-foreground: #d4d4d4;
+  --sidebar-primary: #98c379;
+  --sidebar-primary-foreground: #1e1f1c;
+  --sidebar-accent: #2d2d2d;
+  --sidebar-accent-foreground: #d4d4d4;
+  --sidebar-border: #2d2d2d;
+  --sidebar-ring: #98c379;
+}
+
+/* ===== AYU ===== */
+.ayu {
+  --background: #0b0e14;
+  --foreground: #b3b1ad;
+  --card: #131721;
+  --card-foreground: #b3b1ad;
+  --popover: #131721;
+  --popover-foreground: #b3b1ad;
+  --primary: #ff8f40;
+  --primary-foreground: #0b0e14;
+  --secondary: #1a1f2a;
+  --secondary-foreground: #b3b1ad;
+  --muted: #1a1f2a;
+  --muted-foreground: #6c6f73;
+  --accent: #1a1f2a;
+  --accent-foreground: #b3b1ad;
+  --destructive: #f07178;
+  --destructive-foreground: #b3b1ad;
+  --border: #1a1f2a;
+  --input: #1a1f2a;
+  --ring: #ff8f40;
+  --chart-1: #ff8f40;
+  --chart-2: #39bae6;
+  --chart-3: #86b300;
+  --chart-4: #f2ae49;
+  --chart-5: #a37acc;
+  --sidebar: #06080c;
+  --sidebar-foreground: #b3b1ad;
+  --sidebar-primary: #ff8f40;
+  --sidebar-primary-foreground: #0b0e14;
+  --sidebar-accent: #1a1f2a;
+  --sidebar-accent-foreground: #b3b1ad;
+  --sidebar-border: #1a1f2a;
+  --sidebar-ring: #ff8f40;
+}
+
+/* ===== SYNTHWAVE 82 ===== */
+.synthwave-82 {
+  --background: #2b213a;
+  --foreground: #e0e0ff;
+  --card: #362a4a;
+  --card-foreground: #e0e0ff;
+  --popover: #362a4a;
+  --popover-foreground: #e0e0ff;
+  --primary: #ff7edb;
+  --primary-foreground: #1a0b2e;
+  --secondary: #4a3a6a;
+  --secondary-foreground: #e0e0ff;
+  --muted: #4a3a6a;
+  --muted-foreground: #a090c0;
+  --accent: #4a3a6a;
+  --accent-foreground: #e0e0ff;
+  --destructive: #ff2d55;
+  --destructive-foreground: #e0e0ff;
+  --border: #4a3a6a;
+  --input: #4a3a6a;
+  --ring: #ff7edb;
+  --chart-1: #ff7edb;
+  --chart-2: #00ffff;
+  --chart-3: #ffd700;
+  --chart-4: #ff2d55;
+  --chart-5: #7b68ee;
+  --sidebar: #1e1430;
+  --sidebar-foreground: #e0e0ff;
+  --sidebar-primary: #ff7edb;
+  --sidebar-primary-foreground: #1a0b2e;
+  --sidebar-accent: #4a3a6a;
+  --sidebar-accent-foreground: #e0e0ff;
+  --sidebar-border: #4a3a6a;
+  --sidebar-ring: #ff7edb;
+}
+
+/* ===== RETRO ARCANE ===== */
+.retro-arcane {
+  --background: #1a1a2e;
+  --foreground: #e0e0e0;
+  --card: #16213e;
+  --card-foreground: #e0e0e0;
+  --popover: #16213e;
+  --popover-foreground: #e0e0e0;
+  --primary: #e94560;
+  --primary-foreground: #ffffff;
+  --secondary: #0f3460;
+  --secondary-foreground: #e0e0e0;
+  --muted: #0f3460;
+  --muted-foreground: #8899aa;
+  --accent: #0f3460;
+  --accent-foreground: #e0e0e0;
+  --destructive: #e94560;
+  --destructive-foreground: #ffffff;
+  --border: #0f3460;
+  --input: #0f3460;
+  --ring: #e94560;
+  --chart-1: #e94560;
+  --chart-2: #533483;
+  --chart-3: #0f3460;
+  --chart-4: #16213e;
+  --chart-5: #e94560;
+  --sidebar: #111125;
+  --sidebar-foreground: #e0e0e0;
+  --sidebar-primary: #e94560;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #0f3460;
+  --sidebar-accent-foreground: #e0e0e0;
+  --sidebar-border: #0f3460;
+  --sidebar-ring: #e94560;
+}
+
+/* ===== NOTEBOOK ===== */
+.notebook {
+  --background: #f5f0e8;
+  --foreground: #3c3c3c;
+  --card: #faf6ef;
+  --card-foreground: #3c3c3c;
+  --popover: #faf6ef;
+  --popover-foreground: #3c3c3c;
+  --primary: #c0392b;
+  --primary-foreground: #ffffff;
+  --secondary: #e8e0d0;
+  --secondary-foreground: #3c3c3c;
+  --muted: #e8e0d0;
+  --muted-foreground: #8c8c8c;
+  --accent: #e8e0d0;
+  --accent-foreground: #3c3c3c;
+  --destructive: #c0392b;
+  --destructive-foreground: #ffffff;
+  --border: #d4cdbc;
+  --input: #d4cdbc;
+  --ring: #c0392b;
+  --chart-1: #c0392b;
+  --chart-2: #2980b9;
+  --chart-3: #27ae60;
+  --chart-4: #f39c12;
+  --chart-5: #8e44ad;
+  --sidebar: #ede5d5;
+  --sidebar-foreground: #3c3c3c;
+  --sidebar-primary: #c0392b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8e0d0;
+  --sidebar-accent-foreground: #3c3c3c;
+  --sidebar-border: #d4cdbc;
+  --sidebar-ring: #c0392b;
 }
 
 @theme inline {

@@ -11,28 +11,35 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { Palette, Sun, Moon, Monitor, Sparkles } from "lucide-react";
+import { Palette, Sparkles } from "lucide-react";
 
 const themes = [
-  { id: "dark", name: "Dark", icon: Moon, desc: "Dark mode" },
-  { id: "light", name: "Light", icon: Sun, desc: "Light mode" },
-  { id: "system", name: "System", icon: Monitor, desc: "Ikut sistem" },
+  { id: "default", name: "Default Light", color: "#7c3aed" },
+  { id: "dracula", name: "Dracula", color: "#bd93f9" },
+  { id: "monokai", name: "Monokai", color: "#a6e22e" },
+  { id: "monokai-pro", name: "Monokai Pro", color: "#ff6188" },
+  { id: "one-monokai", name: "One Monokai", color: "#98c379" },
+  { id: "ayu", name: "Ayu", color: "#ff8f40" },
+  { id: "synthwave-82", name: "Synthwave 82", color: "#ff7edb" },
+  { id: "retro-arcane", name: "Retro Arcane", color: "#e94560" },
+  { id: "notebook", name: "Notebook", color: "#c0392b" },
 ];
 
 export function ThemeSwitcher() {
   const { theme, setTheme } = useTheme();
+  const current = themes.find(t => t.id === theme) || themes[0];
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Palette className="h-5 w-5" />
+        <Button variant="ghost" size="icon" className="relative" title="Tukar tema">
+          <div className="h-4 w-4 rounded-full border-2 border-current" style={{ backgroundColor: current?.color || "#7c3aed" }} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
+      <DropdownMenuContent align="end" className="w-52 max-h-80 overflow-y-auto">
         <DropdownMenuLabel className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4" />
-          <span>Tema</span>
+          <Sparkles className="h-4 w-4 text-primary" />
+          <span>Tema Warna</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {themes.map((t) => (
@@ -41,15 +48,14 @@ export function ThemeSwitcher() {
             onClick={() => setTheme(t.id)}
             className="flex items-center gap-3 cursor-pointer"
           >
-            <div className={`flex h-6 w-6 items-center justify-center rounded-full border transition-colors ${
-              theme === t.id ? "bg-primary border-primary text-primary-foreground" : "border-border"
-            }`}>
-              <t.icon className="h-3.5 w-3.5" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-medium">{t.name}</span>
-              <span className="text-xs text-muted-foreground">{t.desc}</span>
-            </div>
+            <div
+              className={`h-5 w-5 rounded-full border-2 shrink-0 ${
+                theme === t.id ? "border-foreground" : "border-border"
+              }`}
+              style={{ backgroundColor: t.color }}
+            />
+            <span className="text-sm">{t.name}</span>
+            {theme === t.id && <span className="ml-auto text-xs text-primary">✓</span>}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

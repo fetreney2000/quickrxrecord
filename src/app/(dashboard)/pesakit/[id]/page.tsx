@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
@@ -24,9 +24,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { ArrowLeft, Plus, Pill, Edit, XCircle, Package, Merge, History, Save, X, Trash2, ChevronDown, ChevronUp, ClipboardList, Activity, Search } from "lucide-react";
+import { ArrowLeft, Plus, Edit, XCircle, Package, Merge, Trash2, ChevronDown, ChevronUp, ClipboardList, Activity, Search } from "lucide-react";
 import { MergeDialog } from "@/components/pesakit/merge-dialog";
-import type { Patient, PatientItemAssignment, Item, SupplyRecord, ItemBatch, Profile } from "@/types";
+import type { Patient, PatientItemAssignment, Item, ItemBatch } from "@/types";
 
 export default function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -53,6 +53,8 @@ export default function PatientDetailPage() {
   const [editSupplyRecord, setEditSupplyRecord] = useState<any>(null);
   const [foldDose, setFoldDose] = useState(true);
   const [foldSupply, setFoldSupply] = useState(true);
+  const [openStopAssign, setOpenStopAssign] = useState<string | null>(null);
+  const [stopReason, setStopReason] = useState("");
   const itemSearchRef = useRef<HTMLInputElement>(null);
 
   const { data: patient } = useQuery({
@@ -67,44 +69,22 @@ export default function PatientDetailPage() {
   const { data: assignments } = useQuery({
     queryKey: ["assignments", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("patient_item_assignments")
-        .select("*, item:items(*)")
-        .eq("patient_id", id)
-        .order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("patient_item_assignments").select("*, item:items(*)").eq("patient_id", id).order("created_at", { ascending: false });
       if (error) throw error;
       return data as (PatientItemAssignment & { item: Item })[];
     },
   });
 
-  // Enhanced items query with quota and usage info
   const { data: items } = useQuery({
     queryKey: ["items-with-stats"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("items")
-        .select("id, kod_item, nama_item, kekuatan, kuota, catatan")
-        .eq("aktif", true)
-        .order("nama_item");
+      const { data, error } = await supabase.from("items").select("id, kod_item, nama_item, kekuatan, kuota, catatan").eq("aktif", true).order("nama_item");
       if (error) throw error;
       const itemsList = data as any[];
-
-      // Get patient counts per item
-      const { data: counts } = await supabase
-        .from("patient_item_assignments")
-        .select("item_id")
-        .eq("aktif", true);
-      
+      const { data: counts } = await supabase.from("patient_item_assignments").select("item_id").eq("aktif", true);
       const itemCountMap: Record<string, number> = {};
-      for (const c of (counts || [])) {
-        itemCountMap[c.item_id] = (itemCountMap[c.item_id] || 0) + 1;
-      }
-
-      return itemsList.map(item => ({
-        ...item,
-        patient_count: itemCountMap[item.id] || 0,
-        baki_kuota: item.kuota != null ? Math.max(0, item.kuota - (itemCountMap[item.id] || 0)) : null,
-      }));
+      for (const c of (counts || [])) itemCountMap[c.item_id] = (itemCountMap[c.item_id] || 0) + 1;
+      return itemsList.map(item => ({ ...item, patient_count: itemCountMap[item.id] || 0, baki_kuota: item.kuota != null ? Math.max(0, item.kuota - (itemCountMap[item.id] || 0)) : null }));
     },
   });
 
@@ -116,10 +96,7 @@ export default function PatientDetailPage() {
       if (!error && doseData) {
         const staffIds = [...new Set(doseData.map(d => d.dikemaskini_oleh).filter(Boolean))];
         let staffMap: Record<string, any> = {};
-        if (staffIds.length > 0) {
-          const { data: staff } = await supabase.from("profiles").select("id, nama").in("id", staffIds);
-          for (const s of (staff || [])) staffMap[s.id] = s;
-        }
+        if (staffIds.length > 0) { const { data: staff } = await supabase.from("profiles").select("id, nama").in("id", staffIds); for (const s of (staff || [])) staffMap[s.id] = s; }
         return doseData.map(d => ({ ...d, staff_name: d.dikemaskini_oleh ? (staffMap[d.dikemaskini_oleh]?.nama || "-") : "-" }));
       }
       return doseData || [];
@@ -139,33 +116,27 @@ export default function PatientDetailPage() {
   });
 
   const updatePatientMutation = useMutation({
-    mutationFn: async (updates: Partial<Patient>) => {
-      const { error } = await supabase.from("patients").update(updates).eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: async (updates: Partial<Patient>) => { const { error } = await supabase.from("patients").update(updates).eq("id", id); if (error) throw error; },
     onSuccess: () => { toast.success("Maklumat pesakit dikemaskini."); setEditMode(false); queryClient.invalidateQueries({ queryKey: ["patient", id] }); },
     onError: () => toast.error("Gagal mengemaskini pesakit."),
   });
 
   const addAssignmentMutation = useMutation({
     mutationFn: async (data: typeof newAssignment) => {
-      const { error } = await supabase.from("patient_item_assignments").insert({
-        patient_id: id, item_id: data.item_id, dos: data.dos || null, tarikh_mula_guna: data.tarikh_mula_guna,
-        dimulakan_oleh: profile?.id, kakitangan_farmasi_perekod: profile?.id,
-      });
+      const { error } = await supabase.from("patient_item_assignments").insert({ patient_id: id, item_id: data.item_id, dos: data.dos || null, tarikh_mula_guna: data.tarikh_mula_guna, dimulakan_oleh: profile?.id, kakitangan_farmasi_perekod: profile?.id });
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Penugasan berjaya ditambah."); setOpenAddAssignment(false); setSelectedItemId(null); setItemSearch(""); setNewAssignment({ item_id: "", dos: "", tarikh_mula_guna: new Date().toISOString().split("T")[0] }); queryClient.invalidateQueries({ queryKey: ["assignments", id] }); queryClient.invalidateQueries({ queryKey: ["items-with-stats"] }); },
-    onError: () => toast.error("Gagal menambah penugasan."),
+    onSuccess: () => { toast.success("Item berjaya ditambah."); setOpenAddAssignment(false); setSelectedItemId(null); setItemSearch(""); setNewAssignment({ item_id: "", dos: "", tarikh_mula_guna: new Date().toISOString().split("T")[0] }); queryClient.invalidateQueries({ queryKey: ["assignments", id] }); queryClient.invalidateQueries({ queryKey: ["items-with-stats"] }); },
+    onError: () => toast.error("Gagal menambah item."),
   });
 
   const stopAssignmentMutation = useMutation({
-    mutationFn: async (assignmentId: string) => {
-      const { error } = await supabase.from("patient_item_assignments").update({ tarikh_tamat_guna: new Date().toISOString().split("T")[0], ditamatkan_oleh: profile?.id, aktif: false }).eq("id", assignmentId);
+    mutationFn: async ({ assignmentId, sebab }: { assignmentId: string; sebab: string }) => {
+      const { error } = await supabase.from("patient_item_assignments").update({ tarikh_tamat_guna: new Date().toISOString().split("T")[0], ditamatkan_oleh: profile?.id, sebab_tamat: sebab, aktif: false }).eq("id", assignmentId);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Penugasan ditamatkan."); queryClient.invalidateQueries({ queryKey: ["assignments", id] }); queryClient.invalidateQueries({ queryKey: ["items-with-stats"] }); },
-    onError: () => toast.error("Gagal menamatkan penugasan."),
+    onSuccess: () => { toast.success("Item ditamatkan."); setOpenStopAssign(null); setStopReason(""); queryClient.invalidateQueries({ queryKey: ["assignments", id] }); queryClient.invalidateQueries({ queryKey: ["items-with-stats"] }); },
+    onError: () => toast.error("Gagal menamatkan item."),
   });
 
   const updateDoseMutation = useMutation({
@@ -202,15 +173,12 @@ export default function PatientDetailPage() {
         if (batch) { const { error: updateError } = await supabase.from("item_batches").update({ kuantiti: batch.kuantiti - parseInt(data.kuantiti) }).eq("id", data.batch_id); if (updateError) throw updateError; }
       }
     },
-    onSuccess: () => { toast.success("Bekalan berjaya direkodkan."); setOpenSupply(null); setSupplyData({ tempoh_nilai: "", tempoh_unit: "Hari", kuantiti: "", batch_id: "", catatan_bekalan: "" }); queryClient.invalidateQueries({ queryKey: ["assignments", id] }); queryClient.invalidateQueries({ queryKey: ["batches-for-supply"] }); },
+    onSuccess: () => { toast.success("Bekalan berjaya direkodkan."); setOpenSupply(null); setSupplyData({ tempoh_nilai: "", tempoh_unit: "Hari", kuantiti: "", batch_id: "", catatan_bekalan: "" }); queryClient.invalidateQueries({ queryKey: ["assignments", id] }); },
     onError: () => toast.error("Gagal merekod bekalan."),
   });
 
   const deleteSupplyMutation = useMutation({
-    mutationFn: async (supplyId: string) => {
-      const { error } = await supabase.from("supply_records").delete().eq("id", supplyId);
-      if (error) throw error;
-    },
+    mutationFn: async (supplyId: string) => { const { error } = await supabase.from("supply_records").delete().eq("id", supplyId); if (error) throw error; },
     onSuccess: () => { toast.success("Rekod bekalan dipadam."); queryClient.invalidateQueries({ queryKey: ["supply-history", expandedAssignment] }); },
     onError: () => toast.error("Gagal memadam rekod bekalan."),
   });
@@ -227,16 +195,14 @@ export default function PatientDetailPage() {
   if (!patient) return <div className="flex items-center justify-center py-12">Memuatkan...</div>;
 
   const currentAssignment = openSupply ? assignments?.find(a => a.id === openSupply) : null;
+
   const toggleExpand = (assignmentId: string) => {
     if (expandedAssignment !== assignmentId) { setFoldDose(true); setFoldSupply(true); }
     setExpandedAssignment(expandedAssignment === assignmentId ? null : assignmentId);
     setEditSupplyRecord(null);
   };
 
-  const filteredItems = (items || []).filter((item: any) =>
-    !itemSearch || item.nama_item.toLowerCase().includes(itemSearch.toLowerCase()) ||
-    item.kod_item?.toLowerCase().includes(itemSearch.toLowerCase())
-  );
+  const filteredItems = (items || []).filter((item: any) => !itemSearch || item.nama_item.toLowerCase().includes(itemSearch.toLowerCase()) || item.kod_item?.toLowerCase().includes(itemSearch.toLowerCase()));
 
   return (
     <div className="space-y-6">
@@ -248,7 +214,6 @@ export default function PatientDetailPage() {
         <h1 className="text-2xl font-bold">Butiran Pesakit</h1>
       </div>
 
-      {/* Patient Info */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{patient.nama}</CardTitle>
@@ -283,80 +248,43 @@ export default function PatientDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Assignments */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Penugasan Item</CardTitle>
+          <CardTitle>Item Didaftarkan</CardTitle>
           {canEdit && (
             <Dialog open={openAddAssignment} onOpenChange={(v) => { setOpenAddAssignment(v); if (!v) { setSelectedItemId(null); setItemSearch(""); } }}>
-              <DialogTrigger asChild><Button size="sm"><Plus className="mr-2 h-4 w-4" />Tambah Penugasan</Button></DialogTrigger>
+              <DialogTrigger asChild><Button size="sm"><Plus className="mr-2 h-4 w-4" />Tambah Item</Button></DialogTrigger>
               <DialogContent className="max-w-lg">
-                <DialogHeader><DialogTitle>Tambah Penugasan Baharu</DialogTitle><DialogDescription>Tugaskan item ubat kepada pesakit ini. Cari dan pilih item dari senarai di bawah.</DialogDescription></DialogHeader>
+                <DialogHeader><DialogTitle>Tambah Item Baharu</DialogTitle><DialogDescription>Cari dan pilih item dari senarai di bawah.</DialogDescription></DialogHeader>
                 <div className="space-y-4">
-                  {/* Item Search */}
-                  <div className="space-y-2">
-                    <Label>Cari Item Ubat</Label>
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input ref={itemSearchRef} placeholder="Cari item (nama/kod)..." className="pl-8" value={itemSearch} onChange={e => setItemSearch(e.target.value)} />
-                    </div>
+                  <div className="space-y-2"><Label>Cari Item Ubat</Label>
+                    <div className="relative"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input ref={itemSearchRef} placeholder="Cari item (nama/kod)..." className="pl-8" value={itemSearch} onChange={e => setItemSearch(e.target.value)} /></div>
                   </div>
-
-                  {/* Item Grid */}
                   <div className="border rounded-md max-h-52 overflow-y-auto">
                     <Table>
-                      <TableHeader className="sticky top-0 bg-background">
-                        <TableRow>
-                          <TableHead className="w-[40px]"></TableHead>
-                          <TableHead>Item</TableHead>
-                          <TableHead>Kuota</TableHead>
-                          <TableHead>Guna</TableHead>
-                          <TableHead>Baki</TableHead>
-                        </TableRow>
-                      </TableHeader>
+                      <TableHeader className="sticky top-0 bg-background"><TableRow><TableHead className="w-[40px]"></TableHead><TableHead>Item</TableHead><TableHead>Kuota</TableHead><TableHead>Guna</TableHead><TableHead>Baki</TableHead></TableRow></TableHeader>
                       <TableBody>
-                        {filteredItems.length === 0 ? (
-                          <TableRow><TableCell colSpan={5} className="text-center py-4 text-muted-foreground">Tiada item dijumpai.</TableCell></TableRow>
-                        ) : (
+                        {filteredItems.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center py-4 text-muted-foreground">Tiada item dijumpai.</TableCell></TableRow> : (
                           filteredItems.map((item: any) => (
                             <TableRow key={item.id} className={`cursor-pointer ${selectedItemId === item.id ? "bg-primary/10" : ""}`} onClick={() => setSelectedItemId(selectedItemId === item.id ? null : item.id)}>
-                              <TableCell>
-                                <input type="radio" name="item_select" checked={selectedItemId === item.id} onChange={() => setSelectedItemId(item.id)} className="accent-primary" />
-                              </TableCell>
-                              <TableCell>
-                                <div className="font-medium text-sm">{item.nama_item} {item.kekuatan}</div>
-                                <div className="text-xs text-muted-foreground">{item.kod_item}</div>
-                              </TableCell>
+                              <TableCell><input type="radio" name="item_select" checked={selectedItemId === item.id} onChange={() => setSelectedItemId(item.id)} className="accent-primary" /></TableCell>
+                              <TableCell><div className="font-medium text-sm">{item.nama_item} {item.kekuatan}</div><div className="text-xs text-muted-foreground">{item.kod_item}</div></TableCell>
                               <TableCell className="text-sm">{item.kuota ?? "-"}</TableCell>
                               <TableCell className="text-sm">{item.patient_count}</TableCell>
-                              <TableCell className="text-sm">
-                                {item.baki_kuota != null ? (
-                                  <Badge variant={item.baki_kuota > 0 ? "success" : "destructive"}>{item.baki_kuota}</Badge>
-                                ) : "-"}
-                              </TableCell>
+                              <TableCell className="text-sm">{item.baki_kuota != null ? <Badge variant={item.baki_kuota > 0 ? "success" : "destructive"}>{item.baki_kuota}</Badge> : "-"}</TableCell>
                             </TableRow>
                           ))
                         )}
                       </TableBody>
                     </Table>
                   </div>
-
-                  {selectedItemId && (
-                    <div className="p-3 bg-accent/30 rounded-md">
-                      <p className="text-sm font-medium">
-                        Dipilih: {items?.find((i: any) => i.id === selectedItemId)?.nama_item}
-                      </p>
-                    </div>
-                  )}
-
+                  {selectedItemId && <div className="p-3 bg-accent/30 rounded-md"><p className="text-sm font-medium">Dipilih: {items?.find((i: any) => i.id === selectedItemId)?.nama_item}</p></div>}
                   <div className="space-y-2"><Label>Dos</Label><Input value={newAssignment.dos} onChange={e => setNewAssignment({ ...newAssignment, dos: e.target.value })} placeholder="cth: 1 tablet 500mg sekali sehari" /></div>
                   <div className="space-y-2"><Label>Tarikh Mula</Label><Input type="date" value={newAssignment.tarikh_mula_guna} onChange={e => setNewAssignment({ ...newAssignment, tarikh_mula_guna: e.target.value })} /></div>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => { setOpenAddAssignment(false); setSelectedItemId(null); setItemSearch(""); }}>Batal</Button>
-                  <Button onClick={() => { if (selectedItemId) addAssignmentMutation.mutate({ ...newAssignment, item_id: selectedItemId }); }} disabled={!selectedItemId || !newAssignment.dos || addAssignmentMutation.isPending}>
-                    {addAssignmentMutation.isPending ? "Menyimpan..." : "Simpan"}
-                  </Button>
+                  <Button onClick={() => { if (selectedItemId) addAssignmentMutation.mutate({ ...newAssignment, item_id: selectedItemId }); }} disabled={!selectedItemId || !newAssignment.dos || addAssignmentMutation.isPending}>{addAssignmentMutation.isPending ? "Menyimpan..." : "Simpan"}</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -364,7 +292,7 @@ export default function PatientDetailPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y divide-border">
-            {assignments?.length === 0 ? <div className="p-6 text-center text-muted-foreground">Tiada penugasan.</div> : (
+            {assignments?.length === 0 ? <div className="p-6 text-center text-muted-foreground">Tiada item didaftarkan.</div> : (
               assignments?.map(assignment => (
                 <div key={assignment.id}>
                   <button className="w-full flex items-center justify-between px-6 py-4 hover:bg-accent/30 transition-colors text-left" onClick={() => toggleExpand(assignment.id)}>
@@ -384,39 +312,37 @@ export default function PatientDetailPage() {
                           <div className="flex gap-2 flex-wrap">
                             {assignment.aktif && <>
                               <Button size="sm" variant="outline" onClick={() => { setOpenUpdateDose(assignment.id); setDoseUpdate({ dos: assignment.dos || "", catatan: "" }); }}><Edit className="mr-1.5 h-3.5 w-3.5" /> Kemaskini Dos</Button>
-                              {canSupply && <Button size="sm" onClick={() => { setOpenSupply(assignment.id); setSupplyData({ tempoh_nilai: "", tempoh_unit: "Hari", kuantiti: "", batch_id: "", catatan_bekalan: "" }); }}><Package className="mr-1.5 h-3.5 w-3.5" /> Bekal Baru</Button>}
-                              {canEdit && <Button size="sm" variant="destructive" onClick={() => stopAssignmentMutation.mutate(assignment.id)}><XCircle className="mr-1.5 h-3.5 w-3.5" /> Tamatkan</Button>}
+                              {canSupply && <Button size="sm" onClick={() => { setOpenSupply(assignment.id); setSupplyData({ tempoh_nilai: "", tempoh_unit: "Hari", kuantiti: "", batch_id: "", catatan_bekalan: "" }); }}><Package className="mr-1.5 h-3.5 w-3.5" /> Bekal Item</Button>}
+                              {canEdit && <Button size="sm" variant="destructive" onClick={() => { setOpenStopAssign(assignment.id); setStopReason(""); }}><XCircle className="mr-1.5 h-3.5 w-3.5" /> Tamatkan</Button>}
                             </>}
                           </div>
 
                           <div>
                             <button className="text-sm font-semibold flex items-center gap-2 mb-3 w-full text-left hover:text-primary transition-colors" onClick={() => setFoldDose(!foldDose)}>
                               {foldDose ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronUp className="h-4 w-4 text-primary" />}
-                              <Activity className="h-4 w-4 text-primary" /> Riwayat Dos <span className="text-xs text-muted-foreground font-normal">({doseHistory?.length || 0})</span>
+                              <Activity className="h-4 w-4 text-primary" /> Sejarah Dos <span className="text-xs text-muted-foreground font-normal">({doseHistory?.length || 0})</span>
                             </button>
                             {!foldDose && (doseHistory && doseHistory.length > 0 ? (
                               <div className="border rounded-md overflow-hidden">
-                                <Table>
-                                  <TableHeader><TableRow><TableHead>Tarikh</TableHead><TableHead>Dos</TableHead><TableHead>Dikemaskini Oleh</TableHead><TableHead>Catatan</TableHead></TableRow></TableHeader>
-                                  <TableBody>{doseHistory.map((d: any) => (<TableRow key={d.id}><TableCell>{formatDate(d.tarikh)}</TableCell><TableCell className="font-medium">{d.dos}</TableCell><TableCell>{d.staff_name || "-"}</TableCell><TableCell className="text-muted-foreground">{d.catatan || "-"}</TableCell></TableRow>))}</TableBody>
+                                <Table><TableHeader><TableRow><TableHead>Tarikh</TableHead><TableHead>Dos</TableHead><TableHead>Dikemaskini Oleh</TableHead></TableRow></TableHeader>
+                                  <TableBody>{doseHistory.map((d: any) => (<TableRow key={d.id}><TableCell>{formatDate(d.tarikh)}</TableCell><TableCell className="font-medium">{d.dos}</TableCell><TableCell>{d.staff_name || "-"}</TableCell></TableRow>))}</TableBody>
                                 </Table>
                               </div>
-                            ) : <p className="text-sm text-muted-foreground">Tiada riwayat dos.</p>)}
+                            ) : <p className="text-sm text-muted-foreground">Tiada sejarah dos.</p>)}
                           </div>
 
                           <div>
                             <button className="text-sm font-semibold flex items-center gap-2 mb-3 w-full text-left hover:text-primary transition-colors" onClick={() => setFoldSupply(!foldSupply)}>
                               {foldSupply ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronUp className="h-4 w-4 text-primary" />}
-                              <ClipboardList className="h-4 w-4 text-primary" /> Riwayat Bekalan <span className="text-xs text-muted-foreground font-normal">({supplyHistory?.length || 0})</span>
+                              <ClipboardList className="h-4 w-4 text-primary" /> Sejarah Bekalan <span className="text-xs text-muted-foreground font-normal">({supplyHistory?.length || 0})</span>
                             </button>
                             {!foldSupply && (supplyHistory && supplyHistory.length > 0 ? (
                               <div className="border rounded-md overflow-hidden">
-                                <Table>
-                                  <TableHeader><TableRow><TableHead>Tarikh</TableHead><TableHead>Dos</TableHead><TableHead>Tempoh</TableHead><TableHead>Kuantiti</TableHead><TableHead>Kelompok</TableHead><TableHead>Kakitangan</TableHead><TableHead className="w-[100px]">Tindakan</TableHead></TableRow></TableHeader>
+                                <Table><TableHeader><TableRow><TableHead>Tarikh</TableHead><TableHead>Dos</TableHead><TableHead>Tempoh</TableHead><TableHead>Kuantiti</TableHead><TableHead>Kelompok</TableHead><TableHead>Kakitangan</TableHead><TableHead className="w-[100px]">Tindakan</TableHead></TableRow></TableHeader>
                                   <TableBody>{supplyHistory.map((record: any) => (<TableRow key={record.id}><TableCell>{formatDate(record.tarikh_dibekal)}</TableCell><TableCell>{record.dos}</TableCell><TableCell>{record.tempoh_dibekal || "-"}</TableCell><TableCell>{record.kuantiti}</TableCell><TableCell>{record.batch?.nombor_kelompok || "-"}</TableCell><TableCell>{record.staff?.nama || "-"}</TableCell><TableCell><div className="flex gap-1"><Button size="sm" variant="ghost" onClick={() => setEditSupplyRecord(record)}><Edit className="h-3.5 w-3.5" /></Button><Button size="sm" variant="ghost" onClick={() => { if (confirm("Padam rekod ini?")) deleteSupplyMutation.mutate(record.id); }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button></div></TableCell></TableRow>))}</TableBody>
                                 </Table>
                               </div>
-                            ) : <p className="text-sm text-muted-foreground">Tiada riwayat bekalan.</p>)}
+                            ) : <p className="text-sm text-muted-foreground">Tiada sejarah bekalan.</p>)}
                           </div>
                         </div>
                       </motion.div>
@@ -429,7 +355,50 @@ export default function PatientDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Edit Supply Dialog */}
+      {/* Stop Assignment Dialog */}
+      <Dialog open={!!openStopAssign} onOpenChange={() => setOpenStopAssign(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive"><XCircle className="h-5 w-5" /> Tamatkan Item</DialogTitle>
+            <DialogDescription>
+              Tindakan ini akan menamatkan item ini untuk pesakit ini. Item akan ditandakan sebagai "Tamat" dan tiada lagi bekalan boleh dibuat. Sejarah dos dan bekalan akan tetap disimpan.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4 text-sm">
+              <p className="font-medium text-destructive mb-1">⚠️ Amaran Penting</p>
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                <li>Item ini akan ditamatkan serta-merta</li>
+                <li>Tiada bekalan lanjut boleh dilakukan untuk item ini</li>
+                <li>Catatan tarikh tamat dan siapa yang menamatkan akan direkodkan</li>
+                <li>Sejarah dos dan bekalan sebelum ini tidak akan dipadam</li>
+              </ul>
+            </div>
+            <div className="space-y-2">
+              <Label>Sebab Tamat *</Label>
+              <Select value={stopReason} onValueChange={setStopReason}>
+                <SelectTrigger><SelectValue placeholder="Pilih sebab tamat..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Tukar kepada item lain">Tukar kepada item lain</SelectItem>
+                  <SelectItem value="Pesakit tamat rawatan">Pesakit tamat rawatan</SelectItem>
+                  <SelectItem value="Pesakit tidak datang (Defaulter)">Pesakit tidak datang (Defaulter)</SelectItem>
+                  <SelectItem value="Reaksi buruk / alahan">Reaksi buruk / alahan</SelectItem>
+                  <SelectItem value="Atas nasihat doktor">Atas nasihat doktor</SelectItem>
+                  <SelectItem value="Pesakit meninggal dunia">Pesakit meninggal dunia</SelectItem>
+                  <SelectItem value="Lain-lain">Lain-lain</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenStopAssign(null)}>Batal</Button>
+            <Button variant="destructive" onClick={() => { if (openStopAssign && stopReason) stopAssignmentMutation.mutate({ assignmentId: openStopAssign, sebab: stopReason }); }} disabled={!stopReason || stopAssignmentMutation.isPending}>
+              {stopAssignmentMutation.isPending ? "Menamatkan..." : "Ya, Tamatkan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!editSupplyRecord} onOpenChange={() => setEditSupplyRecord(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Edit Rekod Bekalan</DialogTitle></DialogHeader>
@@ -441,14 +410,12 @@ export default function PatientDetailPage() {
               <div className="space-y-2"><Label>Catatan</Label><Textarea value={(editSupplyRecord.editCatatan ?? editSupplyRecord.catatan_bekalan) || ""} onChange={e => setEditSupplyRecord({ ...editSupplyRecord, editCatatan: e.target.value })} /></div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditSupplyRecord(null)}>Batal</Button>
+          <DialogFooter><Button variant="outline" onClick={() => setEditSupplyRecord(null)}>Batal</Button>
             <Button onClick={() => { if (editSupplyRecord) saveEditSupplyMutation.mutate({ supplyId: editSupplyRecord.id, updates: { dos: editSupplyRecord.editDos ?? editSupplyRecord.dos, tempoh_dibekal: editSupplyRecord.editTempoh ?? editSupplyRecord.tempoh_dibekal, kuantiti: editSupplyRecord.editKuantiti ?? editSupplyRecord.kuantiti, catatan_bekalan: editSupplyRecord.editCatatan ?? editSupplyRecord.catatan_bekalan } }); }} disabled={saveEditSupplyMutation.isPending}>{saveEditSupplyMutation.isPending ? "Menyimpan..." : "Simpan"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Update Dose Dialog */}
       <Dialog open={!!openUpdateDose} onOpenChange={() => setOpenUpdateDose(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Kemaskini Dos</DialogTitle><DialogDescription>Kemaskini dos untuk penugasan ini.</DialogDescription></DialogHeader>
@@ -460,12 +427,11 @@ export default function PatientDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Supply Dialog */}
       <Dialog open={!!openSupply} onOpenChange={() => setOpenSupply(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>Bekal Ubat</DialogTitle><DialogDescription>Rekodkan bekalan ubat untuk pesakit ini.</DialogDescription></DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2"><Label>Dos Semasa</Label><Input value={currentAssignment?.dos || "-"} readOnly className="bg-muted" /><p className="text-xs text-muted-foreground">Guna butang <strong>Kemaskini Dos</strong> untuk menukar dos.</p></div>
+            <div className="space-y-2"><Label>Dos Semasa</Label><Input value={currentAssignment?.dos || "-"} readOnly className="bg-muted" /><p className="text-xs text-muted-foreground">Guna <strong>Kemaskini Dos</strong> untuk menukar dos.</p></div>
             <div className="space-y-2"><Label>Kelompok (Batch)</Label>
               <Select value={supplyData.batch_id} onValueChange={v => setSupplyData({ ...supplyData, batch_id: v })}>
                 <SelectTrigger><SelectValue placeholder="Pilih kelompok..." /></SelectTrigger>
@@ -480,7 +446,6 @@ export default function PatientDetailPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Merge Dialog */}
       {patient && <MergeDialog open={openMerge} onOpenChange={setOpenMerge} primaryPatient={patient} />}
     </div>
   );
