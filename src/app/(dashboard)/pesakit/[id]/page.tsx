@@ -21,11 +21,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { formatDate, formatDateTime } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { ArrowLeft, Plus, Pill, Edit, XCircle, Package, Merge, History, Save, X, Trash2 } from "lucide-react";
 import { MergeDialog } from "@/components/pesakit/merge-dialog";
-import type { Patient, PatientItemAssignment, Item, SupplyRecord, ItemBatch } from "@/types";
+import type { Patient, PatientItemAssignment, Item, SupplyRecord, ItemBatch, Profile } from "@/types";
 
 export default function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -42,12 +42,14 @@ export default function PatientDetailPage() {
   const [openAddAssignment, setOpenAddAssignment] = useState(false);
   const [newAssignment, setNewAssignment] = useState({ item_id: "", dos: "", tarikh_mula_guna: new Date().toISOString().split("T")[0] });
   const [openSupply, setOpenSupply] = useState<string | null>(null);
-  const [supplyData, setSupplyData] = useState({ dos: "", tempoh_dibekal: "", kuantiti: "", batch_id: "", catatan_bekalan: "" });
+  const [supplyData, setSupplyData] = useState({ tempoh_nilai: "", tempoh_unit: "Hari", kuantiti: "", batch_id: "", catatan_bekalan: "" });
   const [openMerge, setOpenMerge] = useState(false);
   const [viewHistoryAssignment, setViewHistoryAssignment] = useState<string | null>(null);
   const [viewDoseHistory, setViewDoseHistory] = useState<string | null>(null);
   const [editSupplyId, setEditSupplyId] = useState<string | null>(null);
   const [editSupplyData, setEditSupplyData] = useState({ dos: "", tempoh_dibekal: "", kuantiti: "", catatan_bekalan: "" });
+  const [openUpdateDose, setOpenUpdateDose] = useState<string | null>(null);
+  const [doseUpdate, setDoseUpdate] = useState({ dos: "", catatan: "" });
 
   // Fetch patient
   const { data: patient } = useQuery({
@@ -83,18 +85,32 @@ export default function PatientDetailPage() {
     },
   });
 
-  // Fetch dose history
+  // Fetch dose history with staff info
   const { data: doseHistory } = useQuery({
     queryKey: ["dose-history", viewDoseHistory],
     queryFn: async () => {
       if (!viewDoseHistory) return [];
-      const { data, error } = await supabase
+      // Fetch staff names separately to avoid FK join issues
+      const { data: doseData, error } = await supabase
         .from("dose_history")
         .select("*")
         .eq("assignment_id", viewDoseHistory)
         .order("tarikh", { ascending: false });
-      if (error) throw error;
-      return data;
+      
+      if (!error && doseData) {
+        // Enrich with staff names
+        const staffIds = [...new Set(doseData.map(d => d.dikemaskini_oleh).filter(Boolean))];
+        let staffMap: Record<string, any> = {};
+        if (staffIds.length > 0) {
+          const { data: staff } = await supabase
+            .from("profiles")
+            .select("id, nama")
+            .in("id", staffIds);
+          for (const s of (staff || [])) staffMap[s.id] = s;
+        }
+        return doseData.map(d => ({ ...d, dikemaskini_oleh: d.dikemaskini_oleh ? staffMap[d.dikemaskini_oleh] || { nama: "-" } : null }));
+      }
+      return doseData || [];
     },
     enabled: !!viewDoseHistory,
   });
@@ -168,6 +184,36 @@ export default function PatientDetailPage() {
     onError: () => toast.error("Gagal menamatkan penugasan."),
   });
 
+  // Update dose
+  const updateDoseMutation = useMutation({
+    mutationFn: async ({ assignmentId, dos, catatan }: { assignmentId: string; dos: string; catatan?: string }) => {
+      const { error: updateError } = await supabase
+        .from("patient_item_assignments")
+        .update({ dos })
+        .eq("id", assignmentId);
+      if (updateError) throw updateError;
+
+      const { error: historyError } = await supabase
+        .from("dose_history")
+        .insert({
+          assignment_id: assignmentId,
+          tarikh: new Date().toISOString().split("T")[0],
+          dos,
+          aktif: true,
+          catatan: catatan || null,
+          dikemaskini_oleh: profile?.id,
+        });
+      if (historyError) throw historyError;
+    },
+    onSuccess: () => {
+      toast.success("Dos dikemaskini.");
+      setOpenUpdateDose(null);
+      queryClient.invalidateQueries({ queryKey: ["assignments", id] });
+      queryClient.invalidateQueries({ queryKey: ["dose-history", viewDoseHistory] });
+    },
+    onError: () => toast.error("Gagal mengemaskini dos."),
+  });
+
   // Fetch batches for supply
   const { data: availableBatches } = useQuery({
     queryKey: ["batches-for-supply", openSupply],
@@ -190,16 +236,13 @@ export default function PatientDetailPage() {
 
   // Supply mutation
   const supplyMutation = useMutation({
-    mutationFn: async (data: typeof supplyData & { assignment_id: string }) => {
-      const assignment = assignments?.find(a => a.id === data.assignment_id);
-      if (assignment && data.dos !== assignment.dos) {
-        await supabase.from("patient_item_assignments").update({ dos: data.dos }).eq("id", data.assignment_id);
-      }
+    mutationFn: async (data: typeof supplyData & { assignment_id: string; dos: string }) => {
+      const tempoh = `${data.tempoh_nilai} ${data.tempoh_unit}`;
 
       const { error: insertError } = await supabase.from("supply_records").insert({
         assignment_id: data.assignment_id,
         dos: data.dos,
-        tempoh_dibekal: data.tempoh_dibekal,
+        tempoh_dibekal: tempoh,
         kuantiti: parseInt(data.kuantiti),
         batch_id: data.batch_id || null,
         kakitangan_pembekal: profile?.id || "",
@@ -221,7 +264,7 @@ export default function PatientDetailPage() {
     onSuccess: () => {
       toast.success("Bekalan berjaya direkodkan.");
       setOpenSupply(null);
-      setSupplyData({ dos: "", tempoh_dibekal: "", kuantiti: "", batch_id: "", catatan_bekalan: "" });
+      setSupplyData({ tempoh_nilai: "", tempoh_unit: "Hari", kuantiti: "", batch_id: "", catatan_bekalan: "" });
       queryClient.invalidateQueries({ queryKey: ["assignments", id] });
       queryClient.invalidateQueries({ queryKey: ["batches-for-supply"] });
     },
@@ -265,6 +308,7 @@ export default function PatientDetailPage() {
   }
 
   const selectedAssignment = assignments?.find(a => a.id === viewHistoryAssignment);
+  const currentAssignment = openSupply ? assignments?.find(a => a.id === openSupply) : null;
 
   return (
     <div className="space-y-6">
@@ -374,7 +418,7 @@ export default function PatientDetailPage() {
                 <TableHead>Dos</TableHead>
                 <TableHead>Tarikh Mula</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-[340px]">Tindakan</TableHead>
+                <TableHead className="w-[400px]">Tindakan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -395,18 +439,23 @@ export default function PatientDetailPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1 flex-wrap">
+                        {assignment.aktif && (
+                          <Button size="sm" variant="outline" onClick={() => { setOpenUpdateDose(assignment.id); setDoseUpdate({ dos: assignment.dos || "", catatan: "" }); }}>
+                            <Edit className="mr-1 h-3 w-3" /> Kemaskini Dos
+                          </Button>
+                        )}
                         <Button size="sm" variant="outline" onClick={() => setViewDoseHistory(assignment.id)}>
-                          <Pill className="mr-1 h-3 w-3" /> Dos
+                          <History className="mr-1 h-3 w-3" /> Riwayat Dos
                         </Button>
                         <Button size="sm" variant="outline" onClick={() => setViewHistoryAssignment(assignment.id)}>
-                          <History className="mr-1 h-3 w-3" /> Bekalan
+                          <Package className="mr-1 h-3 w-3" /> Bekalan
                         </Button>
                         {canSupply && assignment.aktif && (
                           <Button size="sm" onClick={() => {
                             setOpenSupply(assignment.id);
-                            setSupplyData({ dos: assignment.dos || "", tempoh_dibekal: "", kuantiti: "", batch_id: "", catatan_bekalan: "" });
+                            setSupplyData({ tempoh_nilai: "", tempoh_unit: "Hari", kuantiti: "", batch_id: "", catatan_bekalan: "" });
                           }}>
-                            <Package className="mr-1 h-3 w-3" /> Bekal
+                            <Package className="mr-1 h-3 w-3" /> Bekal Baru
                           </Button>
                         )}
                         {canEdit && assignment.aktif && (
@@ -424,11 +473,37 @@ export default function PatientDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Update Dose Dialog */}
+      <Dialog open={!!openUpdateDose} onOpenChange={() => setOpenUpdateDose(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Kemaskini Dos</DialogTitle>
+            <DialogDescription>Kemaskini dos untuk penugasan ini.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Dos Baru</Label>
+              <Input value={doseUpdate.dos} onChange={e => setDoseUpdate({ ...doseUpdate, dos: e.target.value })} placeholder="cth: 1 tablet 500mg sekali sehari" />
+            </div>
+            <div className="space-y-2">
+              <Label>Catatan</Label>
+              <Textarea value={doseUpdate.catatan} onChange={e => setDoseUpdate({ ...doseUpdate, catatan: e.target.value })} placeholder="Sebab pertukaran dos (jika ada)" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenUpdateDose(null)}>Batal</Button>
+            <Button onClick={() => { if (openUpdateDose) updateDoseMutation.mutate({ assignmentId: openUpdateDose, dos: doseUpdate.dos, catatan: doseUpdate.catatan }); }} disabled={!doseUpdate.dos || updateDoseMutation.isPending}>
+              {updateDoseMutation.isPending ? "Menyimpan..." : "Simpan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Dose History Dialog */}
       <Dialog open={!!viewDoseHistory} onOpenChange={() => setViewDoseHistory(null)}>
         <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Sejarah Dos</DialogTitle>
+            <DialogTitle>Riwayat Dos</DialogTitle>
             <DialogDescription>
               {assignments?.find(a => a.id === viewDoseHistory)?.item?.nama_item}
             </DialogDescription>
@@ -439,7 +514,7 @@ export default function PatientDetailPage() {
                 <TableRow>
                   <TableHead>Tarikh</TableHead>
                   <TableHead>Dos</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Dikemaskini Oleh</TableHead>
                   <TableHead>Catatan</TableHead>
                 </TableRow>
               </TableHeader>
@@ -448,18 +523,14 @@ export default function PatientDetailPage() {
                   <TableRow key={d.id}>
                     <TableCell>{formatDate(d.tarikh)}</TableCell>
                     <TableCell className="font-medium">{d.dos}</TableCell>
-                    <TableCell>
-                      <Badge variant={d.aktif ? "success" : "secondary"}>
-                        {d.aktif ? "Aktif" : "Lama"}
-                      </Badge>
-                    </TableCell>
+                    <TableCell>{d.dikemaskini_oleh?.nama || "-"}</TableCell>
                     <TableCell>{d.catatan || "-"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           ) : (
-            <p className="text-muted-foreground text-center py-8">Tiada sejarah dos.</p>
+            <p className="text-muted-foreground text-center py-8">Tiada riwayat dos.</p>
           )}
         </DialogContent>
       </Dialog>
@@ -468,7 +539,7 @@ export default function PatientDetailPage() {
       <Dialog open={!!viewHistoryAssignment} onOpenChange={() => { setViewHistoryAssignment(null); setEditSupplyId(null); }}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Sejarah Bekalan</DialogTitle>
+            <DialogTitle>Riwayat Bekalan</DialogTitle>
             <DialogDescription>
               {selectedAssignment?.item?.nama_item} {selectedAssignment?.item?.kekuatan} - Dos: {selectedAssignment?.dos || "-"}
             </DialogDescription>
@@ -556,8 +627,10 @@ export default function PatientDetailPage() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Dos Semasa</Label>
-              <Input value={supplyData.dos} onChange={e => setSupplyData({ ...supplyData, dos: e.target.value })} />
-              <p className="text-xs text-muted-foreground">Edit dos jika perlu. Dos baharu akan dikemaskini pada penugasan.</p>
+              <Input value={currentAssignment?.dos || "-"} readOnly className="bg-muted" />
+              <p className="text-xs text-muted-foreground">
+                Dos semasa dari penugasan. Guna butang <strong>Kemaskini Dos</strong> untuk menukar dos.
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Kelompok (Batch)</Label>
@@ -577,28 +650,35 @@ export default function PatientDetailPage() {
             </div>
             <div className="space-y-2">
               <Label>Tempoh Bekalan</Label>
-              <Select value={supplyData.tempoh_dibekal} onValueChange={v => setSupplyData({ ...supplyData, tempoh_dibekal: v })}>
-                <SelectTrigger><SelectValue placeholder="Pilih tempoh..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1 Hari">1 Hari</SelectItem>
-                  <SelectItem value="3 Hari">3 Hari</SelectItem>
-                  <SelectItem value="5 Hari">5 Hari</SelectItem>
-                  <SelectItem value="7 Hari">7 Hari (1 Minggu)</SelectItem>
-                  <SelectItem value="14 Hari">14 Hari (2 Minggu)</SelectItem>
-                  <SelectItem value="21 Hari">21 Hari (3 Minggu)</SelectItem>
-                  <SelectItem value="30 Hari">30 Hari (1 Bulan)</SelectItem>
-                  <SelectItem value="60 Hari">60 Hari (2 Bulan)</SelectItem>
-                  <SelectItem value="90 Hari">90 Hari (3 Bulan)</SelectItem>
-                  <SelectItem value="180 Hari">180 Hari (6 Bulan)</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  className="w-24"
+                  placeholder="cth: 30"
+                  value={supplyData.tempoh_nilai}
+                  onChange={e => setSupplyData({ ...supplyData, tempoh_nilai: e.target.value })}
+                />
+                <Select value={supplyData.tempoh_unit} onValueChange={v => setSupplyData({ ...supplyData, tempoh_unit: v })}>
+                  <SelectTrigger className="w-28">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Hari">Hari</SelectItem>
+                    <SelectItem value="Minggu">Minggu</SelectItem>
+                    <SelectItem value="Bulan">Bulan</SelectItem>
+                  </SelectContent>
+                </Select>
+                <span className="flex items-center text-sm text-muted-foreground">
+                  {supplyData.tempoh_nilai && `${supplyData.tempoh_nilai} ${supplyData.tempoh_unit}`}
+                </span>
+              </div>
             </div>
             <div className="space-y-2"><Label>Kuantiti</Label><Input type="number" value={supplyData.kuantiti} onChange={e => setSupplyData({ ...supplyData, kuantiti: e.target.value })} /></div>
             <div className="space-y-2"><Label>Catatan</Label><Textarea value={supplyData.catatan_bekalan} onChange={e => setSupplyData({ ...supplyData, catatan_bekalan: e.target.value })} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenSupply(null)}>Batal</Button>
-            <Button onClick={() => { if (openSupply) supplyMutation.mutate({ ...supplyData, assignment_id: openSupply }); }} disabled={!supplyData.kuantiti || supplyMutation.isPending}>
+            <Button onClick={() => { if (openSupply && currentAssignment) supplyMutation.mutate({ ...supplyData, assignment_id: openSupply, dos: currentAssignment.dos || "" }); }} disabled={!supplyData.kuantiti || supplyMutation.isPending}>
               {supplyMutation.isPending ? "Menyimpan..." : "Bekal"}
             </Button>
           </DialogFooter>
