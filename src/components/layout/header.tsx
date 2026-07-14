@@ -14,7 +14,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { Search, Menu, User, LogOut } from "lucide-react";
+import { ThemeSwitcher } from "@/components/layout/theme-switcher";
+import { Search, User, LogOut } from "lucide-react";
 import type { Patient } from "@/types";
 
 export function Header() {
@@ -109,6 +110,7 @@ export function Header() {
         )}
       </div>
 
+      <ThemeSwitcher />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon">
