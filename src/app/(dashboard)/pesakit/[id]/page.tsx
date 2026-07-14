@@ -23,7 +23,7 @@ import {
 import { toast } from "sonner";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { ArrowLeft, Plus, Pill, Edit, XCircle, Package, Merge, History, Save, X } from "lucide-react";
+import { ArrowLeft, Plus, Pill, Edit, XCircle, Package, Merge, History, Save, X, Trash2 } from "lucide-react";
 import { MergeDialog } from "@/components/pesakit/merge-dialog";
 import type { Patient, PatientItemAssignment, Item, SupplyRecord, ItemBatch } from "@/types";
 
@@ -212,6 +212,19 @@ export default function PatientDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["batches-for-supply"] });
     },
     onError: () => toast.error("Gagal merekod bekalan."),
+  });
+
+  // Delete supply mutation
+  const deleteSupplyMutation = useMutation({
+    mutationFn: async (supplyId: string) => {
+      const { error } = await supabase.from("supply_records").delete().eq("id", supplyId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Rekod bekalan dipadam.");
+      queryClient.invalidateQueries({ queryKey: ["supply-history", viewHistoryAssignment] });
+    },
+    onError: () => toast.error("Gagal memadam rekod bekalan."),
   });
 
   // Edit supply mutation
@@ -413,7 +426,7 @@ export default function PatientDetailPage() {
                   <TableHead>Kuantiti</TableHead>
                   <TableHead>Kelompok</TableHead>
                   <TableHead>Kakitangan</TableHead>
-                  <TableHead className="w-[80px]">Edit</TableHead>
+                  <TableHead className="w-[120px]">Tindakan</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -454,9 +467,16 @@ export default function PatientDetailPage() {
                           </Button>
                         </div>
                       ) : (
-                        <Button size="sm" variant="ghost" onClick={() => { setEditSupplyId(record.id); setEditSupplyData({ dos: record.dos, tempoh_dibekal: record.tempoh_dibekal || "", kuantiti: String(record.kuantiti), catatan_bekalan: record.catatan_bekalan || "" }); }}>
-                          <Edit className="h-3 w-3" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => { setEditSupplyId(record.id); setEditSupplyData({ dos: record.dos, tempoh_dibekal: record.tempoh_dibekal || "", kuantiti: String(record.kuantiti), catatan_bekalan: record.catatan_bekalan || "" }); }}>
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => {
+                            if (confirm("Padam rekod bekalan ini?")) deleteSupplyMutation.mutate(record.id);
+                          }}>
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        </div>
                       )}
                     </TableCell>
                   </TableRow>
