@@ -55,6 +55,7 @@ export default function PatientDetailPage() {
   const [foldSupply, setFoldSupply] = useState(true);
   const [openStopAssign, setOpenStopAssign] = useState<string | null>(null);
   const [stopReason, setStopReason] = useState("");
+  const [openDeleteSupply, setOpenDeleteSupply] = useState<any>(null);
   const itemSearchRef = useRef<HTMLInputElement>(null);
 
   const { data: patient } = useQuery({
@@ -179,7 +180,7 @@ export default function PatientDetailPage() {
 
   const deleteSupplyMutation = useMutation({
     mutationFn: async (supplyId: string) => { const { error } = await supabase.from("supply_records").delete().eq("id", supplyId); if (error) throw error; },
-    onSuccess: () => { toast.success("Rekod bekalan dipadam."); queryClient.invalidateQueries({ queryKey: ["supply-history", expandedAssignment] }); },
+    onSuccess: () => { toast.success("Rekod bekalan dipadam."); setOpenDeleteSupply(null); queryClient.invalidateQueries({ queryKey: ["supply-history", expandedAssignment] }); },
     onError: () => toast.error("Gagal memadam rekod bekalan."),
   });
 
@@ -339,7 +340,7 @@ export default function PatientDetailPage() {
                             {!foldSupply && (supplyHistory && supplyHistory.length > 0 ? (
                               <div className="border rounded-md overflow-hidden">
                                 <Table><TableHeader><TableRow><TableHead>Tarikh</TableHead><TableHead>Dos</TableHead><TableHead>Tempoh</TableHead><TableHead>Kuantiti</TableHead><TableHead>Kelompok</TableHead><TableHead>Kakitangan</TableHead><TableHead className="w-[100px]">Tindakan</TableHead></TableRow></TableHeader>
-                                  <TableBody>{supplyHistory.map((record: any) => (<TableRow key={record.id}><TableCell>{formatDate(record.tarikh_dibekal)}</TableCell><TableCell>{record.dos}</TableCell><TableCell>{record.tempoh_dibekal || "-"}</TableCell><TableCell>{record.kuantiti}</TableCell><TableCell>{record.batch?.nombor_kelompok || "-"}</TableCell><TableCell>{record.staff?.nama || "-"}</TableCell><TableCell><div className="flex gap-1"><Button size="sm" variant="ghost" onClick={() => setEditSupplyRecord(record)}><Edit className="h-3.5 w-3.5" /></Button><Button size="sm" variant="ghost" onClick={() => { if (confirm("Padam rekod ini?")) deleteSupplyMutation.mutate(record.id); }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button></div></TableCell></TableRow>))}</TableBody>
+                                  <TableBody>{supplyHistory.map((record: any) => (<TableRow key={record.id}><TableCell>{formatDate(record.tarikh_dibekal)}</TableCell><TableCell>{record.dos}</TableCell><TableCell>{record.tempoh_dibekal || "-"}</TableCell><TableCell>{record.kuantiti}</TableCell><TableCell>{record.batch?.nombor_kelompok || "-"}</TableCell><TableCell>{record.staff?.nama || "-"}</TableCell><TableCell><div className="flex gap-1"><Button size="sm" variant="ghost" onClick={() => setEditSupplyRecord(record)}><Edit className="h-3.5 w-3.5" /></Button><Button size="sm" variant="ghost" onClick={() => setOpenDeleteSupply(record)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button></div></TableCell></TableRow>))}</TableBody>
                                 </Table>
                               </div>
                             ) : <p className="text-sm text-muted-foreground">Tiada sejarah bekalan.</p>)}
@@ -360,16 +361,14 @@ export default function PatientDetailPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive"><XCircle className="h-5 w-5" /> Tamatkan Item</DialogTitle>
-            <DialogDescription>
-              Tindakan ini akan menamatkan item ini untuk pesakit ini. Item akan ditandakan sebagai "Tamat" dan tiada lagi bekalan boleh dibuat. Sejarah dos dan bekalan akan tetap disimpan.
-            </DialogDescription>
+            <DialogDescription>Tindakan ini akan menamatkan item ini untuk pesakit ini. Sejarah dos dan bekalan akan tetap disimpan.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4 text-sm">
               <p className="font-medium text-destructive mb-1">⚠️ Amaran Penting</p>
-              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
                 <li>Item ini akan ditamatkan serta-merta</li>
-                <li>Tiada bekalan lanjut boleh dilakukan untuk item ini</li>
+                <li>Tiada bekalan lanjut boleh dilakukan</li>
                 <li>Catatan tarikh tamat dan siapa yang menamatkan akan direkodkan</li>
                 <li>Sejarah dos dan bekalan sebelum ini tidak akan dipadam</li>
               </ul>
@@ -394,6 +393,43 @@ export default function PatientDetailPage() {
             <Button variant="outline" onClick={() => setOpenStopAssign(null)}>Batal</Button>
             <Button variant="destructive" onClick={() => { if (openStopAssign && stopReason) stopAssignmentMutation.mutate({ assignmentId: openStopAssign, sebab: stopReason }); }} disabled={!stopReason || stopAssignmentMutation.isPending}>
               {stopAssignmentMutation.isPending ? "Menamatkan..." : "Ya, Tamatkan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Supply Dialog */}
+      <Dialog open={!!openDeleteSupply} onOpenChange={() => setOpenDeleteSupply(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive"><Trash2 className="h-5 w-5" /> Padam Rekod Bekalan</DialogTitle>
+            <DialogDescription>Tindakan ini akan memadamkan rekod bekalan secara kekal dan tidak boleh dibatalkan.</DialogDescription>
+          </DialogHeader>
+          {openDeleteSupply && (
+            <div className="space-y-4">
+              <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4 text-sm space-y-2">
+                <p className="font-medium text-destructive">⚠️ Amaran Penting</p>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground text-xs">
+                  <li>Rekod bekalan ini akan dipadamkan secara kekal</li>
+                  <li>Data tidak boleh dipulihkan semula</li>
+                  <li>Kuantiti stok tidak akan dikembalikan secara automatik</li>
+                  <li>Sejarah dos dan penugasan pesakit tidak terjejas</li>
+                </ul>
+              </div>
+              <div className="rounded-md border text-sm">
+                <div className="grid grid-cols-2 gap-3 p-3">
+                  <div><span className="text-muted-foreground">Tarikh:</span> {formatDate(openDeleteSupply.tarikh_dibekal)}</div>
+                  <div><span className="text-muted-foreground">Dos:</span> {openDeleteSupply.dos}</div>
+                  <div><span className="text-muted-foreground">Kuantiti:</span> {openDeleteSupply.kuantiti}</div>
+                  <div><span className="text-muted-foreground">Tempoh:</span> {openDeleteSupply.tempoh_dibekal || "-"}</div>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenDeleteSupply(null)}>Batal</Button>
+            <Button variant="destructive" onClick={() => { if (openDeleteSupply) { deleteSupplyMutation.mutate(openDeleteSupply.id); } }} disabled={deleteSupplyMutation.isPending}>
+              {deleteSupplyMutation.isPending ? "Memadam..." : "Ya, Padamkan"}
             </Button>
           </DialogFooter>
         </DialogContent>

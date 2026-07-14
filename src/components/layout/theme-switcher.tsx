@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { Palette, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 const themes = [
   { id: "default", name: "Default Light", color: "#7c3aed" },
@@ -22,6 +22,7 @@ const themes = [
   { id: "ayu", name: "Ayu", color: "#ff8f40" },
   { id: "synthwave-82", name: "Synthwave 82", color: "#ff7edb" },
   { id: "retro-arcade", name: "Retro Arcade", color: "#e94560" },
+  { id: "tweakcn", name: "TweakCN", color: "#18181b" },
   { id: "notebook", name: "Notebook", color: "#c0392b" },
 ];
 
