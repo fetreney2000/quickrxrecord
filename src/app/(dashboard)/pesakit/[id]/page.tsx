@@ -49,6 +49,8 @@ export default function PatientDetailPage() {
   const [openUpdateDose, setOpenUpdateDose] = useState<string | null>(null);
   const [doseUpdate, setDoseUpdate] = useState({ dos: "", catatan: "" });
   const [editSupplyRecord, setEditSupplyRecord] = useState<any>(null);
+  const [foldDose, setFoldDose] = useState(true);
+  const [foldSupply, setFoldSupply] = useState(true);
 
   // Fetch patient
   const { data: patient } = useQuery({
@@ -228,6 +230,10 @@ export default function PatientDetailPage() {
 
   const currentAssignment = openSupply ? assignments?.find(a => a.id === openSupply) : null;
   const toggleExpand = (assignmentId: string) => {
+    if (expandedAssignment !== assignmentId) {
+      setFoldDose(true);
+      setFoldSupply(true);
+    }
     setExpandedAssignment(expandedAssignment === assignmentId ? null : assignmentId);
     setEditSupplyRecord(null);
   };
@@ -329,56 +335,74 @@ export default function PatientDetailPage() {
                             </>}
                           </div>
 
-                          {/* Full Dose History Table */}
+                          {/* Foldable Dose History Table */}
                           <div>
-                            <h4 className="text-sm font-semibold flex items-center gap-2 mb-3"><Activity className="h-4 w-4 text-primary" /> Riwayat Dos</h4>
-                            {doseHistory && doseHistory.length > 0 ? (
-                              <div className="border rounded-md overflow-hidden">
-                                <Table>
-                                  <TableHeader><TableRow><TableHead>Tarikh</TableHead><TableHead>Dos</TableHead><TableHead>Dikemaskini Oleh</TableHead><TableHead>Catatan</TableHead></TableRow></TableHeader>
-                                  <TableBody>
-                                    {doseHistory.map((d: any) => (
-                                      <TableRow key={d.id}>
-                                        <TableCell>{formatDate(d.tarikh)}</TableCell>
-                                        <TableCell className="font-medium">{d.dos}</TableCell>
-                                        <TableCell>{d.staff_name || "-"}</TableCell>
-                                        <TableCell className="text-muted-foreground">{d.catatan || "-"}</TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
-                              </div>
-                            ) : <p className="text-sm text-muted-foreground">Tiada riwayat dos.</p>}
+                            <button
+                              className="text-sm font-semibold flex items-center gap-2 mb-3 w-full text-left hover:text-primary transition-colors"
+                              onClick={() => setFoldDose(!foldDose)}
+                            >
+                              {foldDose ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronUp className="h-4 w-4 text-primary" />}
+                              <Activity className="h-4 w-4 text-primary" /> Riwayat Dos
+                              <span className="text-xs text-muted-foreground font-normal">({doseHistory?.length || 0})</span>
+                            </button>
+                            {!foldDose && (
+                              doseHistory && doseHistory.length > 0 ? (
+                                <div className="border rounded-md overflow-hidden">
+                                  <Table>
+                                    <TableHeader><TableRow><TableHead>Tarikh</TableHead><TableHead>Dos</TableHead><TableHead>Dikemaskini Oleh</TableHead><TableHead>Catatan</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                      {doseHistory.map((d: any) => (
+                                        <TableRow key={d.id}>
+                                          <TableCell>{formatDate(d.tarikh)}</TableCell>
+                                          <TableCell className="font-medium">{d.dos}</TableCell>
+                                          <TableCell>{d.staff_name || "-"}</TableCell>
+                                          <TableCell className="text-muted-foreground">{d.catatan || "-"}</TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              ) : <p className="text-sm text-muted-foreground">Tiada riwayat dos.</p>
+                            )}
                           </div>
 
-                          {/* Full Supply History Table */}
+                          {/* Foldable Supply History Table */}
                           <div>
-                            <h4 className="text-sm font-semibold flex items-center gap-2 mb-3"><ClipboardList className="h-4 w-4 text-primary" /> Riwayat Bekalan</h4>
-                            {supplyHistory && supplyHistory.length > 0 ? (
-                              <div className="border rounded-md overflow-hidden">
-                                <Table>
-                                  <TableHeader><TableRow><TableHead>Tarikh</TableHead><TableHead>Dos</TableHead><TableHead>Tempoh</TableHead><TableHead>Kuantiti</TableHead><TableHead>Kelompok</TableHead><TableHead>Kakitangan</TableHead><TableHead className="w-[100px]">Tindakan</TableHead></TableRow></TableHeader>
-                                  <TableBody>
-                                    {supplyHistory.map((record: any) => (
-                                      <TableRow key={record.id}>
-                                        <TableCell>{formatDate(record.tarikh_dibekal)}</TableCell>
-                                        <TableCell>{record.dos}</TableCell>
-                                        <TableCell>{record.tempoh_dibekal || "-"}</TableCell>
-                                        <TableCell>{record.kuantiti}</TableCell>
-                                        <TableCell>{record.batch?.nombor_kelompok || "-"}</TableCell>
-                                        <TableCell>{record.staff?.nama || "-"}</TableCell>
-                                        <TableCell>
-                                          <div className="flex gap-1">
-                                            <Button size="sm" variant="ghost" onClick={() => setEditSupplyRecord(record)}><Edit className="h-3.5 w-3.5" /></Button>
-                                            <Button size="sm" variant="ghost" onClick={() => { if (confirm("Padam rekod ini?")) deleteSupplyMutation.mutate(record.id); }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
-                                          </div>
-                                        </TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
-                              </div>
-                            ) : <p className="text-sm text-muted-foreground">Tiada riwayat bekalan.</p>}
+                            <button
+                              className="text-sm font-semibold flex items-center gap-2 mb-3 w-full text-left hover:text-primary transition-colors"
+                              onClick={() => setFoldSupply(!foldSupply)}
+                            >
+                              {foldSupply ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronUp className="h-4 w-4 text-primary" />}
+                              <ClipboardList className="h-4 w-4 text-primary" /> Riwayat Bekalan
+                              <span className="text-xs text-muted-foreground font-normal">({supplyHistory?.length || 0})</span>
+                            </button>
+                            {!foldSupply && (
+                              supplyHistory && supplyHistory.length > 0 ? (
+                                <div className="border rounded-md overflow-hidden">
+                                  <Table>
+                                    <TableHeader><TableRow><TableHead>Tarikh</TableHead><TableHead>Dos</TableHead><TableHead>Tempoh</TableHead><TableHead>Kuantiti</TableHead><TableHead>Kelompok</TableHead><TableHead>Kakitangan</TableHead><TableHead className="w-[100px]">Tindakan</TableHead></TableRow></TableHeader>
+                                    <TableBody>
+                                      {supplyHistory.map((record: any) => (
+                                        <TableRow key={record.id}>
+                                          <TableCell>{formatDate(record.tarikh_dibekal)}</TableCell>
+                                          <TableCell>{record.dos}</TableCell>
+                                          <TableCell>{record.tempoh_dibekal || "-"}</TableCell>
+                                          <TableCell>{record.kuantiti}</TableCell>
+                                          <TableCell>{record.batch?.nombor_kelompok || "-"}</TableCell>
+                                          <TableCell>{record.staff?.nama || "-"}</TableCell>
+                                          <TableCell>
+                                            <div className="flex gap-1">
+                                              <Button size="sm" variant="ghost" onClick={() => setEditSupplyRecord(record)}><Edit className="h-3.5 w-3.5" /></Button>
+                                              <Button size="sm" variant="ghost" onClick={() => { if (confirm("Padam rekod ini?")) deleteSupplyMutation.mutate(record.id); }}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                                            </div>
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              ) : <p className="text-sm text-muted-foreground">Tiada riwayat bekalan.</p>
+                            )}
                           </div>
                         </div>
                       </motion.div>

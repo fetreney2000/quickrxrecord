@@ -55,17 +55,51 @@ export function MergeDialog({ open, onOpenChange, primaryPatient }: MergeDialogP
   const mergeMutation = useMutation({
     mutationFn: async () => {
       const secondaryIds = selectedDuplicates.map(p => p.id);
-      // Use the database function
-      const { error } = await supabase.rpc("merge_patients", {
-        p_primary_id: primaryPatient.id,
-        p_secondary_ids: secondaryIds,
-      });
-      if (error) {
-        // Fallback: manual merge
-        for (const secId of secondaryIds) {
-          await supabase.from("patient_item_assignments").update({ patient_id: primaryPatient.id }).eq("patient_id", secId);
-          await supabase.from("patients").update({ merged_into: primaryPatient.id, aktif: false }).eq("id", secId);
+      
+      // Handle duplicate assignments: if both patients use the same item,
+      // the duplicate assignment will be deactivated instead of creating duplicates
+      for (const secId of secondaryIds) {
+        // Get secondary patient's active assignments
+        const { data: secAssignments } = await supabase
+          .from("patient_item_assignments")
+          .select("id, item_id")
+          .eq("patient_id", secId)
+          .eq("aktif", true);
+        
+        // Get primary patient's active assignments
+        const { data: primaryAssignments } = await supabase
+          .from("patient_item_assignments")
+          .select("item_id")
+          .eq("patient_id", primaryPatient.id)
+          .eq("aktif", true);
+        
+        const primaryItemIds = new Set((primaryAssignments || []).map(a => a.item_id));
+        
+        for (const secAss of (secAssignments || [])) {
+          if (primaryItemIds.has(secAss.item_id)) {
+            // Same item exists on both - deactivate the secondary one with note
+            await supabase
+              .from("patient_item_assignments")
+              .update({ 
+                aktif: false, 
+                tarikh_tamat_guna: new Date().toISOString().split("T")[0],
+                sebab_tamat: "Digabung - item pendua" 
+              })
+              .eq("id", secAss.id);
+          } else {
+            // Unique item - reassign to primary
+            await supabase
+              .from("patient_item_assignments")
+              .update({ patient_id: primaryPatient.id })
+              .eq("id", secAss.id);
+          }
         }
+        
+        // Mark secondary patient as merged
+        await supabase
+          .from("patients")
+          .update({ merged_into: primaryPatient.id, aktif: false })
+          .eq("id", secId);
       }
     },
     onSuccess: () => {
