@@ -25,6 +25,19 @@ const themes = [
   { id: "neo-brutalism", name: "Neo Brutalism", color: "#2563eb" },
   { id: "tweakcn", name: "TweakCN", color: "#18181b" },
   { id: "notebook", name: "Notebook", color: "#c0392b" },
+  { id: "bubblegum", name: "Bubblegum", color: "#ff6b9d" },
+  { id: "cyberpunk", name: "Cyberpunk", color: "#ff00ff" },
+  { id: "darkmatter", name: "Dark Matter", color: "#6c63ff" },
+  { id: "graphite", name: "Graphite", color: "#888888" },
+  { id: "midnight-bloom", name: "Midnight Bloom", color: "#c084fc" },
+  { id: "mocha-mousse", name: "Mocha Mousse", color: "#a67c52" },
+  { id: "modern-minimal", name: "Modern Minimal", color: "#0a0a0a" },
+  { id: "quantum-rose", name: "Quantum Rose", color: "#ff69b4" },
+  { id: "starry-night", name: "Starry Night", color: "#fbbf24" },
+  { id: "supabase", name: "Supabase", color: "#3ecf8e" },
+  { id: "twitter", name: "Twitter", color: "#1d9bf0" },
+  { id: "vercel", name: "Vercel", color: "#000000" },
+  { id: "vintage-paper", name: "Vintage Paper", color: "#8b4513" },
 ];
 
 export function ThemeSwitcher() {
@@ -45,17 +58,8 @@ export function ThemeSwitcher() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {themes.map((t) => (
-          <DropdownMenuItem
-            key={t.id}
-            onClick={() => setTheme(t.id)}
-            className="flex items-center gap-3 cursor-pointer"
-          >
-            <div
-              className={`h-5 w-5 rounded-full border-2 shrink-0 ${
-                theme === t.id ? "border-foreground" : "border-border"
-              }`}
-              style={{ backgroundColor: t.color }}
-            />
+          <DropdownMenuItem key={t.id} onClick={() => setTheme(t.id)} className="flex items-center gap-3 cursor-pointer">
+            <div className={`h-5 w-5 rounded-full border-2 shrink-0 ${theme === t.id ? "border-foreground" : "border-border"}`} style={{ backgroundColor: t.color }} />
             <span className="text-sm">{t.name}</span>
             {theme === t.id && <span className="ml-auto text-xs text-primary">✓</span>}
           </DropdownMenuItem>

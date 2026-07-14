@@ -20,13 +20,16 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { Plus, Edit, Trash2, UserPlus } from "lucide-react";
+import { ThemeSwitcher } from "@/components/layout/theme-switcher";
+import { useTheme } from "next-themes";
+import { Plus, Edit, Trash2, UserPlus, KeyRound } from "lucide-react";
 import type { Profile, Peranan } from "@/types";
 
 const ROLES: Peranan[] = ["Pentadbir", "Penjaga Stor", "Kakitangan Farmasi", "Kakitangan Klinik"];
 
 export default function PengurusanPage() {
-  const { profile } = useAuth();
+  const { profile, updateTheme } = useAuth();
+  const { theme } = useTheme();
   const supabase = createClient();
   const queryClient = useQueryClient();
 
@@ -51,21 +54,14 @@ export default function PengurusanPage() {
 
   const addUserMutation = useMutation({
     mutationFn: async (user: typeof newUser) => {
-      // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: `${user.nama_pengguna}@quickrx.local`,
-        password: user.kata_laluan,
+        email: `${user.nama_pengguna}@quickrx.local`, password: user.kata_laluan,
       });
       if (authError) throw authError;
       if (!authData.user) throw new Error("Gagal mencipta pengguna.");
-
-      // Create profile
       const { error: profileError } = await supabase.from("profiles").insert({
-        id: authData.user.id,
-        nama: user.nama,
-        jawatan: user.jawatan || null,
-        peranan: user.peranan,
-        nama_pengguna: user.nama_pengguna,
+        id: authData.user.id, nama: user.nama, jawatan: user.jawatan || null,
+        peranan: user.peranan, nama_pengguna: user.nama_pengguna,
       });
       if (profileError) throw profileError;
     },
@@ -75,31 +71,18 @@ export default function PengurusanPage() {
       setNewUser({ nama: "", jawatan: "", peranan: "Kakitangan Farmasi", nama_pengguna: "", kata_laluan: "" });
       queryClient.invalidateQueries({ queryKey: ["users"] });
     },
-    onError: (e: any) => {
-      toast.error(e.message || "Gagal menambah pengguna.");
-    },
+    onError: (e: any) => toast.error(e.message || "Gagal menambah pengguna."),
   });
 
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, updates, oldNamaPengguna }: { id: string; updates: Partial<Profile>; oldNamaPengguna?: string }) => {
       const { error } = await supabase.from("profiles").update(updates).eq("id", id);
       if (error) throw error;
-      
-      // If nama_pengguna changed, also update the auth email
       if (updates.nama_pengguna && oldNamaPengguna && updates.nama_pengguna !== oldNamaPengguna) {
-        const { error: authError } = await supabase.auth.admin.updateUserById(id, {
-          email: `${updates.nama_pengguna}@quickrx.local`,
-        });
-        if (authError) {
-          console.error("Gagal mengemaskini e-mel pengesahan:", authError.message);
-        }
+        await supabase.auth.admin.updateUserById(id, { email: `${updates.nama_pengguna}@quickrx.local` });
       }
     },
-    onSuccess: () => {
-      toast.success("Pengguna dikemaskini.");
-      setEditId(null);
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-    },
+    onSuccess: () => { toast.success("Pengguna dikemaskini."); setEditId(null); queryClient.invalidateQueries({ queryKey: ["users"] }); },
     onError: () => toast.error("Gagal mengemaskini pengguna."),
   });
 
@@ -108,50 +91,41 @@ export default function PengurusanPage() {
       const { error } = await supabase.from("profiles").update({ aktif }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      toast.success("Status pengguna dikemaskini.");
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-    },
+    onSuccess: () => { toast.success("Status pengguna dikemaskini."); queryClient.invalidateQueries({ queryKey: ["users"] }); },
     onError: () => toast.error("Gagal mengemaskini status."),
   });
 
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase.auth.admin.updateUserById(userId, { password: "password123" });
+      if (error) throw error;
+    },
+    onSuccess: () => toast.success("Kata laluan diset semula ke 'password123'."),
+    onError: () => toast.error("Gagal menetapkan semula kata laluan."),
+  });
+
   if (!isAdmin) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <p className="text-muted-foreground">Anda tidak mempunyai akses ke halaman ini.</p>
-      </div>
-    );
+    return <div className="flex items-center justify-center py-12"><p className="text-muted-foreground">Anda tidak mempunyai akses ke halaman ini.</p></div>;
   }
 
   return (
     <div className="space-y-6">
-      <Breadcrumb items={[
-        { label: "Papan Pemuka", href: "/" },
-        { label: "Pengurusan Pengguna" },
-      ]} />
+      <Breadcrumb items={[{ label: "Papan Pemuka", href: "/" }, { label: "Pengurusan Pengguna" }]} />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Pengurusan Pengguna</h1>
         <Dialog open={openAdd} onOpenChange={setOpenAdd}>
-          <DialogTrigger asChild>
-            <Button><UserPlus className="mr-2 h-4 w-4" />Tambah Pengguna</Button>
-          </DialogTrigger>
+          <DialogTrigger asChild><Button><UserPlus className="mr-2 h-4 w-4" />Tambah Pengguna</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Tambah Pengguna Baharu</DialogTitle>
-              <DialogDescription>Cipta akaun pengguna baharu untuk sistem.</DialogDescription>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>Tambah Pengguna Baharu</DialogTitle><DialogDescription>Cipta akaun pengguna baharu untuk sistem.</DialogDescription></DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2"><Label>Nama *</Label><Input value={newUser.nama} onChange={e => setNewUser({ ...newUser, nama: e.target.value })} /></div>
               <div className="space-y-2"><Label>Nama Pengguna *</Label><Input value={newUser.nama_pengguna} onChange={e => setNewUser({ ...newUser, nama_pengguna: e.target.value })} /></div>
               <div className="space-y-2"><Label>Kata Laluan *</Label><Input type="password" value={newUser.kata_laluan} onChange={e => setNewUser({ ...newUser, kata_laluan: e.target.value })} /></div>
               <div className="space-y-2"><Label>Jawatan</Label><Input value={newUser.jawatan} onChange={e => setNewUser({ ...newUser, jawatan: e.target.value })} /></div>
-              <div className="space-y-2">
-                <Label>Peranan *</Label>
+              <div className="space-y-2"><Label>Peranan *</Label>
                 <Select value={newUser.peranan} onValueChange={v => setNewUser({ ...newUser, peranan: v as Peranan })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                  </SelectContent>
+                  <SelectContent>{ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
@@ -165,10 +139,9 @@ export default function PengurusanPage() {
         </Dialog>
       </div>
 
+      {/* Senarai Pengguna */}
       <Card>
-        <CardHeader>
-          <CardTitle>Senarai Pengguna</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Senarai Pengguna</CardTitle></CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -178,7 +151,7 @@ export default function PengurusanPage() {
                 <TableHead>Jawatan</TableHead>
                 <TableHead>Peranan</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-[120px]">Tindakan</TableHead>
+                <TableHead className="w-[180px]">Tindakan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -187,44 +160,11 @@ export default function PengurusanPage() {
               ) : (
                 users?.map(user => (
                   <TableRow key={user.id}>
-                    <TableCell>
-                      {editId === user.id ? (
-                        <Input value={editData.nama || ""} onChange={e => setEditData({ ...editData, nama: e.target.value })} className="h-7" />
-                      ) : (
-                        user.nama
-                      )}
-                    </TableCell>
-                    <TableCell className="font-mono">
-                      {editId === user.id ? (
-                        <Input value={editData.nama_pengguna || ""} onChange={e => setEditData({ ...editData, nama_pengguna: e.target.value })} className="h-7" />
-                      ) : (
-                        user.nama_pengguna
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {editId === user.id ? (
-                        <Input value={editData.jawatan || ""} onChange={e => setEditData({ ...editData, jawatan: e.target.value })} className="h-7" />
-                      ) : (
-                        user.jawatan || "-"
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {editId === user.id ? (
-                        <Select value={editData.peranan || user.peranan} onValueChange={v => setEditData({ ...editData, peranan: v as Peranan })}>
-                          <SelectTrigger className="h-7"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Badge variant="outline">{user.peranan}</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={user.aktif ? "success" : "destructive"}>
-                        {user.aktif ? "Aktif" : "Tidak Aktif"}
-                      </Badge>
-                    </TableCell>
+                    <TableCell>{editId === user.id ? <Input value={editData.nama || ""} onChange={e => setEditData({ ...editData, nama: e.target.value })} className="h-7" /> : user.nama}</TableCell>
+                    <TableCell className="font-mono">{editId === user.id ? <Input value={editData.nama_pengguna || ""} onChange={e => setEditData({ ...editData, nama_pengguna: e.target.value })} className="h-7" /> : user.nama_pengguna}</TableCell>
+                    <TableCell>{editId === user.id ? <Input value={editData.jawatan || ""} onChange={e => setEditData({ ...editData, jawatan: e.target.value })} className="h-7" /> : user.jawatan || "-"}</TableCell>
+                    <TableCell>{editId === user.id ? <Select value={editData.peranan || user.peranan} onValueChange={v => setEditData({ ...editData, peranan: v as Peranan })}><SelectTrigger className="h-7"><SelectValue /></SelectTrigger><SelectContent>{ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select> : <Badge variant="outline">{user.peranan}</Badge>}</TableCell>
+                    <TableCell><Badge variant={user.aktif ? "success" : "destructive"}>{user.aktif ? "Aktif" : "Tidak Aktif"}</Badge></TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         {editId === user.id ? (
@@ -234,12 +174,11 @@ export default function PengurusanPage() {
                           </>
                         ) : (
                           <>
-                            <Button size="sm" variant="ghost" onClick={() => { setEditId(user.id); setEditData(user); }}>
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button size="sm" variant="ghost" onClick={() => toggleActiveMutation.mutate({ id: user.id, aktif: !user.aktif })}>
-                              {user.aktif ? <Trash2 className="h-3 w-3 text-destructive" /> : <Plus className="h-3 w-3 text-green-600" />}
-                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => { setEditId(user.id); setEditData(user); }}><Edit className="h-3 w-3" /></Button>
+                            <Button size="sm" variant="ghost" onClick={() => toggleActiveMutation.mutate({ id: user.id, aktif: !user.aktif })}>{user.aktif ? <Trash2 className="h-3 w-3 text-destructive" /> : <Plus className="h-3 w-3 text-green-600" />}</Button>
+                            {user.peranan !== "Pentadbir" && (
+                              <Button size="sm" variant="ghost" onClick={() => resetPasswordMutation.mutate(user.id)} title="Reset password"><KeyRound className="h-3 w-3 text-yellow-500" /></Button>
+                            )}
                           </>
                         )}
                       </div>
@@ -251,14 +190,22 @@ export default function PengurusanPage() {
           </Table>
         </CardContent>
       </Card>
-    </div>
-  );
 
       {/* Tetapan Tema */}
       <Card>
-        <CardHeader>
-          <CardTitle>Tetapan Tema</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Tetapan Tema</CardTitle></CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">Pilih tema warna untuk aplikasi. Hanya Pentadbir boleh menukar tema.</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2"></div></CardContent></Card>}
+          <p className="text-sm text-muted-foreground mb-4">Pilih tema warna untuk aplikasi. Tema akan disimpan dan digunakan semula apabila log masuk.</p>
+          <div className="flex items-center gap-3">
+            <span className="text-sm">Tema semasa:</span>
+            <ThemeSwitcher />
+            <span className="text-sm text-muted-foreground">Klik ikon untuk menukar tema</span>
+          </div>
+          <div className="mt-4 text-xs text-muted-foreground">
+            Tema disimpan ke pangkalan data dan akan dimuatkan secara automatik untuk setiap sesi log masuk.
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
