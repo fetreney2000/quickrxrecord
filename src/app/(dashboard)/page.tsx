@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Users, Package, ClipboardList, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -43,6 +44,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[{ label: "Papan Pemuka" }]} />
       <div>
         <h1 className="text-2xl font-bold">Selamat Datang, {profile?.nama}</h1>
         <p className="text-muted-foreground">Papan Pemuka Sistem Pengurusan Inventori & Pesakit</p>

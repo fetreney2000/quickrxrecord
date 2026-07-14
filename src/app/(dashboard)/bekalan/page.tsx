@@ -13,6 +13,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { formatDate } from "@/lib/utils";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Search, ClipboardList, ChevronLeft, ChevronRight } from "lucide-react";
 
 const PAGE_SIZE = 30;
@@ -74,6 +75,10 @@ export default function BekalanPage() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[
+        { label: "Papan Pemuka", href: "/" },
+        { label: "Bekalan Ubat" },
+      ]} />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Rekod Bekalan Ubat</h1>
       </div>

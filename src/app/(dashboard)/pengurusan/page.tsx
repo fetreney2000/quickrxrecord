@@ -19,6 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Plus, Edit, Trash2, UserPlus } from "lucide-react";
 import type { Profile, Peranan } from "@/types";
 
@@ -124,6 +125,10 @@ export default function PengurusanPage() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[
+        { label: "Papan Pemuka", href: "/" },
+        { label: "Pengurusan Pengguna" },
+      ]} />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Pengurusan Pengguna</h1>
         <Dialog open={openAdd} onOpenChange={setOpenAdd}>

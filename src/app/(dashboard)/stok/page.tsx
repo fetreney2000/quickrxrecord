@@ -20,6 +20,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Plus, Search, ChevronLeft, ChevronRight, Eye, Package } from "lucide-react";
 import type { Item } from "@/types";
 
@@ -84,6 +85,10 @@ export default function StokPage() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[
+        { label: "Papan Pemuka", href: "/" },
+        { label: "Stok & Item" },
+      ]} />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Pengurusan Stok & Item</h1>
         {canEdit && (

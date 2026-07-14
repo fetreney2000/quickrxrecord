@@ -30,6 +30,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Plus, Search, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import type { Patient } from "@/types";
 
@@ -104,6 +105,10 @@ export default function PesakitPage() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[
+        { label: "Papan Pemuka", href: "/" },
+        { label: "Senarai Pesakit" },
+      ]} />
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Senarai Pesakit</h1>
         {canEdit && (

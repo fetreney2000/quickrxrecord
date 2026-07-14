@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { ArrowLeft, Plus, Edit, Trash2 } from "lucide-react";
 import type { Item, ItemBatch } from "@/types";
 
@@ -134,6 +135,13 @@ export default function ItemDetailPage() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <Breadcrumb items={[
+          { label: "Papan Pemuka", href: "/" },
+          { label: "Stok & Item", href: "/stok" },
+          { label: item.nama_item || "Butiran Item" },
+        ]} />
+      </div>
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.push("/stok")}>
           <ArrowLeft className="h-5 w-5" />

@@ -17,6 +17,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { formatDate } from "@/lib/utils";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Download, FileSpreadsheet, FileText } from "lucide-react";
 import { toast } from "sonner";
 
@@ -151,6 +152,10 @@ export default function LaporanPage() {
 
   return (
     <div className="space-y-6">
+      <Breadcrumb items={[
+        { label: "Papan Pemuka", href: "/" },
+        { label: "Laporan" },
+      ]} />
       <h1 className="text-2xl font-bold">Laporan</h1>
 
       <Tabs defaultValue="inventory">

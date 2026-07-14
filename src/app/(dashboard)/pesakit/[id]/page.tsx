@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { ArrowLeft, Plus, Pill, Edit, XCircle, Package, Merge } from "lucide-react";
 import { MergeDialog } from "@/components/pesakit/merge-dialog";
 import type { Patient, PatientItemAssignment, Item, SupplyRecord, ItemBatch } from "@/types";
@@ -200,6 +201,13 @@ export default function PatientDetailPage() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <Breadcrumb items={[
+          { label: "Papan Pemuka", href: "/" },
+          { label: "Pesakit", href: "/pesakit" },
+          { label: patient.nama || "Butiran Pesakit" },
+        ]} />
+      </div>
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.push("/pesakit")}>
           <ArrowLeft className="h-5 w-5" />
