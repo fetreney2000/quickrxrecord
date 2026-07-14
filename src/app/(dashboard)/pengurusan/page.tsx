@@ -253,4 +253,12 @@ export default function PengurusanPage() {
       </Card>
     </div>
   );
-}
+
+      {/* Tetapan Tema */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Tetapan Tema</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-4">Pilih tema warna untuk aplikasi. Hanya Pentadbir boleh menukar tema.</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2"></div></CardContent></Card>}

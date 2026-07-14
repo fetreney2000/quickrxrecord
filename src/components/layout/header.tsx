@@ -14,7 +14,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { ThemeSwitcher } from "@/components/layout/theme-switcher";
 import { Search, User, LogOut } from "lucide-react";
 import type { Patient } from "@/types";
 
@@ -27,25 +26,16 @@ export function Header() {
   const router = useRouter();
   const supabase = createClient();
 
-  const searchPatients = useCallback(
-    async (query: string) => {
-      if (query.length < 2) {
-        setSearchResults([]);
-        return;
-      }
-      setSearching(true);
-      const { data } = await supabase
-        .from("patients")
-        .select("id, nama, nombor_kad_pengenalan, nombor_pendaftaran_hospital")
-        .or(`nama.ilike.%${query}%,nombor_kad_pengenalan.ilike.%${query}%,nombor_pendaftaran_hospital.ilike.%${query}%`)
-        .eq("aktif", true)
-        .is("merged_into", null)
-        .limit(10);
-      setSearchResults((data as Patient[]) || []);
-      setSearching(false);
-    },
-    [supabase]
-  );
+  const searchPatients = useCallback(async (query: string) => {
+    if (query.length < 2) { setSearchResults([]); return; }
+    setSearching(true);
+    const { data } = await supabase.from("patients")
+      .select("id, nama, nombor_kad_pengenalan, nombor_pendaftaran_hospital")
+      .or(`nama.ilike.%${query}%,nombor_kad_pengenalan.ilike.%${query}%,nombor_pendaftaran_hospital.ilike.%${query}%`)
+      .eq("aktif", true).is("merged_into", null).limit(10);
+    setSearchResults((data as Patient[]) || []);
+    setSearching(false);
+  }, [supabase]);
 
   useEffect(() => {
     const timer = setTimeout(() => { searchPatients(searchQuery); }, 300);
@@ -59,14 +49,12 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 w-full md:ml-64">
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 w-full">
       <div className="relative flex-1 max-w-md">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input type="search" placeholder="Cari pesakit (nama, KP, no. hospital)..." className="pl-8 w-full"
-          value={searchQuery}
-          onChange={(e) => { setSearchQuery(e.target.value); setShowResults(true); }}
-          onFocus={() => setShowResults(true)}
-          onBlur={() => setTimeout(() => setShowResults(false), 200)}
+          value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setShowResults(true); }}
+          onFocus={() => setShowResults(true)} onBlur={() => setTimeout(() => setShowResults(false), 200)}
         />
         {showResults && (searchResults.length > 0 || searching) && (
           <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-50 max-h-80 overflow-y-auto">
@@ -91,24 +79,14 @@ export function Header() {
       <div className="flex items-center gap-1 ml-auto">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <User className="h-5 w-5" />
-            </Button>
+            <Button variant="ghost" size="icon"><User className="h-5 w-5" /></Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>
-              <div>
-                <p className="text-sm font-medium">{profile?.nama}</p>
-                <p className="text-xs text-muted-foreground">{profile?.peranan}</p>
-              </div>
-            </DropdownMenuLabel>
+            <DropdownMenuLabel><div><p className="text-sm font-medium">{profile?.nama}</p><p className="text-xs text-muted-foreground">{profile?.peranan}</p></div></DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut()}>
-              <LogOut className="mr-2 h-4 w-4" /> Log Keluar
-            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => signOut()}><LogOut className="mr-2 h-4 w-4" /> Log Keluar</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <ThemeSwitcher />
       </div>
     </header>
   );

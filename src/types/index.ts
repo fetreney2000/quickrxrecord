@@ -7,6 +7,7 @@ export interface Profile {
   peranan: Peranan;
   nama_pengguna: string;
   aktif: boolean;
+  tema: string | null;
   created_at: string;
   updated_at: string;
 }
