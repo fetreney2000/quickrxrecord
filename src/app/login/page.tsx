@@ -64,7 +64,6 @@ export default function LoginPage() {
               <Input
                 id="nama_pengguna"
                 type="text"
-                placeholder="Masukkan nama pengguna"
                 value={nama_pengguna}
                 onChange={(e) => setNamaPengguna(e.target.value)}
                 autoComplete="username"
@@ -78,7 +77,6 @@ export default function LoginPage() {
               <Input
                 id="kata_laluan"
                 type="password"
-                placeholder="Masukkan kata laluan"
                 value={kata_laluan}
                 onChange={(e) => setKataLaluan(e.target.value)}
                 autoComplete="current-password"

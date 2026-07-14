@@ -169,7 +169,6 @@ export default function PesakitPage() {
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Cari pesakit..."
                 className="pl-8"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(0); }}

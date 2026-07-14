@@ -259,7 +259,7 @@ export default function PatientDetailPage() {
                 <DialogHeader><DialogTitle>Tambah Item Baharu</DialogTitle><DialogDescription>Cari dan pilih item dari senarai di bawah.</DialogDescription></DialogHeader>
                 <div className="space-y-4">
                   <div className="space-y-2"><Label>Cari Item Ubat</Label>
-                    <div className="relative"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input ref={itemSearchRef} placeholder="Cari item (nama/kod)..." className="pl-8" value={itemSearch} onChange={e => setItemSearch(e.target.value)} /></div>
+                    <div className="relative"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input ref={itemSearchRef} className="pl-8" value={itemSearch} onChange={e => setItemSearch(e.target.value)} /></div>
                   </div>
                   <div className="border rounded-md max-h-52 overflow-y-auto">
                     <Table>
@@ -280,7 +280,7 @@ export default function PatientDetailPage() {
                     </Table>
                   </div>
                   {selectedItemId && <div className="p-3 bg-accent/30 rounded-md"><p className="text-sm font-medium">Dipilih: {items?.find((i: any) => i.id === selectedItemId)?.nama_item}</p></div>}
-                  <div className="space-y-2"><Label>Dos</Label><Input value={newAssignment.dos} onChange={e => setNewAssignment({ ...newAssignment, dos: e.target.value })} placeholder="cth: 1 tablet 500mg sekali sehari" /></div>
+                  <div className="space-y-2"><Label>Dos</Label><Input value={newAssignment.dos} onChange={e => setNewAssignment({ ...newAssignment, dos: e.target.value })} /></div>
                   <div className="space-y-2"><Label>Tarikh Mula</Label><Input type="date" value={newAssignment.tarikh_mula_guna} onChange={e => setNewAssignment({ ...newAssignment, tarikh_mula_guna: e.target.value })} /></div>
                 </div>
                 <DialogFooter>
@@ -376,7 +376,7 @@ export default function PatientDetailPage() {
             <div className="space-y-2">
               <Label>Sebab Tamat *</Label>
               <Select value={stopReason} onValueChange={setStopReason}>
-                <SelectTrigger><SelectValue placeholder="Pilih sebab tamat..." /></SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Tukar kepada item lain">Tukar kepada item lain</SelectItem>
                   <SelectItem value="Pesakit tamat rawatan">Pesakit tamat rawatan</SelectItem>
@@ -456,8 +456,8 @@ export default function PatientDetailPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>Kemaskini Dos</DialogTitle><DialogDescription>Kemaskini dos untuk penugasan ini.</DialogDescription></DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2"><Label>Dos Baru</Label><Input value={doseUpdate.dos} onChange={e => setDoseUpdate({ ...doseUpdate, dos: e.target.value })} placeholder="cth: 1 tablet 500mg sekali sehari" /></div>
-            <div className="space-y-2"><Label>Catatan</Label><Textarea value={doseUpdate.catatan} onChange={e => setDoseUpdate({ ...doseUpdate, catatan: e.target.value })} placeholder="Sebab pertukaran dos (jika ada)" /></div>
+            <div className="space-y-2"><Label>Dos Baru</Label><Input value={doseUpdate.dos} onChange={e => setDoseUpdate({ ...doseUpdate, dos: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Catatan</Label><Textarea value={doseUpdate.catatan} onChange={e => setDoseUpdate({ ...doseUpdate, catatan: e.target.value })} /></div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setOpenUpdateDose(null)}>Batal</Button><Button onClick={() => { if (openUpdateDose) updateDoseMutation.mutate({ assignmentId: openUpdateDose, dos: doseUpdate.dos, catatan: doseUpdate.catatan }); }} disabled={!doseUpdate.dos || updateDoseMutation.isPending}>{updateDoseMutation.isPending ? "Menyimpan..." : "Simpan"}</Button></DialogFooter>
         </DialogContent>
@@ -470,11 +470,11 @@ export default function PatientDetailPage() {
             <div className="space-y-2"><Label>Dos Semasa</Label><Input value={currentAssignment?.dos || "-"} readOnly className="bg-muted" /><p className="text-xs text-muted-foreground">Guna <strong>Kemaskini Dos</strong> untuk menukar dos.</p></div>
             <div className="space-y-2"><Label>Kelompok (Batch)</Label>
               <Select value={supplyData.batch_id} onValueChange={v => setSupplyData({ ...supplyData, batch_id: v })}>
-                <SelectTrigger><SelectValue placeholder="Pilih kelompok..." /></SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{availableBatches?.map(batch => (<SelectItem key={batch.id} value={batch.id}>{batch.nombor_kelompok} - Stok: {batch.kuantiti} - Luput: {formatDate(batch.tarikh_luput)}</SelectItem>))}{availableBatches?.length === 0 && <SelectItem value="none" disabled>Tiada kelompok tersedia</SelectItem>}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-2"><Label>Tempoh Bekalan</Label><div className="flex gap-2"><Input type="number" className="w-24" placeholder="cth: 30" value={supplyData.tempoh_nilai} onChange={e => setSupplyData({ ...supplyData, tempoh_nilai: e.target.value })} /><Select value={supplyData.tempoh_unit} onValueChange={v => setSupplyData({ ...supplyData, tempoh_unit: v })}><SelectTrigger className="w-28"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Hari">Hari</SelectItem><SelectItem value="Minggu">Minggu</SelectItem><SelectItem value="Bulan">Bulan</SelectItem></SelectContent></Select><span className="flex items-center text-sm text-muted-foreground">{supplyData.tempoh_nilai && `${supplyData.tempoh_nilai} ${supplyData.tempoh_unit}`}</span></div></div>
+            <div className="space-y-2"><Label>Tempoh Bekalan</Label><div className="flex gap-2"><Input type="number" className="w-24" value={supplyData.tempoh_nilai} onChange={e => setSupplyData({ ...supplyData, tempoh_nilai: e.target.value })} /><Select value={supplyData.tempoh_unit} onValueChange={v => setSupplyData({ ...supplyData, tempoh_unit: v })}><SelectTrigger className="w-28"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Hari">Hari</SelectItem><SelectItem value="Minggu">Minggu</SelectItem><SelectItem value="Bulan">Bulan</SelectItem></SelectContent></Select><span className="flex items-center text-sm text-muted-foreground">{supplyData.tempoh_nilai && `${supplyData.tempoh_nilai} ${supplyData.tempoh_unit}`}</span></div></div>
             <div className="space-y-2"><Label>Kuantiti</Label><Input type="number" value={supplyData.kuantiti} onChange={e => setSupplyData({ ...supplyData, kuantiti: e.target.value })} /></div>
             <div className="space-y-2"><Label>Catatan</Label><Textarea value={supplyData.catatan_bekalan} onChange={e => setSupplyData({ ...supplyData, catatan_bekalan: e.target.value })} /></div>
           </div>

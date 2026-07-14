@@ -104,7 +104,7 @@ export default function StokPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>Kod Item *</Label><Input value={newItem.kod_item} onChange={e => setNewItem({ ...newItem, kod_item: e.target.value })} /></div>
-                  <div className="space-y-2"><Label>Kekuatan</Label><Input value={newItem.kekuatan} onChange={e => setNewItem({ ...newItem, kekuatan: e.target.value })} placeholder="cth: 500mg" /></div>
+                  <div className="space-y-2"><Label>Kekuatan</Label><Input value={newItem.kekuatan} onChange={e => setNewItem({ ...newItem, kekuatan: e.target.value })} /></div>
                 </div>
                 <div className="space-y-2"><Label>Nama Item *</Label><Input value={newItem.nama_item} onChange={e => setNewItem({ ...newItem, nama_item: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Nama Dagangan</Label><Input value={newItem.nama_dagangan} onChange={e => setNewItem({ ...newItem, nama_dagangan: e.target.value })} /></div>
@@ -127,7 +127,7 @@ export default function StokPage() {
           <div className="flex items-center gap-4">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Cari item..." className="pl-8" value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} />
+              <Input className="pl-8" value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} />
             </div>
             <Badge variant="secondary">{data?.total || 0} item</Badge>
           </div>
