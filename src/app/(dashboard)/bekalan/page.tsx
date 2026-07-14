@@ -26,15 +26,47 @@ export default function BekalanPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["supply-list", search, page],
     queryFn: async () => {
-      let query = supabase
+      // First get supply records with assignment and batch info
+      const { data: records, count, error } = await supabase
         .from("supply_records")
-        .select("*, assignment:patient_item_assignments(patient_id, patient:patients(id, nama), item:items(nama_item, kekuatan)), batch:item_batches(nombor_kelompok), staff:profiles!kakitangan_pembekal(nama)", { count: "exact" })
+        .select("*, batch:item_batches(nombor_kelompok)", { count: "exact" })
         .order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-
-      const { data, count, error } = await query;
       if (error) throw error;
-      return { records: data || [], total: count || 0 };
+
+      // Enrich with patient and item info via assignment IDs
+      const assignmentIds = [...new Set((records || []).map(r => r.assignment_id))];
+      let assignmentsMap: Record<string, any> = {};
+      if (assignmentIds.length > 0) {
+        const { data: assignments } = await supabase
+          .from("patient_item_assignments")
+          .select("id, patient_id, patient:patients(id, nama), item:items(nama_item, kekuatan)")
+          .in("id", assignmentIds);
+        for (const a of (assignments || [])) {
+          assignmentsMap[a.id] = a;
+        }
+      }
+
+      // Enrich with staff names
+      const staffIds = [...new Set((records || []).map(r => r.kakitangan_pembekal))];
+      let staffMap: Record<string, any> = {};
+      if (staffIds.length > 0) {
+        const { data: staff } = await supabase
+          .from("profiles")
+          .select("id, nama")
+          .in("id", staffIds);
+        for (const s of (staff || [])) {
+          staffMap[s.id] = s;
+        }
+      }
+
+      const enriched = (records || []).map(r => ({
+        ...r,
+        assignment: assignmentsMap[r.assignment_id] || null,
+        staff: staffMap[r.kakitangan_pembekal] || null,
+      }));
+
+      return { records: enriched, total: count || 0 };
     },
   });
 
