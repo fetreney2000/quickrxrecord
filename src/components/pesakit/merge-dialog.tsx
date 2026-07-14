@@ -95,8 +95,8 @@ export function MergeDialog({ open, onOpenChange, primaryPatient }: MergeDialogP
         </DialogHeader>
 
         {step === "search" && (
-          <div className="space-y-4">
-            <div className="flex gap-2">
+          <div className="space-y-4 flex flex-col max-h-[60vh]">
+            <div className="flex gap-2 flex-shrink-0">
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -111,7 +111,7 @@ export function MergeDialog({ open, onOpenChange, primaryPatient }: MergeDialogP
             </div>
 
             {selectedDuplicates.length > 0 && (
-              <div className="p-3 bg-muted rounded-md">
+              <div className="p-3 bg-muted rounded-md flex-shrink-0">
                 <p className="text-sm font-medium mb-2">Pesakit dipilih untuk digabungkan:</p>
                 <div className="flex flex-wrap gap-2">
                   {selectedDuplicates.map(p => (
@@ -123,43 +123,45 @@ export function MergeDialog({ open, onOpenChange, primaryPatient }: MergeDialogP
               </div>
             )}
 
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[40px]"></TableHead>
-                  <TableHead>Nama</TableHead>
-                  <TableHead>No. KP</TableHead>
-                  <TableHead>No. Hospital</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {searchResults.length === 0 ? (
-                  <TableRow><TableCell colSpan={4} className="text-center py-4 text-muted-foreground">Cari pesakit pendua.</TableCell></TableRow>
-                ) : (
-                  searchResults.map(patient => (
-                    <TableRow
-                      key={patient.id}
-                      className="cursor-pointer"
-                      onClick={() => toggleDuplicate(patient)}
-                    >
-                      <TableCell>
-                        <input
-                          type="checkbox"
-                          checked={selectedDuplicates.some(p => p.id === patient.id)}
-                          onChange={() => toggleDuplicate(patient)}
-                        />
-                      </TableCell>
-                      <TableCell>{patient.nama}</TableCell>
-                      <TableCell>{patient.nombor_kad_pengenalan || "-"}</TableCell>
-                      <TableCell>{patient.nombor_pendaftaran_hospital || "-"}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+            <div className="flex-1 overflow-y-auto min-h-0 border rounded-md">
+              <Table>
+                <TableHeader className="sticky top-0 bg-background">
+                  <TableRow>
+                    <TableHead className="w-[40px]"></TableHead>
+                    <TableHead>Nama</TableHead>
+                    <TableHead>No. KP</TableHead>
+                    <TableHead>No. Hospital</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {searchResults.length === 0 ? (
+                    <TableRow><TableCell colSpan={4} className="text-center py-4 text-muted-foreground">Cari pesakit pendua.</TableCell></TableRow>
+                  ) : (
+                    searchResults.map(patient => (
+                      <TableRow
+                        key={patient.id}
+                        className="cursor-pointer"
+                        onClick={() => toggleDuplicate(patient)}
+                      >
+                        <TableCell>
+                          <input
+                            type="checkbox"
+                            checked={selectedDuplicates.some(p => p.id === patient.id)}
+                            onChange={() => toggleDuplicate(patient)}
+                          />
+                        </TableCell>
+                        <TableCell>{patient.nama}</TableCell>
+                        <TableCell>{patient.nombor_kad_pengenalan || "-"}</TableCell>
+                        <TableCell>{patient.nombor_pendaftaran_hospital || "-"}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
 
             {selectedDuplicates.length > 0 && (
-              <div className="flex justify-end">
+              <div className="flex justify-end flex-shrink-0">
                 <Button onClick={() => setStep("confirm")}>
                   Teruskan ({selectedDuplicates.length} dipilih)
                 </Button>

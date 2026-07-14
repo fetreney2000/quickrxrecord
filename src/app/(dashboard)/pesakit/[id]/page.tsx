@@ -45,6 +45,7 @@ export default function PatientDetailPage() {
   const [supplyData, setSupplyData] = useState({ dos: "", tempoh_dibekal: "", kuantiti: "", batch_id: "", catatan_bekalan: "" });
   const [openMerge, setOpenMerge] = useState(false);
   const [viewHistoryAssignment, setViewHistoryAssignment] = useState<string | null>(null);
+  const [viewDoseHistory, setViewDoseHistory] = useState<string | null>(null);
   const [editSupplyId, setEditSupplyId] = useState<string | null>(null);
   const [editSupplyData, setEditSupplyData] = useState({ dos: "", tempoh_dibekal: "", kuantiti: "", catatan_bekalan: "" });
 
@@ -80,6 +81,22 @@ export default function PatientDetailPage() {
       if (error) throw error;
       return data as Pick<Item, "id" | "nama_item" | "kekuatan" | "kod_item">[];
     },
+  });
+
+  // Fetch dose history
+  const { data: doseHistory } = useQuery({
+    queryKey: ["dose-history", viewDoseHistory],
+    queryFn: async () => {
+      if (!viewDoseHistory) return [];
+      const { data, error } = await supabase
+        .from("dose_history")
+        .select("*")
+        .eq("assignment_id", viewDoseHistory)
+        .order("tarikh", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!viewDoseHistory,
   });
 
   // Fetch supply history for a specific assignment
@@ -174,13 +191,11 @@ export default function PatientDetailPage() {
   // Supply mutation
   const supplyMutation = useMutation({
     mutationFn: async (data: typeof supplyData & { assignment_id: string }) => {
-      // Update dose if changed
       const assignment = assignments?.find(a => a.id === data.assignment_id);
       if (assignment && data.dos !== assignment.dos) {
         await supabase.from("patient_item_assignments").update({ dos: data.dos }).eq("id", data.assignment_id);
       }
 
-      // Create supply record
       const { error: insertError } = await supabase.from("supply_records").insert({
         assignment_id: data.assignment_id,
         dos: data.dos,
@@ -192,7 +207,6 @@ export default function PatientDetailPage() {
       });
       if (insertError) throw insertError;
 
-      // Decrement batch quantity
       if (data.batch_id) {
         const batch = availableBatches?.find(b => b.id === data.batch_id);
         if (batch) {
@@ -360,7 +374,7 @@ export default function PatientDetailPage() {
                 <TableHead>Dos</TableHead>
                 <TableHead>Tarikh Mula</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-[280px]">Tindakan</TableHead>
+                <TableHead className="w-[340px]">Tindakan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -380,9 +394,12 @@ export default function PatientDetailPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 flex-wrap">
+                        <Button size="sm" variant="outline" onClick={() => setViewDoseHistory(assignment.id)}>
+                          <Pill className="mr-1 h-3 w-3" /> Dos
+                        </Button>
                         <Button size="sm" variant="outline" onClick={() => setViewHistoryAssignment(assignment.id)}>
-                          <History className="mr-1 h-3 w-3" /> Sejarah
+                          <History className="mr-1 h-3 w-3" /> Bekalan
                         </Button>
                         {canSupply && assignment.aktif && (
                           <Button size="sm" onClick={() => {
@@ -406,6 +423,46 @@ export default function PatientDetailPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Dose History Dialog */}
+      <Dialog open={!!viewDoseHistory} onOpenChange={() => setViewDoseHistory(null)}>
+        <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Sejarah Dos</DialogTitle>
+            <DialogDescription>
+              {assignments?.find(a => a.id === viewDoseHistory)?.item?.nama_item}
+            </DialogDescription>
+          </DialogHeader>
+          {doseHistory && doseHistory.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tarikh</TableHead>
+                  <TableHead>Dos</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Catatan</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {doseHistory.map((d: any) => (
+                  <TableRow key={d.id}>
+                    <TableCell>{formatDate(d.tarikh)}</TableCell>
+                    <TableCell className="font-medium">{d.dos}</TableCell>
+                    <TableCell>
+                      <Badge variant={d.aktif ? "success" : "secondary"}>
+                        {d.aktif ? "Aktif" : "Lama"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{d.catatan || "-"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-muted-foreground text-center py-8">Tiada sejarah dos.</p>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Supply History Dialog */}
       <Dialog open={!!viewHistoryAssignment} onOpenChange={() => { setViewHistoryAssignment(null); setEditSupplyId(null); }}>
@@ -460,7 +517,7 @@ export default function PatientDetailPage() {
                       {editSupplyId === record.id ? (
                         <div className="flex gap-1">
                           <Button size="sm" variant="ghost" onClick={() => editSupplyMutation.mutate({ supplyId: record.id, updates: editSupplyData })} disabled={editSupplyMutation.isPending}>
-                            <Save className="h-3 w-3 text-green-600" />
+                            <Save className="h-3 w-3" />
                           </Button>
                           <Button size="sm" variant="ghost" onClick={() => setEditSupplyId(null)}>
                             <X className="h-3 w-3" />
@@ -474,7 +531,7 @@ export default function PatientDetailPage() {
                           <Button size="sm" variant="ghost" onClick={() => {
                             if (confirm("Padam rekod bekalan ini?")) deleteSupplyMutation.mutate(record.id);
                           }}>
-                            <Trash2 className="h-3 w-3 text-destructive" />
+                            <Trash2 className="h-3 w-3" />
                           </Button>
                         </div>
                       )}
@@ -518,10 +575,25 @@ export default function PatientDetailPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Tempoh Bekalan (hari)</Label><Input type="number" value={supplyData.tempoh_dibekal} onChange={e => setSupplyData({ ...supplyData, tempoh_dibekal: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Kuantiti</Label><Input type="number" value={supplyData.kuantiti} onChange={e => setSupplyData({ ...supplyData, kuantiti: e.target.value })} /></div>
+            <div className="space-y-2">
+              <Label>Tempoh Bekalan</Label>
+              <Select value={supplyData.tempoh_dibekal} onValueChange={v => setSupplyData({ ...supplyData, tempoh_dibekal: v })}>
+                <SelectTrigger><SelectValue placeholder="Pilih tempoh..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1 Hari">1 Hari</SelectItem>
+                  <SelectItem value="3 Hari">3 Hari</SelectItem>
+                  <SelectItem value="5 Hari">5 Hari</SelectItem>
+                  <SelectItem value="7 Hari">7 Hari (1 Minggu)</SelectItem>
+                  <SelectItem value="14 Hari">14 Hari (2 Minggu)</SelectItem>
+                  <SelectItem value="21 Hari">21 Hari (3 Minggu)</SelectItem>
+                  <SelectItem value="30 Hari">30 Hari (1 Bulan)</SelectItem>
+                  <SelectItem value="60 Hari">60 Hari (2 Bulan)</SelectItem>
+                  <SelectItem value="90 Hari">90 Hari (3 Bulan)</SelectItem>
+                  <SelectItem value="180 Hari">180 Hari (6 Bulan)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            <div className="space-y-2"><Label>Kuantiti</Label><Input type="number" value={supplyData.kuantiti} onChange={e => setSupplyData({ ...supplyData, kuantiti: e.target.value })} /></div>
             <div className="space-y-2"><Label>Catatan</Label><Textarea value={supplyData.catatan_bekalan} onChange={e => setSupplyData({ ...supplyData, catatan_bekalan: e.target.value })} /></div>
           </div>
           <DialogFooter>
