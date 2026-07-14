@@ -166,16 +166,36 @@ export default function PatientDetailPage() {
 
   const supplyMutation = useMutation({
     mutationFn: async (data: typeof supplyData & { assignment_id: string; dos: string }) => {
-      const tempoh = `${data.tempoh_nilai} ${data.tempoh_unit}`;
-      const { error: insertError } = await supabase.from("supply_records").insert({ assignment_id: data.assignment_id, dos: data.dos, tempoh_dibekal: tempoh, kuantiti: parseInt(data.kuantiti), batch_id: data.batch_id || null, kakitangan_pembekal: profile?.id || "", catatan_bekalan: data.catatan_bekalan || null });
-      if (insertError) throw insertError;
+      const parsedKuantiti = parseInt(data.kuantiti, 10);
+      // Client-side validation before API call
+      if (!data.kuantiti || isNaN(parsedKuantiti) || parsedKuantiti <= 0) {
+        throw new Error("Kuantiti mesti lebih daripada 0.");
+      }
       if (data.batch_id) {
         const batch = availableBatches?.find(b => b.id === data.batch_id);
-        if (batch) { const { error: updateError } = await supabase.from("item_batches").update({ kuantiti: batch.kuantiti - parseInt(data.kuantiti) }).eq("id", data.batch_id); if (updateError) throw updateError; }
+        if (!batch) throw new Error("Kelompok tidak dijumpai.");
+        if (batch.kuantiti < parsedKuantiti) throw new Error(`Stok tidak mencukupi. Stok semasa: ${batch.kuantiti}, diperlukan: ${parsedKuantiti}`);
       }
+      const tempoh = `${data.tempoh_nilai} ${data.tempoh_unit}`;
+      const res = await fetch("/api/supply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assignment_id: data.assignment_id,
+          dos: data.dos,
+          tempoh_dibekal: tempoh,
+          kuantiti: data.kuantiti,
+          batch_id: data.batch_id || null, // null = auto FEFO
+          kakitangan_pembekal: profile?.id,
+          catatan_bekalan: data.catatan_bekalan || null,
+        }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Gagal merekod bekalan.");
+      return result;
     },
     onSuccess: () => { toast.success("Bekalan berjaya direkodkan."); setOpenSupply(null); setSupplyData({ tempoh_nilai: "", tempoh_unit: "Hari", kuantiti: "", batch_id: "", catatan_bekalan: "" }); queryClient.invalidateQueries({ queryKey: ["assignments", id] }); },
-    onError: () => toast.error("Gagal merekod bekalan."),
+    onError: (e: any) => toast.error(e.message || "Gagal merekod bekalan."),
   });
 
   const deleteSupplyMutation = useMutation({
@@ -469,6 +489,7 @@ export default function PatientDetailPage() {
           <div className="space-y-4">
             <div className="space-y-2"><Label>Dos Semasa</Label><Input value={currentAssignment?.dos || "-"} readOnly className="bg-muted" /><p className="text-xs text-muted-foreground">Guna <strong>Kemaskini Dos</strong> untuk menukar dos.</p></div>
             <div className="space-y-2"><Label>Kelompok (Batch)</Label>
+              {!supplyData.batch_id && <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">⚡ Auto FEFO: kelompok terdekat luput akan dipilih automatik</p>}
               <Select value={supplyData.batch_id} onValueChange={v => setSupplyData({ ...supplyData, batch_id: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{availableBatches?.map(batch => (<SelectItem key={batch.id} value={batch.id}>{batch.nombor_kelompok} - Stok: {batch.kuantiti} - Luput: {formatDate(batch.tarikh_luput)}</SelectItem>))}{availableBatches?.length === 0 && <SelectItem value="none" disabled>Tiada kelompok tersedia</SelectItem>}</SelectContent>

@@ -7,23 +7,23 @@ import { useAuth, hasPermission } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
-  Users,
-  Package,
-  ClipboardList,
-  BarChart3,
-  Settings,
-  LogOut,
   Activity,
+  LogOut,
+  Stethoscope,
   LayoutDashboard,
+  Pill,
+  Truck,
+  FileText,
+  UserCog,
 } from "lucide-react";
 
 const navItems = [
-  { href: "/", label: "Papan Pemuka", icon: LayoutDashboard, permission: null },
-  { href: "/pesakit", label: "Pesakit", icon: Users, permission: "view_patients" },
-  { href: "/stok", label: "Stok & Item", icon: Package, permission: "view_items" },
-  { href: "/bekalan", label: "Bekalan Ubat", icon: ClipboardList, permission: "manage_supply" },
-  { href: "/laporan", label: "Laporan", icon: BarChart3, permission: "view_reports" },
-  { href: "/pengurusan", label: "Pengurusan", icon: Settings, permission: "manage_users" },
+  { href: "/", label: "Papan Pemuka", icon: LayoutDashboard, color: "text-blue-500", bgColor: "bg-blue-500/10", permission: null },
+  { href: "/pesakit", label: "Pesakit", icon: Stethoscope, color: "text-emerald-500", bgColor: "bg-emerald-500/10", permission: "view_patients" },
+  { href: "/stok", label: "Stok & Item", icon: Pill, color: "text-violet-500", bgColor: "bg-violet-500/10", permission: "view_items" },
+  { href: "/bekalan", label: "Bekalan Ubat", icon: Truck, color: "text-amber-500", bgColor: "bg-amber-500/10", permission: "manage_supply" },
+  { href: "/laporan", label: "Laporan", icon: FileText, color: "text-rose-500", bgColor: "bg-rose-500/10", permission: "view_reports" },
+  { href: "/pengurusan", label: "Pengurusan", icon: UserCog, color: "text-cyan-500", bgColor: "bg-cyan-500/10", permission: "manage_users" },
 ];
 
 export function Sidebar() {

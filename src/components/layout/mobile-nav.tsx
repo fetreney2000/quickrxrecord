@@ -5,15 +5,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth, hasPermission } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
-import { Home, Users, Package, ClipboardList, BarChart3, Settings } from "lucide-react";
+import { LayoutDashboard, Stethoscope, Pill, Truck, FileText, UserCog } from "lucide-react";
 
 const navItems = [
-  { href: "/", label: "Utama", icon: Home, permission: null },
-  { href: "/pesakit", label: "Pesakit", icon: Users, permission: "view_patients" },
-  { href: "/stok", label: "Stok", icon: Package, permission: "view_items" },
-  { href: "/bekalan", label: "Bekalan", icon: ClipboardList, permission: "manage_supply" },
-  { href: "/laporan", label: "Laporan", icon: BarChart3, permission: "view_reports" },
-  { href: "/pengurusan", label: "Pengurusan", icon: Settings, permission: "manage_users" },
+  { href: "/", label: "Utama", icon: LayoutDashboard, color: "text-blue-500", permission: null },
+  { href: "/pesakit", label: "Pesakit", icon: Stethoscope, color: "text-emerald-500", permission: "view_patients" },
+  { href: "/stok", label: "Stok", icon: Pill, color: "text-violet-500", permission: "view_items" },
+  { href: "/bekalan", label: "Bekalan", icon: Truck, color: "text-amber-500", permission: "manage_supply" },
+  { href: "/laporan", label: "Laporan", icon: FileText, color: "text-rose-500", permission: "view_reports" },
+  { href: "/pengurusan", label: "Pengurusan", icon: UserCog, color: "text-cyan-500", permission: "manage_users" },
 ];
 
 export function MobileNav() {
@@ -40,7 +40,7 @@ export function MobileNav() {
                   : "text-sidebar-foreground/60 hover:text-sidebar-foreground"
               )}
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className={cn("h-5 w-5", item.color || "")} />
               <span className="text-[10px] leading-tight truncate w-full text-center">
                 {item.label}
               </span>
