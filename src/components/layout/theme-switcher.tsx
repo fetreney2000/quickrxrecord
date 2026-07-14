@@ -22,6 +22,7 @@ const themes = [
   { id: "ayu", name: "Ayu", color: "#ff8f40" },
   { id: "synthwave-82", name: "Synthwave 82", color: "#ff7edb" },
   { id: "retro-arcade", name: "Retro Arcade", color: "#e94560" },
+  { id: "neo-brutalism", name: "Neo Brutalism", color: "#2563eb" },
   { id: "tweakcn", name: "TweakCN", color: "#18181b" },
   { id: "notebook", name: "Notebook", color: "#c0392b" },
 ];
