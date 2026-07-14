@@ -21,9 +21,9 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatDateTime } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { ArrowLeft, Plus, Pill, Edit, XCircle, Package, Merge } from "lucide-react";
+import { ArrowLeft, Plus, Pill, Edit, XCircle, Package, Merge, History, Save, X } from "lucide-react";
 import { MergeDialog } from "@/components/pesakit/merge-dialog";
 import type { Patient, PatientItemAssignment, Item, SupplyRecord, ItemBatch } from "@/types";
 
@@ -44,6 +44,9 @@ export default function PatientDetailPage() {
   const [openSupply, setOpenSupply] = useState<string | null>(null);
   const [supplyData, setSupplyData] = useState({ dos: "", tempoh_dibekal: "", kuantiti: "", batch_id: "", catatan_bekalan: "" });
   const [openMerge, setOpenMerge] = useState(false);
+  const [viewHistoryAssignment, setViewHistoryAssignment] = useState<string | null>(null);
+  const [editSupplyId, setEditSupplyId] = useState<string | null>(null);
+  const [editSupplyData, setEditSupplyData] = useState({ dos: "", tempoh_dibekal: "", kuantiti: "", catatan_bekalan: "" });
 
   // Fetch patient
   const { data: patient } = useQuery({
@@ -77,6 +80,22 @@ export default function PatientDetailPage() {
       if (error) throw error;
       return data as Pick<Item, "id" | "nama_item" | "kekuatan" | "kod_item">[];
     },
+  });
+
+  // Fetch supply history for a specific assignment
+  const { data: supplyHistory } = useQuery({
+    queryKey: ["supply-history", viewHistoryAssignment],
+    queryFn: async () => {
+      if (!viewHistoryAssignment) return [];
+      const { data, error } = await supabase
+        .from("supply_records")
+        .select("*, batch:item_batches(nombor_kelompok), staff:profiles!kakitangan_pembekal(nama)")
+        .eq("assignment_id", viewHistoryAssignment)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!viewHistoryAssignment,
   });
 
   // Update patient
@@ -195,9 +214,30 @@ export default function PatientDetailPage() {
     onError: () => toast.error("Gagal merekod bekalan."),
   });
 
+  // Edit supply mutation
+  const editSupplyMutation = useMutation({
+    mutationFn: async ({ supplyId, updates }: { supplyId: string; updates: typeof editSupplyData }) => {
+      const { error } = await supabase.from("supply_records").update({
+        dos: updates.dos,
+        tempoh_dibekal: updates.tempoh_dibekal,
+        kuantiti: parseInt(updates.kuantiti),
+        catatan_bekalan: updates.catatan_bekalan || null,
+      }).eq("id", supplyId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Rekod bekalan dikemaskini.");
+      setEditSupplyId(null);
+      queryClient.invalidateQueries({ queryKey: ["supply-history", viewHistoryAssignment] });
+    },
+    onError: () => toast.error("Gagal mengemaskini rekod bekalan."),
+  });
+
   if (!patient) {
     return <div className="flex items-center justify-center py-12">Memuatkan...</div>;
   }
+
+  const selectedAssignment = assignments?.find(a => a.id === viewHistoryAssignment);
 
   return (
     <div className="space-y-6">
@@ -276,8 +316,7 @@ export default function PatientDetailPage() {
                   <DialogDescription>Tugaskan item ubat kepada pesakit ini.</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Item Ubat</Label>
+                  <div className="space-y-2"><Label>Item Ubat</Label>
                     <Select value={newAssignment.item_id} onValueChange={v => setNewAssignment({ ...newAssignment, item_id: v })}>
                       <SelectTrigger><SelectValue placeholder="Pilih item..." /></SelectTrigger>
                       <SelectContent>
@@ -287,14 +326,8 @@ export default function PatientDetailPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Dos</Label>
-                    <Input value={newAssignment.dos} onChange={e => setNewAssignment({ ...newAssignment, dos: e.target.value })} placeholder="cth: 1 tablet 500mg sekali sehari" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Tarikh Mula</Label>
-                    <Input type="date" value={newAssignment.tarikh_mula_guna} onChange={e => setNewAssignment({ ...newAssignment, tarikh_mula_guna: e.target.value })} />
-                  </div>
+                  <div className="space-y-2"><Label>Dos</Label><Input value={newAssignment.dos} onChange={e => setNewAssignment({ ...newAssignment, dos: e.target.value })} placeholder="cth: 1 tablet 500mg sekali sehari" /></div>
+                  <div className="space-y-2"><Label>Tarikh Mula</Label><Input type="date" value={newAssignment.tarikh_mula_guna} onChange={e => setNewAssignment({ ...newAssignment, tarikh_mula_guna: e.target.value })} /></div>
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setOpenAddAssignment(false)}>Batal</Button>
@@ -314,7 +347,7 @@ export default function PatientDetailPage() {
                 <TableHead>Dos</TableHead>
                 <TableHead>Tarikh Mula</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-[200px]">Tindakan</TableHead>
+                <TableHead className="w-[280px]">Tindakan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -335,14 +368,14 @@ export default function PatientDetailPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
+                        <Button size="sm" variant="outline" onClick={() => setViewHistoryAssignment(assignment.id)}>
+                          <History className="mr-1 h-3 w-3" /> Sejarah
+                        </Button>
                         {canSupply && assignment.aktif && (
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              setOpenSupply(assignment.id);
-                              setSupplyData({ dos: assignment.dos || "", tempoh_dibekal: "", kuantiti: "", batch_id: "", catatan_bekalan: "" });
-                            }}
-                          >
+                          <Button size="sm" onClick={() => {
+                            setOpenSupply(assignment.id);
+                            setSupplyData({ dos: assignment.dos || "", tempoh_dibekal: "", kuantiti: "", batch_id: "", catatan_bekalan: "" });
+                          }}>
                             <Package className="mr-1 h-3 w-3" /> Bekal
                           </Button>
                         )}
@@ -360,6 +393,81 @@ export default function PatientDetailPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Supply History Dialog */}
+      <Dialog open={!!viewHistoryAssignment} onOpenChange={() => { setViewHistoryAssignment(null); setEditSupplyId(null); }}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Sejarah Bekalan</DialogTitle>
+            <DialogDescription>
+              {selectedAssignment?.item?.nama_item} {selectedAssignment?.item?.kekuatan} - Dos: {selectedAssignment?.dos || "-"}
+            </DialogDescription>
+          </DialogHeader>
+          {supplyHistory && supplyHistory.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tarikh</TableHead>
+                  <TableHead>Dos</TableHead>
+                  <TableHead>Tempoh</TableHead>
+                  <TableHead>Kuantiti</TableHead>
+                  <TableHead>Kelompok</TableHead>
+                  <TableHead>Kakitangan</TableHead>
+                  <TableHead className="w-[80px]">Edit</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {supplyHistory.map((record: any) => (
+                  <TableRow key={record.id}>
+                    <TableCell>{formatDate(record.tarikh_dibekal)}</TableCell>
+                    <TableCell>
+                      {editSupplyId === record.id ? (
+                        <Input value={editSupplyData.dos} onChange={e => setEditSupplyData({ ...editSupplyData, dos: e.target.value })} className="h-7 w-28" />
+                      ) : (
+                        record.dos
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editSupplyId === record.id ? (
+                        <Input value={editSupplyData.tempoh_dibekal} onChange={e => setEditSupplyData({ ...editSupplyData, tempoh_dibekal: e.target.value })} className="h-7 w-20" />
+                      ) : (
+                        record.tempoh_dibekal || "-"
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {editSupplyId === record.id ? (
+                        <Input type="number" value={editSupplyData.kuantiti} onChange={e => setEditSupplyData({ ...editSupplyData, kuantiti: e.target.value })} className="h-7 w-16" />
+                      ) : (
+                        record.kuantiti
+                      )}
+                    </TableCell>
+                    <TableCell>{record.batch?.nombor_kelompok || "-"}</TableCell>
+                    <TableCell>{record.staff?.nama || "-"}</TableCell>
+                    <TableCell>
+                      {editSupplyId === record.id ? (
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => editSupplyMutation.mutate({ supplyId: record.id, updates: editSupplyData })} disabled={editSupplyMutation.isPending}>
+                            <Save className="h-3 w-3 text-green-600" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setEditSupplyId(null)}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button size="sm" variant="ghost" onClick={() => { setEditSupplyId(record.id); setEditSupplyData({ dos: record.dos, tempoh_dibekal: record.tempoh_dibekal || "", kuantiti: String(record.kuantiti), catatan_bekalan: record.catatan_bekalan || "" }); }}>
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-muted-foreground text-center py-8">Tiada rekod bekalan untuk penugasan ini.</p>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Supply Dialog */}
       <Dialog open={!!openSupply} onOpenChange={() => setOpenSupply(null)}>
@@ -391,40 +499,23 @@ export default function PatientDetailPage() {
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Tempoh Bekalan (hari)</Label>
-                <Input type="number" value={supplyData.tempoh_dibekal} onChange={e => setSupplyData({ ...supplyData, tempoh_dibekal: e.target.value })} />
-              </div>
-              <div className="space-y-2">
-                <Label>Kuantiti</Label>
-                <Input type="number" value={supplyData.kuantiti} onChange={e => setSupplyData({ ...supplyData, kuantiti: e.target.value })} />
-              </div>
+              <div className="space-y-2"><Label>Tempoh Bekalan (hari)</Label><Input type="number" value={supplyData.tempoh_dibekal} onChange={e => setSupplyData({ ...supplyData, tempoh_dibekal: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Kuantiti</Label><Input type="number" value={supplyData.kuantiti} onChange={e => setSupplyData({ ...supplyData, kuantiti: e.target.value })} /></div>
             </div>
-            <div className="space-y-2">
-              <Label>Catatan</Label>
-              <Textarea value={supplyData.catatan_bekalan} onChange={e => setSupplyData({ ...supplyData, catatan_bekalan: e.target.value })} />
-            </div>
+            <div className="space-y-2"><Label>Catatan</Label><Textarea value={supplyData.catatan_bekalan} onChange={e => setSupplyData({ ...supplyData, catatan_bekalan: e.target.value })} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenSupply(null)}>Batal</Button>
-            <Button
-              onClick={() => {
-                if (openSupply) supplyMutation.mutate({ ...supplyData, assignment_id: openSupply });
-              }}
-              disabled={!supplyData.kuantiti || supplyMutation.isPending}
-            >
+            <Button onClick={() => { if (openSupply) supplyMutation.mutate({ ...supplyData, assignment_id: openSupply }); }} disabled={!supplyData.kuantiti || supplyMutation.isPending}>
               {supplyMutation.isPending ? "Menyimpan..." : "Bekal"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       {/* Merge Dialog */}
       {patient && (
-        <MergeDialog
-          open={openMerge}
-          onOpenChange={setOpenMerge}
-          primaryPatient={patient}
-        />
+        <MergeDialog open={openMerge} onOpenChange={setOpenMerge} primaryPatient={patient} />
       )}
     </div>
   );
