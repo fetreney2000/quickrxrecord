@@ -21,7 +21,7 @@ const themes = [
   { id: "one-monokai", name: "One Monokai", color: "#98c379" },
   { id: "ayu", name: "Ayu", color: "#ff8f40" },
   { id: "synthwave-82", name: "Synthwave 82", color: "#ff7edb" },
-  { id: "retro-arcane", name: "Retro Arcane", color: "#e94560" },
+  { id: "retro-arcade", name: "Retro Arcade", color: "#e94560" },
   { id: "notebook", name: "Notebook", color: "#c0392b" },
 ];
 
