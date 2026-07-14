@@ -30,10 +30,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!error && data) {
       const p = data as Profile;
       setProfile(p);
-      if (p.tema) {
-        setTheme(p.tema);
-        // Also save to localStorage for immediate persistence on refresh
-        try { localStorage.setItem("quickrx-theme", p.tema); } catch {}
+      // Trust localStorage theme first (user explicitly chose it)
+      // Only override from DB if localStorage is empty
+      try {
+        const localTheme = localStorage.getItem("quickrx-theme");
+        if (localTheme) {
+          // User has a saved local preference - always trust it
+          setTheme(localTheme);
+          // Update DB to match if different
+          if (p.tema !== localTheme) {
+            await supabase.from("profiles").update({ tema: localTheme }).eq("id", userId);
+          }
+        } else if (p.tema) {
+          // No local preference - use DB theme
+          setTheme(p.tema);
+          localStorage.setItem("quickrx-theme", p.tema);
+        }
+      } catch {
+        if (p.tema) setTheme(p.tema);
       }
     }
   }, [supabase, setTheme]);

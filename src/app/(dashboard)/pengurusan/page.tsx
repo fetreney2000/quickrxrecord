@@ -198,7 +198,7 @@ export default function PengurusanPage() {
           <p className="text-sm text-muted-foreground mb-4">Pilih tema warna untuk aplikasi. Tema akan disimpan dan digunakan semula apabila log masuk.</p>
           <div className="flex items-center gap-3">
             <span className="text-sm">Tema semasa:</span>
-            <ThemeSwitcher />
+            <ThemeSwitcher onThemeChange={(t) => updateTheme(t)} />
             <span className="text-sm text-muted-foreground">Klik ikon untuk menukar tema</span>
           </div>
           <div className="mt-4 text-xs text-muted-foreground">
