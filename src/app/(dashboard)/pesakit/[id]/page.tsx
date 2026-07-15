@@ -313,64 +313,78 @@ export default function PatientDetailPage() {
         </CardHeader>
         <CardContent className="p-0">
           <div>
-            {assignments?.length === 0 ? <div className="p-6 text-center text-muted-foreground">Tiada item didaftarkan.</div> : (
-              assignments?.map((assignment, idx) => (
-                <div key={assignment.id} style={{ backgroundColor: ["#ffffff", "#f7f7f7", "#f0f0f0", "#eaeaea", "#e5e5e5"][idx % 5] }}>
-                  <button className="w-full flex items-center justify-between px-6 py-4 hover:bg-accent/30 transition-colors text-left" onClick={() => toggleExpand(assignment.id)}>
-                    <div className="flex-1 grid grid-cols-4 gap-4 items-center">
-                      <div><div className="font-medium">{assignment.item?.nama_item}</div><div className="text-xs text-muted-foreground">{assignment.item?.kekuatan}</div></div>
-                      <div className="text-sm">{assignment.dos || "-"}</div>
-                      <div className="text-sm">{formatDate(assignment.tarikh_mula_guna)}</div>
-                      <div><Badge variant={assignment.aktif ? "success" : "secondary"}>{assignment.aktif ? "Aktif" : "Tamat"}</Badge></div>
-                    </div>
-                    <div className="ml-4">{expandedAssignment === assignment.id ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}</div>
-                  </button>
-
-                  <AnimatePresence>
-                    {expandedAssignment === assignment.id && (
-                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
-                        <div className="px-6 pb-6 pt-2 bg-accent/10 border-t border-border/50 space-y-4">
-                          <div className="flex gap-2 flex-wrap">
-                            {assignment.aktif && <>
-                              <Button size="sm" variant="outline" onClick={() => { setOpenUpdateDose(assignment.id); setDoseUpdate({ dos: assignment.dos || "", catatan: "" }); }}><Edit className="mr-1.5 h-3.5 w-3.5" /> Kemaskini Dos</Button>
-                              {canSupply && <Button size="sm" onClick={() => { setOpenSupply(assignment.id); setSupplyData({ tempoh_nilai: "", tempoh_unit: "Hari", kuantiti: "", batch_id: "", catatan_bekalan: "" }); }}><Package className="mr-1.5 h-3.5 w-3.5" /> Bekal Item</Button>}
-                              {canEdit && <Button size="sm" variant="destructive" onClick={() => { setOpenStopAssign(assignment.id); setStopReason(""); }}><XCircle className="mr-1.5 h-3.5 w-3.5" /> Tamatkan</Button>}
-                            </>}
-                          </div>
-
-                          <div>
-                            <button className="text-sm font-semibold flex items-center gap-2 mb-3 w-full text-left hover:text-primary transition-colors" onClick={() => setFoldDose(!foldDose)}>
-                              {foldDose ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronUp className="h-4 w-4 text-primary" />}
-                              <Activity className="h-4 w-4 text-primary" /> Sejarah Dos <span className="text-xs text-muted-foreground font-normal">({doseHistory?.length || 0})</span>
-                            </button>
-                            {!foldDose && (doseHistory && doseHistory.length > 0 ? (
-                              <div className="border rounded-md overflow-hidden">
-                                <Table><TableHeader><TableRow><TableHead>Tarikh</TableHead><TableHead>Dos</TableHead><TableHead>Dikemaskini Oleh</TableHead></TableRow></TableHeader>
-                                  <TableBody>{doseHistory.map((d: any) => (<TableRow key={d.id}><TableCell>{formatDate(d.tarikh)}</TableCell><TableCell className="font-medium">{d.dos}</TableCell><TableCell>{d.staff_name || "-"}</TableCell></TableRow>))}</TableBody>
-                                </Table>
-                              </div>
-                            ) : <p className="text-sm text-muted-foreground">Tiada sejarah dos.</p>)}
-                          </div>
-
-                          <div>
-                            <button className="text-sm font-semibold flex items-center gap-2 mb-3 w-full text-left hover:text-primary transition-colors" onClick={() => setFoldSupply(!foldSupply)}>
-                              {foldSupply ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronUp className="h-4 w-4 text-primary" />}
-                              <ClipboardList className="h-4 w-4 text-primary" /> Sejarah Bekalan <span className="text-xs text-muted-foreground font-normal">({supplyHistory?.length || 0})</span>
-                            </button>
-                            {!foldSupply && (supplyHistory && supplyHistory.length > 0 ? (
-                              <div className="border rounded-md overflow-hidden">
-                                <Table><TableHeader><TableRow><TableHead>Tarikh</TableHead><TableHead>Dos</TableHead><TableHead>Tempoh</TableHead><TableHead>Kuantiti</TableHead><TableHead>Kelompok</TableHead><TableHead>Kakitangan</TableHead><TableHead className="w-[100px]">Tindakan</TableHead></TableRow></TableHeader>
-                                  <TableBody>{supplyHistory.map((record: any) => (<TableRow key={record.id}><TableCell>{formatDate(record.tarikh_dibekal)}</TableCell><TableCell>{record.dos}</TableCell><TableCell>{record.tempoh_dibekal || "-"}</TableCell><TableCell>{record.kuantiti}</TableCell><TableCell>{record.batch?.nombor_kelompok || "-"}</TableCell><TableCell>{record.staff?.nama || "-"}</TableCell><TableCell><div className="flex gap-1"><Button size="sm" variant="ghost" onClick={() => setEditSupplyRecord(record)}><Edit className="h-3.5 w-3.5" /></Button><Button size="sm" variant="ghost" onClick={() => setOpenDeleteSupply(record)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button></div></TableCell></TableRow>))}</TableBody>
-                                </Table>
-                              </div>
-                            ) : <p className="text-sm text-muted-foreground">Tiada sejarah bekalan.</p>)}
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+            {assignments?.length === 0 ? (
+              <div className="p-6 text-center text-muted-foreground">Tiada item didaftarkan.</div>
+            ) : (
+              <>
+                <div className="hidden sm:grid grid-cols-4 gap-4 items-center px-6 py-2.5 border-b bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <div>Item</div>
+                  <div>Dos</div>
+                  <div>Tarikh Mula</div>
+                  <div>Status</div>
                 </div>
-              ))
+                {assignments?.map((assignment, idx) => (
+                  <div key={assignment.id} style={{ backgroundColor: ["#ffffff", "#f7f7f7", "#f0f0f0", "#eaeaea", "#e5e5e5"][idx % 5] }} className="border-b last:border-b-0">
+                    <button className="w-full text-left" onClick={() => toggleExpand(assignment.id)}>
+                      <div className="hidden sm:flex items-center justify-between px-6 py-4 hover:bg-accent/30 transition-colors">
+                        <div className="flex-1 grid grid-cols-4 gap-4 items-center">
+                          <div><div className="font-medium">{assignment.item?.nama_item}</div><div className="text-xs text-muted-foreground">{assignment.item?.kekuatan}</div></div>
+                          <div className="text-sm">{assignment.dos || "-"}</div>
+                          <div className="text-sm">{formatDate(assignment.tarikh_mula_guna)}</div>
+                          <div><Badge variant={assignment.aktif ? "success" : "secondary"}>{assignment.aktif ? "Aktif" : "Tamat"}</Badge></div>
+                        </div>
+                        <div className="ml-4">
+                          <motion.div animate={{ rotate: expandedAssignment === assignment.id ? 180 : 0 }} transition={{ duration: 0.2 }}><ChevronDown className="h-4 w-4 text-muted-foreground" /></motion.div>
+                        </div>
+                      </div>
+                      <div className="sm:hidden px-5 py-3 hover:bg-accent/30 transition-colors space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium text-sm">{assignment.item?.nama_item}</div>
+                          <motion.div animate={{ rotate: expandedAssignment === assignment.id ? 180 : 0 }} transition={{ duration: 0.2 }}><ChevronDown className="h-4 w-4 text-muted-foreground" /></motion.div>
+                        </div>
+                        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                          <span><span className="font-semibold">Dos:</span> {assignment.dos || "-"}</span>
+                          <span><span className="font-semibold">Mula:</span> {formatDate(assignment.tarikh_mula_guna)}</span>
+                          <Badge variant={assignment.aktif ? "success" : "secondary"} className="text-[10px]">{assignment.aktif ? "Aktif" : "Tamat"}</Badge>
+                        </div>
+                      </div>
+                    </button>
+                    <AnimatePresence>
+                      {expandedAssignment === assignment.id && (
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
+                          <div className="px-6 pb-6 pt-2 bg-accent/10 border-t border-border/50 space-y-4">
+                            <div className="flex gap-2 flex-wrap">
+                              {assignment.aktif && <>
+                                <Button size="sm" variant="outline" onClick={() => { setOpenUpdateDose(assignment.id); setDoseUpdate({ dos: assignment.dos || "", catatan: "" }); }}><Edit className="mr-1.5 h-3.5 w-3.5" /> Kemaskini Dos</Button>
+                                {canSupply && <Button size="sm" onClick={() => { setOpenSupply(assignment.id); setSupplyData({ tempoh_nilai: "", tempoh_unit: "Hari", kuantiti: "", batch_id: "", catatan_bekalan: "" }); }}><Package className="mr-1.5 h-3.5 w-3.5" /> Bekal Item</Button>}
+                                {canEdit && <Button size="sm" variant="destructive" onClick={() => { setOpenStopAssign(assignment.id); setStopReason(""); }}><XCircle className="mr-1.5 h-3.5 w-3.5" /> Tamatkan</Button>}
+                              </>}
+                            </div>
+                            <div>
+                              <button className="text-sm font-semibold flex items-center gap-2 mb-3 w-full text-left hover:text-primary transition-colors" onClick={() => setFoldDose(!foldDose)}>
+                                {foldDose ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronUp className="h-4 w-4 text-primary" />}
+                                <Activity className="h-4 w-4 text-primary" /> Sejarah Dos <span className="text-xs text-muted-foreground font-normal">({doseHistory?.length || 0})</span>
+                              </button>
+                              {!foldDose && (doseHistory && doseHistory.length > 0 ? (
+                                <div className="border rounded-md overflow-hidden"><Table><TableHeader><TableRow><TableHead>Tarikh</TableHead><TableHead>Dos</TableHead><TableHead>Dikemaskini Oleh</TableHead></TableRow></TableHeader><TableBody>{doseHistory.map((d: any) => (<TableRow key={d.id}><TableCell>{formatDate(d.tarikh)}</TableCell><TableCell className="font-medium">{d.dos}</TableCell><TableCell>{d.staff_name || "-"}</TableCell></TableRow>))}</TableBody></Table></div>
+                              ) : <p className="text-sm text-muted-foreground">Tiada sejarah dos.</p>)}
+                            </div>
+                            <div>
+                              <button className="text-sm font-semibold flex items-center gap-2 mb-3 w-full text-left hover:text-primary transition-colors" onClick={() => setFoldSupply(!foldSupply)}>
+                                {foldSupply ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronUp className="h-4 w-4 text-primary" />}
+                                <ClipboardList className="h-4 w-4 text-primary" /> Sejarah Bekalan <span className="text-xs text-muted-foreground font-normal">({supplyHistory?.length || 0})</span>
+                              </button>
+                              {!foldSupply && (supplyHistory && supplyHistory.length > 0 ? (
+                                <div className="border rounded-md overflow-hidden"><Table><TableHeader><TableRow><TableHead>Tarikh</TableHead><TableHead>Dos</TableHead><TableHead>Tempoh</TableHead><TableHead>Kuantiti</TableHead><TableHead>Kelompok</TableHead><TableHead>Kakitangan</TableHead><TableHead className="w-[100px]">Tindakan</TableHead></TableRow></TableHeader><TableBody>{supplyHistory.map((record: any) => (<TableRow key={record.id}><TableCell>{formatDate(record.tarikh_dibekal)}</TableCell><TableCell>{record.dos}</TableCell><TableCell>{record.tempoh_dibekal || "-"}</TableCell><TableCell>{record.kuantiti}</TableCell><TableCell>{record.batch?.nombor_kelompok || "-"}</TableCell><TableCell>{record.staff?.nama || "-"}</TableCell><TableCell><div className="flex gap-1"><Button size="sm" variant="ghost" onClick={() => setEditSupplyRecord(record)}><Edit className="h-3.5 w-3.5" /></Button><Button size="sm" variant="ghost" onClick={() => setOpenDeleteSupply(record)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button></div></TableCell></TableRow>))}</TableBody></Table></div>
+                              ) : <p className="text-sm text-muted-foreground">Tiada sejarah bekalan.</p>)}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                ))}
+              </>
             )}
           </div>
         </CardContent>

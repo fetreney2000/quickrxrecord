@@ -21,10 +21,21 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { Plus, Edit, Trash2, UserPlus, KeyRound, ChevronDown, ChevronUp, ShieldAlert, UserCheck, UserX, Lock, AlertTriangle, BellRing, CheckCircle2, XCircle, History } from "lucide-react";
+import { Plus, Edit, Trash2, UserPlus, KeyRound, ChevronDown, ChevronUp, ShieldAlert, UserCheck, UserX, Lock, AlertTriangle, BellRing, CheckCircle2, XCircle, History, RefreshCw } from "lucide-react";
 import type { Profile, Peranan } from "@/types";
 
 const ROLES: Peranan[] = ["Pentadbir", "Penjaga Stor", "Kakitangan Farmasi", "Kakitangan Klinik"];
+
+interface ResetRequest {
+  id: string;
+  user_id: string;
+  requested_at: string;
+  status: "pending" | "approved" | "rejected";
+  resolved_by: string | null;
+  resolved_at: string | null;
+  notes: string | null;
+  user?: { nama: string; nama_pengguna: string };
+}
 
 export default function PengurusanPage() {
   const { profile } = useAuth();
@@ -122,6 +133,32 @@ export default function PengurusanPage() {
     }
   };
 
+  // Reset requests
+  const { data: resetRequests = [], isLoading: loadingRequests } = useQuery({
+    queryKey: ["reset-requests"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("password_reset_requests")
+        .select("*, user:profiles!password_reset_requests_user_id_fkey(nama, nama_pengguna)")
+        .order("requested_at", { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: isAdmin,
+  });
+
+  const resolveRequestMutation = useMutation({
+    mutationFn: async ({ requestId, newStatus }: { requestId: string; newStatus: string }) => {
+      const { error } = await supabase
+        .from("password_reset_requests")
+        .update({ status: newStatus, resolved_by: profile?.id, resolved_at: new Date().toISOString() })
+        .eq("id", requestId);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Permintaan dikemaskini."); queryClient.invalidateQueries({ queryKey: ["reset-requests"] }); },
+    onError: () => toast.error("Gagal mengemaskini permintaan."),
+  });
+
   if (!isAdmin) {
     return <div className="flex items-center justify-center py-12"><p className="text-muted-foreground">Anda tidak mempunyai akses ke halaman ini.</p></div>;
   }
@@ -156,6 +193,42 @@ export default function PengurusanPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2">
+          <BellRing className="h-5 w-5 text-amber-500" /> Permintaan Reset Kata Laluan
+          {resetRequests.filter((r: any) => r.status === "pending").length > 0 && (
+            <Badge variant="destructive">{resetRequests.filter((r: any) => r.status === "pending").length}</Badge>
+          )}
+        </CardTitle></CardHeader>
+        <CardContent>
+          {loadingRequests ? <p className="text-muted-foreground text-sm">Memuatkan...</p> : resetRequests.length === 0 ? <p className="text-muted-foreground text-sm">Tiada permintaan reset kata laluan.</p> : (
+            <div className="space-y-3">
+              {resetRequests.map((req: any) => (
+                <div key={req.id} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-lg border ${req.status === "pending" ? "border-amber-300 bg-amber-50/50" : "bg-muted/30"}`}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm">{req.user?.nama || "?"}</p>
+                      <Badge variant={req.status === "pending" ? "destructive" : req.status === "approved" ? "outline" : "secondary"}>{req.status === "pending" ? "Menunggu" : req.status === "approved" ? "Disahkan" : "Ditolak"}</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{req.user?.nama_pengguna} &middot; {new Date(req.requested_at).toLocaleString("ms-MY")}</p>
+                  </div>
+                  {req.status === "pending" && (
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => { resolveRequestMutation.mutate({ requestId: req.id, newStatus: "approved" }); resetPasswordMutation.mutate(req.user_id); }} disabled={resolveRequestMutation.isPending}>
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Sah & Reset
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => resolveRequestMutation.mutate({ requestId: req.id, newStatus: "rejected" })} disabled={resolveRequestMutation.isPending}>
+                        <XCircle className="h-3.5 w-3.5 mr-1" /> Tolak
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle>Senarai Pengguna</CardTitle></CardHeader>
