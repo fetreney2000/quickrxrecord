@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { Search, User, LogOut } from "lucide-react";
+import { Search } from "lucide-react";
 import type { Patient } from "@/types";
 
 export function Header() {
@@ -22,7 +22,7 @@ export function Header() {
   const [searchResults, setSearchResults] = useState<Patient[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [searching, setSearching] = useState(false);
-  const { profile, signOut } = useAuth();
+  const { profile } = useAuth();
   const router = useRouter();
   const supabase = createClient();
 
@@ -50,9 +50,10 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 w-full">
-      <div className="relative flex-1 max-w-md">
+      <div className="flex-1" />
+      <div className="relative w-full max-w-md">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input type="search" className="pl-8 w-full"
+        <Input type="search" placeholder="Cari Pesakit..." className="pl-8 w-full"
           value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setShowResults(true); }}
           onFocus={() => setShowResults(true)} onBlur={() => setTimeout(() => setShowResults(false), 200)}
         />
@@ -74,19 +75,6 @@ export function Header() {
             {!searching && searchResults.length === 0 && <div className="px-4 py-2 text-sm text-muted-foreground">Tiada pesakit dijumpai.</div>}
           </div>
         )}
-      </div>
-
-      <div className="flex items-center gap-1 ml-auto">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon"><User className="h-5 w-5" /></Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel><div><p className="text-sm font-medium">{profile?.nama}</p><p className="text-xs text-muted-foreground">{profile?.peranan}</p></div></DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut()}><LogOut className="mr-2 h-4 w-4" /> Log Keluar</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     </header>
   );
