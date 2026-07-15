@@ -77,6 +77,23 @@ export function Header() {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
+  const clearAll = async () => {
+    if (!profile) return;
+    await fetch("/api/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clearAll: true, userId: profile.id, role: profile.peranan }),
+    });
+    setNotifications([]);
+  };
+
+  const handleNotifClick = (notif: any) => {
+    setShowNotif(false);
+    if (notif.link) {
+      router.push(notif.link);
+    }
+  };
+
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-header px-4 md:px-6 w-full">
       <div className="flex-1" />
@@ -129,9 +146,16 @@ export function Header() {
           <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-background border rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto">
             <div className="sticky top-0 bg-background border-b px-4 py-2.5 flex items-center justify-between">
               <p className="text-sm font-semibold">Notifikasi</p>
-              <button className="text-xs text-muted-foreground hover:text-foreground" onClick={fetchNotifications}>
-                <RefreshCw className="h-3.5 w-3.5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {notifications.length > 0 && (
+                  <button className="text-[10px] text-muted-foreground hover:text-destructive font-medium" onClick={clearAll}>
+                    Semua Dibaca
+                  </button>
+                )}
+                <button className="text-xs text-muted-foreground hover:text-foreground" onClick={fetchNotifications} title="Muat Semula">
+                  <RefreshCw className={`h-3.5 w-3.5 ${loadingNotif ? "animate-spin" : ""}`} />
+                </button>
+              </div>
             </div>
             {loadingNotif ? (
               <div className="px-4 py-8 text-center text-sm text-muted-foreground">Memuatkan...</div>
@@ -139,7 +163,11 @@ export function Header() {
               <div className="px-4 py-8 text-center text-sm text-muted-foreground">Tiada notifikasi baharu.</div>
             ) : (
               notifications.map((notif) => (
-                <div key={notif.id} className={`px-4 py-3 border-b last:border-0 hover:bg-accent/30 transition-colors ${notif.severity === "critical" ? "bg-red-50" : notif.severity === "warning" ? "bg-amber-50" : ""}`}>
+                <div
+                  key={notif.id}
+                  className={`px-4 py-3 border-b last:border-0 hover:bg-accent/30 transition-colors cursor-pointer ${notif.severity === "critical" ? "bg-red-50" : notif.severity === "warning" ? "bg-amber-50" : ""}`}
+                  onClick={() => handleNotifClick(notif)}
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
@@ -150,7 +178,7 @@ export function Header() {
                     </div>
                     <button
                       className="text-[10px] text-muted-foreground hover:text-foreground flex-shrink-0 mt-1"
-                      onClick={() => markAsRead(notif.id)}
+                      onClick={(e) => { e.stopPropagation(); markAsRead(notif.id); }}
                       title="Tutup"
                     >
                       ✕
@@ -158,11 +186,7 @@ export function Header() {
                   </div>
                   <div className="flex items-center gap-2 mt-1.5">
                     <span className="text-[10px] text-muted-foreground">{new Date(notif.created_at).toLocaleString("ms-MY")}</span>
-                    {notif.link && (
-                      <a href={notif.link} className="text-[10px] font-medium text-primary hover:underline" onClick={() => setShowNotif(false)}>
-                        Lihat &rarr;
-                      </a>
-                    )}
+                    <span className="text-[10px] font-medium text-primary">Klik untuk tindakan &rarr;</span>
                   </div>
                 </div>
               ))

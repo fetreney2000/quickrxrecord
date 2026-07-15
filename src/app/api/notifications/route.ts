@@ -22,10 +22,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "userId atau role diperlukan." }, { status: 400 });
     }
 
-    // Generate fresh notifications based on current data
     const notifications: any[] = [];
 
-    // 1. Expiring batches (Penjaga Stor)
     if (!role || role === "Penjaga Stor") {
       const thirtyDays = new Date();
       thirtyDays.setDate(thirtyDays.getDate() + 30);
@@ -50,7 +48,6 @@ export async function GET(request: Request) {
       }
     }
 
-    // 2. Low stock items (Penjaga Stor)
     if (!role || role === "Penjaga Stor") {
       const { data: items } = await supabase
         .from("items")
@@ -72,7 +69,6 @@ export async function GET(request: Request) {
       }
     }
 
-    // 3. Quota full items (Penjaga Stor)
     if (!role || role === "Penjaga Stor") {
       const { data: assignments } = await supabase
         .from("patient_item_assignments")
@@ -101,7 +97,6 @@ export async function GET(request: Request) {
       }
     }
 
-    // 4. Pending password reset requests (Pentadbir)
     if (!role || role === "Pentadbir") {
       const { data: pendingResets } = await supabase
         .from("password_reset_requests")
@@ -121,11 +116,9 @@ export async function GET(request: Request) {
       }
     }
 
-    // 5. Defaulter alerts (Kakitangan Farmasi)
     if (!role || role === "Kakitangan Farmasi") {
       const cutoffDate = new Date();
       cutoffDate.setMonth(cutoffDate.getMonth() - 3);
-
       const { data: activeAssignments } = await supabase
         .from("patient_item_assignments")
         .select("id, patient_id, patient:patients(nama), item:items(nama_item)")
@@ -154,7 +147,6 @@ export async function GET(request: Request) {
       }
     }
 
-    // Deduplicate by type+message and limit
     const seen = new Set<string>();
     const unique = notifications.filter(n => {
       const key = `${n.type}:${n.message}`;
@@ -163,7 +155,6 @@ export async function GET(request: Request) {
       return true;
     }).slice(0, 50);
 
-    // Insert notifications (skip if identical exists)
     for (const notif of unique) {
       const { data: existing } = await supabase
         .from("notifications")
@@ -188,7 +179,6 @@ export async function GET(request: Request) {
       }
     }
 
-    // Fetch all unread notifications for this user/role
     const query = supabase
       .from("notifications")
       .select("*")
@@ -227,7 +217,22 @@ export async function PATCH(request: Request) {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const { notificationId } = await request.json();
+    const body = await request.json();
+
+    // Clear all notifications
+    if (body.clearAll && body.userId) {
+      const { error } = await supabase
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("is_read", false)
+        .or(`user_id.eq.${body.userId},role.eq.${body.role}`);
+
+      if (error) throw error;
+      return NextResponse.json({ success: true });
+    }
+
+    // Clear single notification
+    const { notificationId } = body;
     if (!notificationId) {
       return NextResponse.json({ error: "notificationId diperlukan." }, { status: 400 });
     }
