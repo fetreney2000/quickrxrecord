@@ -312,10 +312,10 @@ export default function PatientDetailPage() {
           )}
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y divide-border">
+          <div>
             {assignments?.length === 0 ? <div className="p-6 text-center text-muted-foreground">Tiada item didaftarkan.</div> : (
-              assignments?.map(assignment => (
-                <div key={assignment.id}>
+              assignments?.map((assignment, idx) => (
+                <div key={assignment.id} style={{ backgroundColor: ["#ffffff", "#f7f7f7", "#f0f0f0", "#eaeaea", "#e5e5e5"][idx % 5] }}>
                   <button className="w-full flex items-center justify-between px-6 py-4 hover:bg-accent/30 transition-colors text-left" onClick={() => toggleExpand(assignment.id)}>
                     <div className="flex-1 grid grid-cols-4 gap-4 items-center">
                       <div><div className="font-medium">{assignment.item?.nama_item}</div><div className="text-xs text-muted-foreground">{assignment.item?.kekuatan}</div></div>

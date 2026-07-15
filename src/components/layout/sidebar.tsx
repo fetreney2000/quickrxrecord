@@ -35,7 +35,7 @@ export function Sidebar() {
       <div className="flex flex-col flex-1 min-h-0">
         {/* Logo */}
         <div className="flex items-center gap-3 h-16 flex-shrink-0 px-5 border-b border-sidebar-border">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#7c3aed] to-[#ec4899] shadow-lg">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-black shadow-lg">
             <Activity className="h-5 w-5 text-white" />
           </div>
           <div className="flex flex-col">

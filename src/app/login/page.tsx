@@ -38,15 +38,14 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-chart-4/10 blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-chart-2/5 blur-3xl" />
+        <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-black/5 blur-3xl" />
+        <div className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full bg-black/5 blur-3xl" />
       </div>
 
       <Card className="w-full max-w-md relative border-border bg-card/80 backdrop-blur-xl shadow-2xl">
         <CardHeader className="text-center pb-6">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/30">
-            <Activity className="h-8 w-8 text-primary-foreground" />
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-black shadow-lg shadow-black/20">
+            <Activity className="h-8 w-8 text-white" />
           </div>
           <CardTitle className="text-2xl font-bold text-foreground">
             QuickRxRecord
