@@ -1,8 +1,9 @@
-import { type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  return await updateSession(request);
+  // Custom auth: session is managed client-side via localStorage
+  // Just allow all requests through
+  return NextResponse.next();
 }
 
 export const config = {

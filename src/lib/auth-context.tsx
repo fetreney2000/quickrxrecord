@@ -1,12 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
 import type { Profile, Peranan } from "@/types";
-import type { User } from "@supabase/supabase-js";
 
 interface AuthContextType {
-  user: User | null;
   profile: Profile | null;
   loading: boolean;
   signIn: (nama_pengguna: string, kata_laluan: string) => Promise<{ error: string | null }>;
@@ -16,51 +13,86 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const SESSION_KEY = "quickrx_session";
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
-  const fetchProfile = useCallback(async (userId: string) => {
-    const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
-    if (!error && data) setProfile(data as Profile);
-  }, [supabase]);
+  const loadSession = useCallback(async () => {
+    try {
+      // Try to restore session from localStorage
+      const stored = localStorage.getItem(SESSION_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setProfile(parsed);
+      } else {
+        // Fallback: try server-side cookie (for SSR/initial load)
+        const res = await fetch("/api/session");
+        const data = await res.json();
+        if (data.profile) {
+          setProfile(data.profile);
+          localStorage.setItem(SESSION_KEY, JSON.stringify(data.profile));
+        }
+      }
+    } catch {
+      // No session
+    }
+    setLoading(false);
+  }, []);
 
   const refreshProfile = useCallback(async () => {
-    if (user) await fetchProfile(user.id);
-  }, [user, fetchProfile]);
+    if (!profile) return;
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const res = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${profile.id}&select=*`, {
+        headers: {
+          "apikey": process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.length > 0) {
+          const { kata_laluan_hash, ...safeProfile } = data[0];
+          setProfile(safeProfile);
+          localStorage.setItem(SESSION_KEY, JSON.stringify(safeProfile));
+        }
+      }
+    } catch {}
+  }, [profile]);
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) { setUser(session.user); await fetchProfile(session.user.id); }
-      setLoading(false);
-    };
-    getUser();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session?.user) { setUser(session.user); await fetchProfile(session.user.id); }
-      else if (event === "SIGNED_OUT") { setUser(null); setProfile(null); }
-    });
-    return () => subscription.unsubscribe();
-  }, [supabase, fetchProfile]);
+    loadSession();
+  }, [loadSession]);
 
   const signIn = async (nama_pengguna: string, kata_laluan: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email: `${nama_pengguna}@quickrx.local`, password: kata_laluan });
-      if (error) return { error: "Nama pengguna atau kata laluan salah." };
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nama_pengguna, kata_laluan }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: data.error || "Log masuk gagal." };
+      setProfile(data.profile);
+      localStorage.setItem(SESSION_KEY, JSON.stringify(data.profile));
       return { error: null };
-    } catch { return { error: "Ralat semasa log masuk. Sila cuba lagi." }; }
+    } catch {
+      return { error: "Ralat semasa log masuk. Sila cuba lagi." };
+    }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
     setProfile(null);
+    localStorage.removeItem(SESSION_KEY);
+    // Also try to clear server-side cookie
+    try {
+      await fetch("/api/session", { method: "DELETE" });
+    } catch {}
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ profile, loading, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

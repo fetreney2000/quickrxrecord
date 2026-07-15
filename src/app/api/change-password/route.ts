@@ -1,5 +1,20 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import crypto from "crypto";
+import { createClient } from "@supabase/supabase-js";
+
+export function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const iterations = 100000;
+  const key = crypto.pbkdf2Sync(password, salt, iterations, 32, "sha512");
+  return `pbkdf2:${iterations}:${salt}:${key.toString("hex")}`;
+}
+
+export function verifyPassword(password: string, hash: string): boolean {
+  const [algo, iterations, salt, derivedKey] = hash.split(":");
+  if (algo !== "pbkdf2" || !iterations || !salt || !derivedKey) return false;
+  const key = crypto.pbkdf2Sync(password, salt, parseInt(iterations), 32, "sha512");
+  return key.toString("hex") === derivedKey;
+}
 
 export async function POST(request: Request) {
   try {
@@ -24,10 +39,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Kata laluan baharu mesti sekurang-kurangnya 6 aksara." }, { status: 400 });
     }
 
-    // Verify current password by attempting sign-in
+    // Get current hash
     const { data: profile } = await supabase
       .from("profiles")
-      .select("nama_pengguna")
+      .select("kata_laluan_hash")
       .eq("id", userId)
       .single();
 
@@ -35,28 +50,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Profil pengguna tidak dijumpai." }, { status: 404 });
     }
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: `${profile.nama_pengguna}@quickrx.local`,
-      password: currentPassword,
-    });
-
-    if (signInError) {
-      return NextResponse.json({ error: "Kata laluan semasa tidak sah." }, { status: 401 });
+    // Verify current password
+    if (profile.kata_laluan_hash) {
+      const valid = verifyPassword(currentPassword, profile.kata_laluan_hash);
+      if (!valid) {
+        return NextResponse.json({ error: "Kata laluan semasa tidak sah." }, { status: 401 });
+      }
+    } else {
+      return NextResponse.json({ error: "Sila gunakan log masuk dengan kata laluan." }, { status: 400 });
     }
 
-    // Update password
-    const { error } = await supabase.auth.admin.updateUserById(userId, {
-      password: newPassword,
-    });
+    // Update with new hash
+    const newHash = hashPassword(newPassword);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ kata_laluan_hash: newHash, updated_at: new Date().toISOString() })
+      .eq("id", userId);
 
-    if (error) {
-      console.error("Failed to update password:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (error) throw error;
 
     return NextResponse.json({ success: true, message: "Kata laluan berjaya ditukar." });
   } catch (err: any) {
-    console.error("change-password API error:", err);
+    console.error("change-password error:", err);
     return NextResponse.json({ error: err.message || "Ralat dalaman." }, { status: 500 });
   }
 }

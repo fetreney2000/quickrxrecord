@@ -22,26 +22,49 @@ export async function POST(request: Request) {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const { userId } = await request.json();
-    if (!userId) {
-      return NextResponse.json({ error: "userId diperlukan." }, { status: 400 });
+    const { nama, nama_pengguna, kata_laluan, jawatan, peranan } = await request.json();
+
+    if (!nama || !nama_pengguna || !kata_laluan || !peranan) {
+      return NextResponse.json({ error: "Semua medan diperlukan." }, { status: 400 });
     }
 
-    const newHash = hashPassword("password123");
-
-    const { error } = await supabase
+    // Check for duplicate username
+    const { data: existing } = await supabase
       .from("profiles")
-      .update({ kata_laluan_hash: newHash, updated_at: new Date().toISOString() })
-      .eq("id", userId);
+      .select("id")
+      .eq("nama_pengguna", nama_pengguna.toLowerCase())
+      .single();
+
+    if (existing) {
+      return NextResponse.json({ error: "Nama pengguna sudah wujud." }, { status: 409 });
+    }
+
+    const kata_laluan_hash = hashPassword(kata_laluan);
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .insert({
+        nama,
+        nama_pengguna: nama_pengguna.toLowerCase(),
+        kata_laluan_hash,
+        jawatan: jawatan || null,
+        peranan,
+        aktif: true,
+      })
+      .select()
+      .single();
 
     if (error) {
-      console.error("Reset password error:", error);
+      console.error("Create user error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    // Remove hash from response
+    const { kata_laluan_hash: _, ...safeProfile } = data;
+
+    return NextResponse.json({ success: true, profile: safeProfile });
   } catch (err: any) {
-    console.error("reset-password error:", err);
+    console.error("Create user error:", err);
     return NextResponse.json({ error: err.message || "Ralat dalaman." }, { status: 500 });
   }
 }

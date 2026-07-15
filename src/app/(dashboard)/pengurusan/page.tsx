@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
-import { useAuth, hasPermission } from "@/lib/auth-context";
+import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,16 +67,19 @@ export default function PengurusanPage() {
 
   const addUserMutation = useMutation({
     mutationFn: async (user: typeof newUser) => {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: `${user.nama_pengguna}@quickrx.local`, password: user.kata_laluan,
+      const res = await fetch("/api/create-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nama: user.nama,
+          nama_pengguna: user.nama_pengguna,
+          kata_laluan: user.kata_laluan,
+          jawatan: user.jawatan || null,
+          peranan: user.peranan,
+        }),
       });
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Gagal mencipta pengguna.");
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: authData.user.id, nama: user.nama, jawatan: user.jawatan || null,
-        peranan: user.peranan, nama_pengguna: user.nama_pengguna,
-      });
-      if (profileError) throw profileError;
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Gagal mencipta pengguna.");
     },
     onSuccess: () => {
       toast.success("Pengguna berjaya ditambah.");
