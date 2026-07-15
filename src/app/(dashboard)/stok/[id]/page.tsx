@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
@@ -16,10 +16,13 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { ArrowLeft, Plus, Edit, Trash2, History } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, History, Download, FileSpreadsheet, FileText, Search, X } from "lucide-react";
 import type { Item, ItemBatch } from "@/types";
 
 export default function ItemDetailPage() {
@@ -31,6 +34,12 @@ export default function ItemDetailPage() {
 
   const canEdit = hasPermission(profile?.peranan, "manage_items");
   const canManageBatches = hasPermission(profile?.peranan, "manage_batches");
+
+  // Filters for transaction history
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
+  const [filterPatient, setFilterPatient] = useState("");
+  const [filterStaff, setFilterStaff] = useState("");
 
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState<Partial<Item>>({});
@@ -70,22 +79,88 @@ export default function ItemDetailPage() {
     },
   });
 
-  const { data: batchAdjustments } = useQuery({
-    queryKey: ["batch-adjustments", id],
+  // Full transaction history combining adjustments, supplies, and batch creation
+  const { data: transactionHistory } = useQuery({
+    queryKey: ["transaction-history", id],
     queryFn: async () => {
+      const transactions: any[] = [];
+
+      // Get supplies to patients
+      const { data: supplies } = await supabase
+        .from("supply_records")
+        .select("*, batch:item_batches(nombor_kelompok), assignment:patient_item_assignments(patient_id, patient:patients(nama)), staff:profiles!kakitangan_pembekal(nama)")
+        .eq("batch.item_id", id)
+        .order("tarikh_dibekal", { ascending: false })
+        .limit(200);
+
+      for (const s of supplies || []) {
+        transactions.push({
+          id: `supply-${s.id}`,
+          tarikh: s.tarikh_dibekal,
+          jenis: "Bekalan Kepada Pesakit",
+          kelompok: s.batch?.nombor_kelompok || "-",
+          perubahan: -s.kuantiti,
+          keterangan: `Bekal ${s.kuantiti} unit kepada ${s.assignment?.patient?.nama || "pesakit"}`,
+          kakitangan: s.staff?.nama || "-",
+          pesakit: s.assignment?.patient?.nama || "-",
+        });
+      }
+
+      // Get batch adjustments
       const batchIds = batches?.map(b => b.id) || [];
-      if (batchIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("batch_adjustments")
-        .select("*, staff:profiles!adjusted_by(nama), batch:item_batches(nombor_kelompok)")
-        .in("batch_id", batchIds)
-        .order("created_at", { ascending: false })
-        .limit(50);
-      if (error) return [];
-      return data as any[];
+      if (batchIds.length > 0) {
+        const { data: adjustments } = await supabase
+          .from("batch_adjustments")
+          .select("*, staff:profiles!adjusted_by(nama), batch:item_batches(nombor_kelompok)")
+          .in("batch_id", batchIds)
+          .order("created_at", { ascending: false })
+          .limit(200);
+
+        for (const a of adjustments || []) {
+          transactions.push({
+            id: `adj-${a.id}`,
+            tarikh: a.created_at,
+            jenis: a.reason === "Stok awal kelompok baharu" ? "Kelompok Baharu" : "Larasan Stok",
+            kelompok: a.batch?.nombor_kelompok || "-",
+            perubahan: a.change,
+            keterangan: a.reason || "-",
+            kakitangan: a.staff?.nama || "-",
+            pesakit: "-",
+          });
+        }
+      }
+
+      // Sort by date descending
+      transactions.sort((a, b) => new Date(b.tarikh).getTime() - new Date(a.tarikh).getTime());
+      return transactions;
     },
-    enabled: (batches?.length || 0) > 0,
+    enabled: true,
   });
+
+  // Filtered transactions
+  const filteredTransactions = useMemo(() => {
+    if (!transactionHistory) return [];
+    return transactionHistory.filter(t => {
+      if (filterDateFrom && new Date(t.tarikh) < new Date(filterDateFrom)) return false;
+      if (filterDateTo && new Date(t.tarikh) > new Date(filterDateTo + "T23:59:59")) return false;
+      if (filterPatient && !t.pesakit?.toLowerCase().includes(filterPatient.toLowerCase())) return false;
+      if (filterStaff && !t.kakitangan?.toLowerCase().includes(filterStaff.toLowerCase())) return false;
+      return true;
+    });
+  }, [transactionHistory, filterDateFrom, filterDateTo, filterPatient, filterStaff]);
+
+  // Unique patients and staff for filter dropdowns
+  const uniquePatients = useMemo(() => {
+    const set = new Set<string>();
+    (transactionHistory || []).forEach(t => { if (t.pesakit && t.pesakit !== "-") set.add(t.pesakit); });
+    return [...set].sort();
+  }, [transactionHistory]);
+
+  const uniqueStaff = useMemo(() => {
+    const set = new Set<string>();
+    (transactionHistory || []).forEach(t => { if (t.kakitangan && t.kakitangan !== "-") set.add(t.kakitangan); });
+    return [...set].sort();
+  }, [transactionHistory]);
 
   const updateItemMutation = useMutation({
     mutationFn: async (updates: Partial<Item>) => {
@@ -105,19 +180,12 @@ export default function ItemDetailPage() {
     mutationFn: async (batch: typeof newBatch) => {
       const kuantiti = parseInt(batch.kuantiti);
       const { data, error } = await supabase.from("item_batches").insert({
-        item_id: id,
-        nombor_kelompok: batch.nombor_kelompok,
-        tarikh_luput: batch.tarikh_luput,
-        kuantiti,
+        item_id: id, nombor_kelompok: batch.nombor_kelompok, tarikh_luput: batch.tarikh_luput, kuantiti,
       }).select().single();
       if (error) throw error;
       await supabase.from("batch_adjustments").insert({
-        batch_id: data.id,
-        previous_kuantiti: 0,
-        new_kuantiti: kuantiti,
-        change: kuantiti,
-        reason: "Stok awal kelompok baharu",
-        adjusted_by: profile?.id,
+        batch_id: data.id, previous_kuantiti: 0, new_kuantiti: kuantiti, change: kuantiti,
+        reason: "Stok awal kelompok baharu", adjusted_by: profile?.id,
       });
     },
     onSuccess: () => {
@@ -127,7 +195,7 @@ export default function ItemDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["batches", id] });
       queryClient.invalidateQueries({ queryKey: ["items"] });
       queryClient.invalidateQueries({ queryKey: ["item", id] });
-      queryClient.invalidateQueries({ queryKey: ["batch-adjustments", id] });
+      queryClient.invalidateQueries({ queryKey: ["transaction-history", id] });
     },
     onError: () => toast.error("Gagal menambah kelompok."),
   });
@@ -136,12 +204,8 @@ export default function ItemDetailPage() {
     mutationFn: async ({ batchId, kuantiti, previousKuantiti }: { batchId: string; kuantiti: number; previousKuantiti: number }) => {
       const change = kuantiti - previousKuantiti;
       await supabase.from("batch_adjustments").insert({
-        batch_id: batchId,
-        previous_kuantiti: previousKuantiti,
-        new_kuantiti: kuantiti,
-        change,
-        reason: "Larasan stok manual",
-        adjusted_by: profile?.id,
+        batch_id: batchId, previous_kuantiti: previousKuantiti, new_kuantiti: kuantiti, change,
+        reason: "Larasan stok manual", adjusted_by: profile?.id,
       });
       const { error } = await supabase.from("item_batches").update({ kuantiti }).eq("id", batchId);
       if (error) throw error;
@@ -150,7 +214,7 @@ export default function ItemDetailPage() {
       toast.success("Kuantiti kelompok dikemaskini.");
       setEditBatchId(null);
       queryClient.invalidateQueries({ queryKey: ["batches", id] });
-      queryClient.invalidateQueries({ queryKey: ["batch-adjustments", id] });
+      queryClient.invalidateQueries({ queryKey: ["transaction-history", id] });
     },
     onError: () => toast.error("Gagal mengemaskini kuantiti."),
   });
@@ -163,10 +227,51 @@ export default function ItemDetailPage() {
     onSuccess: () => {
       toast.success("Kelompok dipadam.");
       queryClient.invalidateQueries({ queryKey: ["batches", id] });
-      queryClient.invalidateQueries({ queryKey: ["batch-adjustments", id] });
+      queryClient.invalidateQueries({ queryKey: ["transaction-history", id] });
     },
     onError: () => toast.error("Gagal memadam kelompok."),
   });
+
+  // Excel export (client-side)
+  const exportToExcel = async () => {
+    try {
+      const ExcelJS = await import("exceljs");
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Transaksi_Item");
+      ws.addRow(["Tarikh", "Jenis", "Kelompok", "Perubahan", "Keterangan", "Kakitangan", "Pesakit"]);
+      filteredTransactions.forEach(t => ws.addRow([
+        new Date(t.tarikh).toLocaleString("ms-MY"), t.jenis, t.kelompok,
+        t.perubahan, t.keterangan, t.kakitangan, t.pesakit,
+      ]));
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = `Transaksi_${item?.kod_item || "item"}.xlsx`; a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Fail Excel berjaya dimuat turun.");
+    } catch { toast.error("Gagal mengeksport Excel."); }
+  };
+
+  // PDF export (client-side)
+  const exportToPDF = async () => {
+    try {
+      const { default: jsPDF } = await import("jspdf");
+      const autoTable = (await import("jspdf-autotable")).default;
+      const doc = new jsPDF();
+      doc.text(`Transaksi Item: ${item?.nama_item || ""}`, 14, 15);
+      autoTable(doc, {
+        head: [["Tarikh", "Jenis", "Kelompok", "Perubahan", "Keterangan", "Kakitangan"]],
+        body: filteredTransactions.map(t => [
+          new Date(t.tarikh).toLocaleString("ms-MY"), t.jenis, t.kelompok,
+          t.perubahan > 0 ? `+${t.perubahan}` : String(t.perubahan),
+          t.keterangan, t.kakitangan,
+        ]),
+        startY: 25, styles: { fontSize: 7 },
+      });
+      doc.save(`Transaksi_${item?.kod_item || "item"}.pdf`);
+      toast.success("Fail PDF berjaya dimuat turun.");
+    } catch { toast.error("Gagal mengeksport PDF."); }
+  };
 
   if (!item) {
     return <div className="flex items-center justify-center py-12">Memuatkan...</div>;
@@ -190,7 +295,7 @@ export default function ItemDetailPage() {
         <h1 className="text-2xl font-bold">Butiran Item</h1>
       </div>
 
-      {/* Item Info */}
+      {/* 1. Item Info */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>{item.nama_item} {item.kekuatan}</CardTitle>
@@ -228,7 +333,36 @@ export default function ItemDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Batches */}
+      {/* 2. Pesakit Yang Menggunakan */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Pesakit Yang Menggunakan</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {assignedPatients && assignedPatients.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nama</TableHead>
+                  <TableHead>No. KP</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {assignedPatients.map((a: any) => (
+                  <TableRow key={a.patient?.id} className="cursor-pointer" onClick={() => router.push(`/pesakit/${a.patient?.id}`)}>
+                    <TableCell>{a.patient?.nama}</TableCell>
+                    <TableCell>{a.patient?.nombor_kad_pengenalan || "-"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-sm text-muted-foreground">Tiada pesakit menggunakan item ini.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* 3. Batches */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Kelompok (Batches)</CardTitle>
@@ -238,9 +372,7 @@ export default function ItemDetailPage() {
                 <Button size="sm"><Plus className="mr-2 h-4 w-4" />Tambah Kelompok</Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Tambah Kelompok Baharu</DialogTitle>
-                </DialogHeader>
+                <DialogHeader><DialogTitle>Tambah Kelompok Baharu</DialogTitle></DialogHeader>
                 <div className="space-y-4">
                   <div className="space-y-2"><Label>Nombor Kelompok *</Label><Input value={newBatch.nombor_kelompok} onChange={e => setNewBatch({ ...newBatch, nombor_kelompok: e.target.value })} /></div>
                   <div className="space-y-2"><Label>Tarikh Luput *</Label><Input type="date" value={newBatch.tarikh_luput} onChange={e => setNewBatch({ ...newBatch, tarikh_luput: e.target.value })} /></div>
@@ -284,9 +416,7 @@ export default function ItemDetailPage() {
                             <Button size="sm" onClick={() => updateBatchMutation.mutate({ batchId: batch.id, kuantiti: parseInt(editBatchData.kuantiti), previousKuantiti: batch.kuantiti })}>✓</Button>
                             <Button size="sm" variant="ghost" onClick={() => setEditBatchId(null)}>✕</Button>
                           </div>
-                        ) : (
-                          batch.kuantiti
-                        )}
+                        ) : batch.kuantiti}
                       </TableCell>
                       <TableCell>
                         <Badge variant={isExpired ? "destructive" : batch.kuantiti > 0 ? "success" : "secondary"}>
@@ -314,74 +444,103 @@ export default function ItemDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Batch Adjustment History */}
-      {batchAdjustments && batchAdjustments.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <History className="h-5 w-5" /> Sejarah Larasan Stok
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tarikh</TableHead>
-                  <TableHead>Kelompok</TableHead>
-                  <TableHead>Perubahan</TableHead>
-                  <TableHead>Stok Sebelum</TableHead>
-                  <TableHead>Stok Selepas</TableHead>
-                  <TableHead>Sebab</TableHead>
-                  <TableHead>Kakitangan</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {batchAdjustments.map((adj: any) => (
-                  <TableRow key={adj.id}>
-                    <TableCell className="text-xs">{formatDate(adj.created_at)}</TableCell>
-                    <TableCell className="font-mono text-xs">{adj.batch?.nombor_kelompok || "-"}</TableCell>
-                    <TableCell>
-                      <Badge variant={adj.change >= 0 ? "success" : "destructive"}>
-                        {adj.change >= 0 ? `+${adj.change}` : adj.change}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{adj.previous_kuantiti}</TableCell>
-                    <TableCell>{adj.new_kuantiti}</TableCell>
-                    <TableCell className="text-xs">{adj.reason || "-"}</TableCell>
-                    <TableCell className="text-xs">{adj.staff?.nama || "-"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Assigned Patients */}
+      {/* 4. Transaction History */}
       <Card>
         <CardHeader>
-          <CardTitle>Pesakit Yang Menggunakan</CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <CardTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" /> Sejarah Transaksi Item
+              {transactionHistory && <Badge variant="secondary" className="ml-2">{transactionHistory.length}</Badge>}
+            </CardTitle>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={exportToExcel} disabled={!filteredTransactions.length}>
+                <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
+              </Button>
+              <Button size="sm" variant="outline" onClick={exportToPDF} disabled={!filteredTransactions.length}>
+                <FileText className="mr-2 h-4 w-4" /> PDF
+              </Button>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
-          {assignedPatients && assignedPatients.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nama</TableHead>
-                  <TableHead>No. KP</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {assignedPatients.map((a: any) => (
-                  <TableRow key={a.patient?.id} className="cursor-pointer" onClick={() => router.push(`/pesakit/${a.patient?.id}`)}>
-                    <TableCell>{a.patient?.nama}</TableCell>
-                    <TableCell>{a.patient?.nombor_kad_pengenalan || "-"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+        <CardContent className="space-y-4">
+          {/* Filters */}
+          <div className="flex flex-wrap gap-3 items-end">
+            <div className="space-y-1">
+              <Label className="text-xs">Tarikh Dari</Label>
+              <Input type="date" className="h-8 w-36 text-xs" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Tarikh Hingga</Label>
+              <Input type="date" className="h-8 w-36 text-xs" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Pesakit</Label>
+              <Select value={filterPatient} onValueChange={setFilterPatient}>
+                <SelectTrigger className="h-8 w-40 text-xs"><SelectValue placeholder="Semua Pesakit" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Pesakit</SelectItem>
+                  {uniquePatients.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Kakitangan</Label>
+              <Select value={filterStaff} onValueChange={setFilterStaff}>
+                <SelectTrigger className="h-8 w-40 text-xs"><SelectValue placeholder="Semua Kakitangan" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Kakitangan</SelectItem>
+                  {uniqueStaff.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {(filterDateFrom || filterDateTo || filterPatient || filterStaff) && (
+              <Button variant="ghost" size="sm" className="h-8" onClick={() => { setFilterDateFrom(""); setFilterDateTo(""); setFilterPatient(""); setFilterStaff(""); }}>
+                <X className="h-3 w-3 mr-1" /> Reset
+              </Button>
+            )}
+          </div>
+
+          {/* Transaction Table */}
+          {filteredTransactions.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4">Tiada transaksi.</p>
           ) : (
-            <p className="text-sm text-muted-foreground">Tiada pesakit menggunakan item ini.</p>
+            <div className="border rounded-md overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tarikh</TableHead>
+                    <TableHead>Jenis</TableHead>
+                    <TableHead>Kelompok</TableHead>
+                    <TableHead>Perubahan</TableHead>
+                    <TableHead>Baki Stok</TableHead>
+                    <TableHead>Keterangan</TableHead>
+                    <TableHead>Kakitangan</TableHead>
+                    <TableHead>Pesakit</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTransactions.map((t: any) => {
+                    const isIncrease = t.perubahan >= 0;
+                    return (
+                      <TableRow key={t.id}>
+                        <TableCell className="text-xs whitespace-nowrap">{new Date(t.tarikh).toLocaleString("ms-MY")}</TableCell>
+                        <TableCell className="text-xs">{t.jenis}</TableCell>
+                        <TableCell className="font-mono text-xs">{t.kelompok}</TableCell>
+                        <TableCell>
+                          <Badge variant={isIncrease ? "success" : "destructive"} className="font-mono">
+                            {isIncrease ? `+${t.perubahan}` : t.perubahan}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs font-mono">{t.baki_stok ?? "-"}</TableCell>
+                        <TableCell className="text-xs max-w-[200px] truncate">{t.keterangan}</TableCell>
+                        <TableCell className="text-xs">{t.kakitangan}</TableCell>
+                        <TableCell className="text-xs">{t.pesakit || "-"}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
