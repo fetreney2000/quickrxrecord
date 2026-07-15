@@ -19,7 +19,7 @@ import {
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { ArrowLeft, Plus, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, History } from "lucide-react";
 import type { Item, ItemBatch } from "@/types";
 
 export default function ItemDetailPage() {
@@ -70,6 +70,23 @@ export default function ItemDetailPage() {
     },
   });
 
+  const { data: batchAdjustments } = useQuery({
+    queryKey: ["batch-adjustments", id],
+    queryFn: async () => {
+      const batchIds = batches?.map(b => b.id) || [];
+      if (batchIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("batch_adjustments")
+        .select("*, staff:profiles!adjusted_by(nama), batch:item_batches(nombor_kelompok)")
+        .in("batch_id", batchIds)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) return [];
+      return data as any[];
+    },
+    enabled: (batches?.length || 0) > 0,
+  });
+
   const updateItemMutation = useMutation({
     mutationFn: async (updates: Partial<Item>) => {
       const { error } = await supabase.from("items").update(updates).eq("id", id);
@@ -79,31 +96,53 @@ export default function ItemDetailPage() {
       toast.success("Item dikemaskini.");
       setEditMode(false);
       queryClient.invalidateQueries({ queryKey: ["item", id] });
+      queryClient.invalidateQueries({ queryKey: ["items"] });
     },
     onError: () => toast.error("Gagal mengemaskini item."),
   });
 
   const addBatchMutation = useMutation({
     mutationFn: async (batch: typeof newBatch) => {
-      const { error } = await supabase.from("item_batches").insert({
+      const kuantiti = parseInt(batch.kuantiti);
+      const { data, error } = await supabase.from("item_batches").insert({
         item_id: id,
         nombor_kelompok: batch.nombor_kelompok,
         tarikh_luput: batch.tarikh_luput,
-        kuantiti: parseInt(batch.kuantiti),
-      });
+        kuantiti,
+      }).select().single();
       if (error) throw error;
+      await supabase.from("batch_adjustments").insert({
+        batch_id: data.id,
+        previous_kuantiti: 0,
+        new_kuantiti: kuantiti,
+        change: kuantiti,
+        reason: "Stok awal kelompok baharu",
+        adjusted_by: profile?.id,
+      });
     },
     onSuccess: () => {
       toast.success("Kelompok berjaya ditambah.");
       setOpenAddBatch(false);
       setNewBatch({ nombor_kelompok: "", tarikh_luput: "", kuantiti: "" });
       queryClient.invalidateQueries({ queryKey: ["batches", id] });
+      queryClient.invalidateQueries({ queryKey: ["items"] });
+      queryClient.invalidateQueries({ queryKey: ["item", id] });
+      queryClient.invalidateQueries({ queryKey: ["batch-adjustments", id] });
     },
     onError: () => toast.error("Gagal menambah kelompok."),
   });
 
   const updateBatchMutation = useMutation({
-    mutationFn: async ({ batchId, kuantiti }: { batchId: string; kuantiti: number }) => {
+    mutationFn: async ({ batchId, kuantiti, previousKuantiti }: { batchId: string; kuantiti: number; previousKuantiti: number }) => {
+      const change = kuantiti - previousKuantiti;
+      await supabase.from("batch_adjustments").insert({
+        batch_id: batchId,
+        previous_kuantiti: previousKuantiti,
+        new_kuantiti: kuantiti,
+        change,
+        reason: "Larasan stok manual",
+        adjusted_by: profile?.id,
+      });
       const { error } = await supabase.from("item_batches").update({ kuantiti }).eq("id", batchId);
       if (error) throw error;
     },
@@ -111,6 +150,7 @@ export default function ItemDetailPage() {
       toast.success("Kuantiti kelompok dikemaskini.");
       setEditBatchId(null);
       queryClient.invalidateQueries({ queryKey: ["batches", id] });
+      queryClient.invalidateQueries({ queryKey: ["batch-adjustments", id] });
     },
     onError: () => toast.error("Gagal mengemaskini kuantiti."),
   });
@@ -123,6 +163,7 @@ export default function ItemDetailPage() {
     onSuccess: () => {
       toast.success("Kelompok dipadam.");
       queryClient.invalidateQueries({ queryKey: ["batches", id] });
+      queryClient.invalidateQueries({ queryKey: ["batch-adjustments", id] });
     },
     onError: () => toast.error("Gagal memadam kelompok."),
   });
@@ -240,7 +281,7 @@ export default function ItemDetailPage() {
                         {editBatchId === batch.id ? (
                           <div className="flex gap-1">
                             <Input type="number" className="w-24" value={editBatchData.kuantiti} onChange={e => setEditBatchData({ kuantiti: e.target.value })} />
-                            <Button size="sm" onClick={() => updateBatchMutation.mutate({ batchId: batch.id, kuantiti: parseInt(editBatchData.kuantiti) })}>✓</Button>
+                            <Button size="sm" onClick={() => updateBatchMutation.mutate({ batchId: batch.id, kuantiti: parseInt(editBatchData.kuantiti), previousKuantiti: batch.kuantiti })}>✓</Button>
                             <Button size="sm" variant="ghost" onClick={() => setEditBatchId(null)}>✕</Button>
                           </div>
                         ) : (
@@ -273,10 +314,53 @@ export default function ItemDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Batch Adjustment History */}
+      {batchAdjustments && batchAdjustments.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" /> Sejarah Larasan Stok
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tarikh</TableHead>
+                  <TableHead>Kelompok</TableHead>
+                  <TableHead>Perubahan</TableHead>
+                  <TableHead>Stok Sebelum</TableHead>
+                  <TableHead>Stok Selepas</TableHead>
+                  <TableHead>Sebab</TableHead>
+                  <TableHead>Kakitangan</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {batchAdjustments.map((adj: any) => (
+                  <TableRow key={adj.id}>
+                    <TableCell className="text-xs">{formatDate(adj.created_at)}</TableCell>
+                    <TableCell className="font-mono text-xs">{adj.batch?.nombor_kelompok || "-"}</TableCell>
+                    <TableCell>
+                      <Badge variant={adj.change >= 0 ? "success" : "destructive"}>
+                        {adj.change >= 0 ? `+${adj.change}` : adj.change}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{adj.previous_kuantiti}</TableCell>
+                    <TableCell>{adj.new_kuantiti}</TableCell>
+                    <TableCell className="text-xs">{adj.reason || "-"}</TableCell>
+                    <TableCell className="text-xs">{adj.staff?.nama || "-"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Assigned Patients */}
       <Card>
         <CardHeader>
-          <CardTitle>Pesakit Yang Ditugaskan</CardTitle>
+          <CardTitle>Pesakit Yang Menggunakan</CardTitle>
         </CardHeader>
         <CardContent>
           {assignedPatients && assignedPatients.length > 0 ? (
@@ -297,7 +381,7 @@ export default function ItemDetailPage() {
               </TableBody>
             </Table>
           ) : (
-            <p className="text-sm text-muted-foreground">Tiada pesakit ditugaskan untuk item ini.</p>
+            <p className="text-sm text-muted-foreground">Tiada pesakit menggunakan item ini.</p>
           )}
         </CardContent>
       </Card>
