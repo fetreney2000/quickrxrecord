@@ -21,7 +21,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { Plus, Edit, Trash2, UserPlus, KeyRound, ChevronDown, ChevronUp, ShieldAlert, UserCheck, UserX, Lock, AlertTriangle } from "lucide-react";
+import { Plus, Edit, Trash2, UserPlus, KeyRound, ChevronDown, ChevronUp, ShieldAlert, UserCheck, UserX, Lock, AlertTriangle, BellRing, CheckCircle2, XCircle, History } from "lucide-react";
 import type { Profile, Peranan } from "@/types";
 
 const ROLES: Peranan[] = ["Pentadbir", "Penjaga Stor", "Kakitangan Farmasi", "Kakitangan Klinik"];

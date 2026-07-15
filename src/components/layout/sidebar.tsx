@@ -15,15 +15,20 @@ import {
   Truck,
   FileText,
   UserCog,
+  UserCircle,
 } from "lucide-react";
 
 const navItems = [
-  { href: "/", label: "Papan Pemuka", icon: LayoutDashboard, color: "text-blue-500", bgColor: "bg-blue-500/10", permission: null },
-  { href: "/pesakit", label: "Pesakit", icon: Stethoscope, color: "text-emerald-500", bgColor: "bg-emerald-500/10", permission: "view_patients" },
-  { href: "/stok", label: "Stok & Item", icon: Pill, color: "text-violet-500", bgColor: "bg-violet-500/10", permission: "view_items" },
-  { href: "/bekalan", label: "Bekalan Ubat", icon: Truck, color: "text-amber-500", bgColor: "bg-amber-500/10", permission: "manage_supply" },
-  { href: "/laporan", label: "Laporan", icon: FileText, color: "text-rose-500", bgColor: "bg-rose-500/10", permission: "view_reports" },
-  { href: "/pengurusan", label: "Pengurusan", icon: UserCog, color: "text-cyan-500", bgColor: "bg-cyan-500/10", permission: "manage_users" },
+  { href: "/", label: "Papan Pemuka", icon: LayoutDashboard, color: "text-blue-500", permission: null },
+  { href: "/pesakit", label: "Pesakit", icon: Stethoscope, color: "text-emerald-500", permission: "view_patients" },
+  { href: "/stok", label: "Stok & Item", icon: Pill, color: "text-violet-500", permission: "view_items" },
+  { href: "/bekalan", label: "Bekalan Ubat", icon: Truck, color: "text-amber-500", permission: "manage_supply" },
+  { href: "/laporan", label: "Laporan", icon: FileText, color: "text-rose-500", permission: "view_reports" },
+  { href: "/pengurusan", label: "Pengurusan", icon: UserCog, color: "text-cyan-500", permission: "manage_users" },
+];
+
+const bottomItems = [
+  { href: "/profil", label: "Profil", icon: UserCircle, color: "text-gray-500", permission: null as string | null },
 ];
 
 export function Sidebar() {
@@ -73,6 +78,28 @@ export function Sidebar() {
               );
             })}
           </nav>
+        </div>
+
+        {/* Bottom nav items (Profil) */}
+        <div className="flex-shrink-0 border-t border-sidebar-border px-3 py-2">
+          {bottomItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "group flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200",
+                pathname === item.href
+                  ? "bg-sidebar-primary/15 text-sidebar-primary shadow-sm border border-sidebar-primary/20"
+                  : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+              )}
+            >
+              <item.icon className={cn(
+                "h-5 w-5 flex-shrink-0 transition-colors",
+                pathname === item.href ? "text-sidebar-primary" : (item.color || "text-sidebar-foreground/50 group-hover:text-sidebar-foreground")
+              )} />
+              {item.label}
+            </Link>
+          ))}
         </div>
 
         {/* User Profile */}
