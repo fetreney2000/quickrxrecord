@@ -15,7 +15,6 @@ import {
   Truck,
   FileText,
   UserCog,
-  UserCircle,
 } from "lucide-react";
 
 const navItems = [
@@ -25,10 +24,6 @@ const navItems = [
   { href: "/bekalan", label: "Bekalan Ubat", icon: Truck, color: "text-amber-500", permission: "manage_supply" },
   { href: "/laporan", label: "Laporan", icon: FileText, color: "text-rose-500", permission: "view_reports" },
   { href: "/pengurusan", label: "Pengurusan", icon: UserCog, color: "text-cyan-500", permission: "manage_users" },
-];
-
-const bottomItems = [
-  { href: "/profil", label: "Profil", icon: UserCircle, color: "text-gray-500", permission: null as string | null },
 ];
 
 export function Sidebar() {
@@ -80,42 +75,20 @@ export function Sidebar() {
           </nav>
         </div>
 
-        {/* Bottom nav items (Profil) */}
-        <div className="flex-shrink-0 border-t border-sidebar-border px-3 py-2">
-          {bottomItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "group flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200",
-                pathname === item.href
-                  ? "bg-sidebar-primary/15 text-sidebar-primary shadow-sm border border-sidebar-primary/20"
-                  : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
-              )}
-            >
-              <item.icon className={cn(
-                "h-5 w-5 flex-shrink-0 transition-colors",
-                pathname === item.href ? "text-sidebar-primary" : (item.color || "text-sidebar-foreground/50 group-hover:text-sidebar-foreground")
-              )} />
-              {item.label}
-            </Link>
-          ))}
-        </div>
-
-        {/* User Profile */}
+        {/* User Profile - clickable name links to /profil */}
         <div className="flex-shrink-0 border-t border-sidebar-border p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-primary/20 text-sidebar-primary text-sm font-bold flex-shrink-0">
+            <Link href="/profil" className="flex h-9 w-9 items-center justify-center rounded-full bg-sidebar-primary/20 text-sidebar-primary text-sm font-bold flex-shrink-0 hover:bg-sidebar-primary/30 transition-colors">
               {profile?.nama?.charAt(0)?.toUpperCase() || "?"}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-sidebar-foreground truncate">
+            </Link>
+            <Link href="/profil" className="flex-1 min-w-0 group">
+              <p className="text-sm font-semibold text-sidebar-foreground truncate group-hover:text-sidebar-primary transition-colors cursor-pointer">
                 {profile?.nama}
               </p>
-              <p className="text-xs text-sidebar-foreground/50 truncate">
+              <p className="text-xs text-sidebar-foreground/50 truncate group-hover:text-sidebar-primary/70 transition-colors cursor-pointer">
                 {profile?.peranan}
               </p>
-            </div>
+            </Link>
             <Button
               variant="ghost"
               size="icon"
