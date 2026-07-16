@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
@@ -127,6 +127,16 @@ export default function ItemDetailPage() {
       return data;
     },
   });
+
+  useEffect(() => {
+    if (!filterDateFrom) {
+      const d = new Date();
+      const start = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split("T")[0];
+      const today = d.toISOString().split("T")[0];
+      setFilterDateFrom(start);
+      setFilterDateTo(today);
+    }
+  }, [filterDateFrom]);
 
   const { data: transactionHistory } = useQuery({
     queryKey: ["transaction-history", id],
