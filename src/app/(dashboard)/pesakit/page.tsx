@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
@@ -31,15 +31,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { Plus, Search, ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { Plus, Search, ChevronLeft, ChevronRight, Eye, ChevronDown, ChevronUp } from "lucide-react";
 import type { Patient } from "@/types";
 
-const PAGE_SIZE = 20;
+type SortDir = "asc" | "desc";
+
+const PAGE_SIZE = 100;
 
 export default function PesakitPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [openAdd, setOpenAdd] = useState(false);
+  const [sort, setSort] = useState<{ key: string; dir: SortDir } | null>(null);
   const [newPatient, setNewPatient] = useState({
     nama: "",
     nombor_kad_pengenalan: "",
@@ -56,23 +59,35 @@ export default function PesakitPage() {
   const canEdit = hasPermission(profile?.peranan, "manage_patients");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["patients", search, page],
+    queryKey: ["patients", search, page, sort],
     queryFn: async () => {
-      let query = supabase
+      const sortKey = sort?.key || "nama";
+      const sortDir = sort?.dir || "asc";
+
+      const countQuery = supabase
         .from("patients")
-        .select("*", { count: "exact" })
+        .select("*", { count: "exact", head: true })
+        .eq("aktif", true)
+        .is("merged_into", null);
+
+      let dataQuery = supabase
+        .from("patients")
+        .select("*")
         .eq("aktif", true)
         .is("merged_into", null)
-        .order("nama")
+        .order(sortKey, { ascending: sortDir === "asc" })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (search) {
-        query = query.or(
-          `nama.ilike.%${search}%,nombor_kad_pengenalan.ilike.%${search}%,nombor_pendaftaran_hospital.ilike.%${search}%`
-        );
+        const filter = `nama.ilike.%${search}%,nombor_kad_pengenalan.ilike.%${search}%,nombor_pendaftaran_hospital.ilike.%${search}%`;
+        countQuery.or(filter);
+        dataQuery = dataQuery.or(filter);
       }
 
-      const { data, count, error } = await query;
+      const [{ count }, { data, error }] = await Promise.all([
+        countQuery,
+        dataQuery,
+      ]);
       if (error) throw error;
       return { patients: (data as Patient[]) || [], total: count || 0 };
     },
@@ -102,6 +117,20 @@ export default function PesakitPage() {
   });
 
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
+
+  const toggleSort = (key: string) => {
+    if (sort?.key === key) {
+      setSort({ key, dir: sort.dir === "asc" ? "desc" : "asc" });
+    } else {
+      setSort({ key, dir: "asc" });
+    }
+    setPage(0);
+  };
+
+  function SortIcon({ columnKey }: { columnKey: string }) {
+    if (sort?.key !== columnKey) return <div className="h-3 w-3 opacity-0" />;
+    return sort.dir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />;
+  }
 
   return (
     <div className="space-y-6">
@@ -181,10 +210,26 @@ export default function PesakitPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nama</TableHead>
-                <TableHead>No. KP</TableHead>
-                <TableHead>No. Hospital</TableHead>
-                <TableHead>No. Telefon</TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50 transition-colors" onClick={() => toggleSort("nama")}>
+                  <div className="flex items-center gap-1">
+                    Nama <SortIcon columnKey="nama" />
+                  </div>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50 transition-colors" onClick={() => toggleSort("nombor_kad_pengenalan")}>
+                  <div className="flex items-center gap-1">
+                    No. KP <SortIcon columnKey="nombor_kad_pengenalan" />
+                  </div>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50 transition-colors" onClick={() => toggleSort("nombor_pendaftaran_hospital")}>
+                  <div className="flex items-center gap-1">
+                    No. Pendaftaran Hospital <SortIcon columnKey="nombor_pendaftaran_hospital" />
+                  </div>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50 transition-colors" onClick={() => toggleSort("nombor_telefon")}>
+                  <div className="flex items-center gap-1">
+                    No. Telefon <SortIcon columnKey="nombor_telefon" />
+                  </div>
+                </TableHead>
                 <TableHead className="w-[100px]">Tindakan</TableHead>
               </TableRow>
             </TableHeader>
@@ -220,7 +265,7 @@ export default function PesakitPage() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-4">
               <p className="text-sm text-muted-foreground">
-                Halaman {page + 1} daripada {totalPages}
+                Halaman {page + 1} daripada {totalPages} ({data?.total || 0} pesakit)
               </p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}>
