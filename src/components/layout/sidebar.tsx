@@ -21,7 +21,6 @@ const navItems = [
   { href: "/", label: "Papan Pemuka", icon: LayoutDashboard, gradient: "from-blue-500 to-blue-600", bgGradient: "from-blue-50 to-blue-100/50", permission: null },
   { href: "/pesakit", label: "Pesakit", icon: Stethoscope, gradient: "from-emerald-500 to-emerald-600", bgGradient: "from-emerald-50 to-emerald-100/50", permission: "view_patients" },
   { href: "/stok", label: "Stok & Item", icon: Pill, gradient: "from-violet-500 to-violet-600", bgGradient: "from-violet-50 to-violet-100/50", permission: "view_items" },
-  { href: "/bekalan", label: "Bekalan Ubat", icon: Truck, gradient: "from-amber-500 to-amber-600", bgGradient: "from-amber-50 to-amber-100/50", permission: "manage_supply" },
   { href: "/laporan", label: "Laporan", icon: FileText, gradient: "from-rose-500 to-rose-600", bgGradient: "from-rose-50 to-rose-100/50", permission: "view_reports" },
   { href: "/pengurusan", label: "Pengurusan", icon: UserCog, gradient: "from-cyan-500 to-cyan-600", bgGradient: "from-cyan-50 to-cyan-100/50", permission: "manage_users" },
 ];
