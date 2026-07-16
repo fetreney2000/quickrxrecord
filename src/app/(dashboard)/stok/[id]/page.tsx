@@ -81,16 +81,9 @@ export default function ItemDetailPage() {
   const canEdit = hasPermission(profile?.peranan, "manage_items");
   const canManageBatches = hasPermission(profile?.peranan, "manage_batches");
 
-  // Default date range: start of month to today
-  const getStartOfMonth = () => {
-    const d = new Date(); d.setDate(1);
-    return d.toISOString().split("T")[0];
-  };
-  const getToday = () => new Date().toISOString().split("T")[0];
-
   // Filters & sorts
-  const [filterDateFrom, setFilterDateFrom] = useState(getStartOfMonth);
-  const [filterDateTo, setFilterDateTo] = useState(getToday);
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
   const [filterPatient, setFilterPatient] = useState("");
   const [filterStaff, setFilterStaff] = useState("");
   const [patientSearch, setPatientSearch] = useState("");
@@ -519,7 +512,7 @@ export default function ItemDetailPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button variant="ghost" size="sm" className="h-8" onClick={() => { setFilterDateFrom(getStartOfMonth()); setFilterDateTo(getToday()); setFilterPatient(""); setFilterStaff(""); }}>
+            <Button variant="ghost" size="sm" className="h-8" onClick={() => { const d = new Date(); d.setDate(1); const start = d.toISOString().split("T")[0]; const today = new Date().toISOString().split("T")[0]; setFilterDateFrom(start); setFilterDateTo(today); setFilterPatient(""); setFilterStaff(""); }}>
               <X className="h-3 w-3 mr-1" /> Reset
             </Button>
           </div>
