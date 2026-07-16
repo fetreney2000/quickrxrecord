@@ -24,7 +24,7 @@ import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Plus, Search, ChevronLeft, ChevronRight, Eye, Package } from "lucide-react";
 import type { Item } from "@/types";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 50;
 
 export default function StokPage() {
   const [search, setSearch] = useState("");
@@ -45,7 +45,7 @@ export default function StokPage() {
     queryFn: async () => {
       let query = supabase
         .from("items")
-        .select("*, item_batches(kuantiti)", { count: "exact" })
+        .select("*, item_batches(kuantiti), item_forms!items_id_bentuk_fkey(nama)", { count: "exact" })
         .eq("aktif", true)
         .order("nama_item")
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
@@ -138,7 +138,6 @@ export default function StokPage() {
               <TableRow>
                 <TableHead>Kod</TableHead>
                 <TableHead>Nama Item</TableHead>
-                <TableHead>Kekuatan</TableHead>
                 <TableHead>Kuota</TableHead>
                 <TableHead>Jumlah Stok</TableHead>
                 <TableHead className="w-[80px]">Tindakan</TableHead>
@@ -146,17 +145,18 @@ export default function StokPage() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8">Memuatkan...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center py-8">Memuatkan...</TableCell></TableRow>
               ) : data?.items.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Tiada item dijumpai.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Tiada item dijumpai.</TableCell></TableRow>
               ) : (
                 (data?.items as any[])?.map((item: any) => {
                   const totalStock = item.item_batches?.reduce((sum: number, b: any) => sum + (b.kuantiti || 0), 0) || 0;
+                  const bentukDos = item.item_forms?.nama || "";
+                  const namaDisplay = [item.nama_item, item.kekuatan, bentukDos].filter(Boolean).join(" ");
                   return (
                     <TableRow key={item.id} className="cursor-pointer" onClick={() => router.push(`/stok/${item.id}`)}>
                       <TableCell className="font-mono text-sm">{item.kod_item}</TableCell>
-                      <TableCell className="font-medium">{item.nama_item} {item.nama_dagangan && `(${item.nama_dagangan})`}</TableCell>
-                      <TableCell>{item.kekuatan || "-"}</TableCell>
+                      <TableCell className="font-medium">{namaDisplay}</TableCell>
                       <TableCell>{item.kuota ?? "-"}</TableCell>
                       <TableCell>
                         <Badge variant={totalStock > 0 ? "success" : "destructive"}>
