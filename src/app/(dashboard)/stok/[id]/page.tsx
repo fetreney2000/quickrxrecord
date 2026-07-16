@@ -152,13 +152,36 @@ export default function ItemDetailPage() {
   const { data: assignedPatients } = useQuery({
     queryKey: ["item-patients", id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Get active assignments for this item
+      const { data: assignments, error: assgnErr } = await supabase
         .from("patient_item_assignments")
-        .select("patient:patients(id, nama, nombor_kad_pengenalan)")
+        .select("id, dos, patient:patients(id, nama, nombor_kad_pengenalan)")
         .eq("item_id", id)
         .eq("aktif", true);
-      if (error) throw error;
-      return data;
+      if (assgnErr) throw assgnErr;
+      if (!assignments?.length) return [];
+
+      // Get the latest supply date for each assignment
+      const assignmentIds = assignments.map(a => a.id);
+      const { data: supplies } = await supabase
+        .from("supply_records")
+        .select("assignment_id, tarikh_dibekal")
+        .in("assignment_id", assignmentIds)
+        .order("tarikh_dibekal", { ascending: false });
+
+      // Build map of latest supply date per assignment
+      const latestSupplyMap = new Map<string, string>();
+      for (const s of supplies || []) {
+        if (!latestSupplyMap.has(s.assignment_id)) {
+          latestSupplyMap.set(s.assignment_id, s.tarikh_dibekal);
+        }
+      }
+
+      // Merge last supply date into each assignment
+      return assignments.map(a => ({
+        ...a,
+        last_supply: latestSupplyMap.get(a.id) || null,
+      }));
     },
   });
 
