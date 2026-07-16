@@ -45,7 +45,7 @@ export default function StokPage() {
     queryFn: async () => {
       let query = supabase
         .from("items")
-        .select("*, item_batches(kuantiti), item_forms!items_id_bentuk_fkey(nama)", { count: "exact" })
+        .select("*, item_batches(kuantiti), item_forms!id_bentuk(nama)")
         .eq("aktif", true)
         .order("nama_item")
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
@@ -54,9 +54,9 @@ export default function StokPage() {
         query = query.or(`nama_item.ilike.%${search}%,kod_item.ilike.%${search}%,nama_dagangan.ilike.%${search}%`);
       }
 
-      const { data, count, error } = await query;
+      const { data, error } = await query;
       if (error) throw error;
-      return { items: data || [], total: count || 0 };
+      return { items: data || [], total: data?.length || 0 };
     },
   });
 
