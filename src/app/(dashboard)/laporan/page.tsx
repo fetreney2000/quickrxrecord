@@ -1,29 +1,22 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
-import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { Download, FileSpreadsheet, FileText } from "lucide-react";
+import { FileSpreadsheet, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 export default function LaporanPage() {
   const supabase = createClient();
-  const [defaulterMonths, setDefaulterMonths] = useState(3);
 
   // Inventory report
   const { data: inventoryData } = useQuery({
@@ -50,53 +43,6 @@ export default function LaporanPage() {
         .limit(500);
       if (error) throw error;
       return data;
-    },
-  });
-
-  // Patient usage
-  const { data: patientUsage } = useQuery({
-    queryKey: ["report-usage"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("patient_item_assignments")
-        .select("*, patient:patients(nama, nombor_kad_pengenalan), item:items(nama_item, kekuatan)")
-        .eq("aktif", true)
-        .order("created_at", { ascending: false })
-        .limit(500);
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Defaulters
-  const { data: defaulters } = useQuery({
-    queryKey: ["report-defaulters", defaulterMonths],
-    queryFn: async () => {
-      const cutoffDate = new Date();
-      cutoffDate.setMonth(cutoffDate.getMonth() - defaulterMonths);
-      
-      const { data: activeAssignments, error } = await supabase
-        .from("patient_item_assignments")
-        .select("*, patient:patients(nama, nombor_kad_pengenalan, nombor_telefon), item:items(nama_item, kekuatan)")
-        .eq("aktif", true);
-      if (error) throw error;
-
-      const results = [];
-      for (const assignment of activeAssignments || []) {
-        const { data: lastSupply } = await supabase
-          .from("supply_records")
-          .select("tarikh_dibekal")
-          .eq("assignment_id", assignment.id)
-          .order("tarikh_dibekal", { ascending: false })
-          .limit(1)
-          .single();
-
-        const lastDate = lastSupply ? new Date(lastSupply.tarikh_dibekal) : null;
-        if (!lastDate || lastDate < cutoffDate) {
-          results.push({ ...assignment, last_supply: lastSupply?.tarikh_dibekal || null });
-        }
-      }
-      return results;
     },
   });
 
@@ -161,9 +107,7 @@ export default function LaporanPage() {
       <Tabs defaultValue="inventory">
         <TabsList>
           <TabsTrigger value="inventory">Inventori</TabsTrigger>
-          <TabsTrigger value="usage">Penggunaan Pesakit</TabsTrigger>
           <TabsTrigger value="transactions">Transaksi</TabsTrigger>
-          <TabsTrigger value="defaulters">Defaulter</TabsTrigger>
         </TabsList>
 
         {/* Inventory Report */}
@@ -237,49 +181,6 @@ export default function LaporanPage() {
           </Card>
         </TabsContent>
 
-        {/* Patient Usage */}
-        <TabsContent value="usage">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Penggunaan Pesakit</CardTitle>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={() => {
-                  exportToExcel((patientUsage || []).map((a: any) => ({
-                    nama_pesakit: a.patient?.nama, no_kp: a.patient?.nombor_kad_pengenalan,
-                    item: `${a.item?.nama_item} ${a.item?.kekuatan}`, dos: a.dos, tarikh_mula: a.tarikh_mula_guna,
-                  })), "Laporan_Penggunaan");
-                }}>
-                  <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nama Pesakit</TableHead>
-                    <TableHead>No. KP</TableHead>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Dos</TableHead>
-                    <TableHead>Tarikh Mula</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {patientUsage?.slice(0, 100).map((a: any) => (
-                    <TableRow key={a.id}>
-                      <TableCell>{a.patient?.nama}</TableCell>
-                      <TableCell>{a.patient?.nombor_kad_pengenalan || "-"}</TableCell>
-                      <TableCell>{a.item?.nama_item} {a.item?.kekuatan}</TableCell>
-                      <TableCell>{a.dos || "-"}</TableCell>
-                      <TableCell>{formatDate(a.tarikh_mula_guna)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         {/* Transactions */}
         <TabsContent value="transactions">
           <Card>
@@ -328,64 +229,6 @@ export default function LaporanPage() {
           </Card>
         </TabsContent>
 
-        {/* Defaulters */}
-        <TabsContent value="defaulters">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Senarai Defaulter</CardTitle>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm">Tempoh (bulan):</Label>
-                  <Input
-                    type="number"
-                    className="w-20"
-                    value={defaulterMonths}
-                    onChange={e => setDefaulterMonths(parseInt(e.target.value) || 3)}
-                  />
-                </div>
-                <Button size="sm" variant="outline" onClick={() => {
-                  exportToExcel((defaulters || []).map((d: any) => ({
-                    nama: d.patient?.nama, no_kp: d.patient?.nombor_kad_pengenalan,
-                    telefon: d.patient?.nombor_telefon, item: `${d.item?.nama_item} ${d.item?.kekuatan}`,
-                    dos: d.dos, bekalan_terakhir: d.last_supply || "Tiada rekod",
-                  })), "Laporan_Defaulter");
-                }}>
-                  <FileSpreadsheet className="mr-2 h-4 w-4" /> Excel
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nama Pesakit</TableHead>
-                    <TableHead>No. KP</TableHead>
-                    <TableHead>Telefon</TableHead>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Dos</TableHead>
-                    <TableHead>Bekalan Terakhir</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {defaulters?.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Tiada defaulter dijumpai.</TableCell></TableRow>
-                  ) : (
-                    defaulters?.slice(0, 200).map((d: any) => (
-                      <TableRow key={d.id}>
-                        <TableCell>{d.patient?.nama}</TableCell>
-                        <TableCell>{d.patient?.nombor_kad_pengenalan || "-"}</TableCell>
-                        <TableCell>{d.patient?.nombor_telefon || "-"}</TableCell>
-                        <TableCell>{d.item?.nama_item} {d.item?.kekuatan}</TableCell>
-                        <TableCell>{d.dos || "-"}</TableCell>
-                        <TableCell>{d.last_supply ? formatDate(d.last_supply) : <Badge variant="destructive">Tiada rekod</Badge>}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   );
