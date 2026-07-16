@@ -361,7 +361,7 @@ export default function ItemDetailPage() {
               <div><span className="text-muted-foreground">Kod:</span> {item.kod_item}</div>
               <div><span className="text-muted-foreground">Nama Dagangan:</span> {item.nama_dagangan || "-"}</div>
               <div><span className="text-muted-foreground">Kekuatan:</span> {item.kekuatan || "-"}</div>
-              {item.catatan && <div className="col-span-1"><span className="text-muted-foreground">Catatan:</span> {item.catatan}</div>}
+              <div><span className="text-muted-foreground">Catatan:</span> {item.catatan || "-"}</div>
             </div>
             <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
               <div className="rounded-lg border p-3 flex items-center gap-3">
