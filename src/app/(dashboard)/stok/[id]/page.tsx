@@ -223,6 +223,17 @@ export default function ItemDetailPage() {
     return [...set].sort();
   }, [transactionHistory]);
 
+  const txStats = useMemo(() => {
+    const stats = { total: 0, masuk: 0, keluar: 0, patients: new Set<string>() };
+    for (const t of filteredTransactions) {
+      stats.total++;
+      if (t.perubahan > 0) stats.masuk += t.perubahan;
+      if (t.perubahan < 0) stats.keluar += Math.abs(t.perubahan);
+      if (t.pesakit && t.pesakit !== "-") stats.patients.add(t.pesakit);
+    }
+    return stats;
+  }, [filteredTransactions]);
+
   const updateItemMutation = useMutation({
     mutationFn: async (updates: Partial<Item>) => {
       const { error } = await supabase.from("items").update(updates).eq("id", id);
@@ -316,18 +327,6 @@ export default function ItemDetailPage() {
   const totalStock = batches?.reduce((sum, b) => sum + b.kuantiti, 0) || 0;
   const totalPatients = assignedPatients?.length || 0;
   const bakiKuota = item?.kuota != null ? Math.max(0, item.kuota - totalPatients) : null;
-
-  // Transaction stats for selected duration
-  const txStats = useMemo(() => {
-    const stats = { total: 0, masuk: 0, keluar: 0, patients: new Set<string>() };
-    for (const t of filteredTransactions) {
-      stats.total++;
-      if (t.perubahan > 0) stats.masuk += t.perubahan;
-      if (t.perubahan < 0) stats.keluar += Math.abs(t.perubahan);
-      if (t.pesakit && t.pesakit !== "-") stats.patients.add(t.pesakit);
-    }
-    return stats;
-  }, [filteredTransactions]);
 
   return (
     <div className="space-y-6">
