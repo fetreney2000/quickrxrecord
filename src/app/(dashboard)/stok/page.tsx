@@ -43,20 +43,32 @@ export default function StokPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["items", search, page],
     queryFn: async () => {
-      let query = supabase
+      // Build count query
+      const countQuery = supabase
         .from("items")
-        .select("*, item_batches(kuantiti), item_forms!id_bentuk(nama)")
+        .select("*", { count: "exact", head: true })
+        .eq("aktif", true);
+
+      // Build data query
+      let dataQuery = supabase
+        .from("items")
+        .select("*, item_batches(kuantiti)")
         .eq("aktif", true)
         .order("nama_item")
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (search) {
-        query = query.or(`nama_item.ilike.%${search}%,kod_item.ilike.%${search}%,nama_dagangan.ilike.%${search}%`);
+        const filter = `nama_item.ilike.%${search}%,kod_item.ilike.%${search}%,nama_dagangan.ilike.%${search}%`;
+        countQuery.or(filter);
+        dataQuery = dataQuery.or(filter);
       }
 
-      const { data, error } = await query;
+      const [{ count }, { data, error }] = await Promise.all([
+        countQuery,
+        dataQuery,
+      ]);
       if (error) throw error;
-      return { items: data || [], total: data?.length || 0 };
+      return { items: data || [], total: count || 0 };
     },
   });
 
@@ -151,8 +163,7 @@ export default function StokPage() {
               ) : (
                 (data?.items as any[])?.map((item: any) => {
                   const totalStock = item.item_batches?.reduce((sum: number, b: any) => sum + (b.kuantiti || 0), 0) || 0;
-                  const bentukDos = item.item_forms?.nama || "";
-                  const namaDisplay = [item.nama_item, item.kekuatan, bentukDos].filter(Boolean).join(" ");
+                  const namaDisplay = [item.nama_item, item.kekuatan].filter(Boolean).join(" ");
                   return (
                     <TableRow key={item.id} className="cursor-pointer" onClick={() => router.push(`/stok/${item.id}`)}>
                       <TableCell className="font-mono text-sm">{item.kod_item}</TableCell>
