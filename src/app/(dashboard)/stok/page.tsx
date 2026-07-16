@@ -21,8 +21,10 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { Plus, Search, ChevronLeft, ChevronRight, Eye, Package } from "lucide-react";
+import { Plus, Search, ChevronLeft, ChevronRight, Eye, Package, ChevronDown, ChevronUp } from "lucide-react";
 import type { Item, ItemForm, ItemCategory } from "@/types";
+
+type SortDir = "asc" | "desc";
 
 const PAGE_SIZE = 50;
 
@@ -30,6 +32,7 @@ export default function StokPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [openAdd, setOpenAdd] = useState(false);
+  const [sort, setSort] = useState<{ key: string; dir: SortDir } | null>(null);
   const [newItem, setNewItem] = useState({
     kod_item: "", nama_item: "", nama_dagangan: "", kekuatan: "", id_kategori: "", id_bentuk: "", kuota: "", catatan: "",
   });
@@ -42,8 +45,11 @@ export default function StokPage() {
 
   // Fetch items
   const { data, isLoading } = useQuery({
-    queryKey: ["items", search, page],
+    queryKey: ["items", search, page, sort],
     queryFn: async () => {
+      const sortKey = sort?.key || "nama_item";
+      const sortDir = sort?.dir || "asc";
+
       const countQuery = supabase
         .from("items")
         .select("*", { count: "exact", head: true })
@@ -53,7 +59,7 @@ export default function StokPage() {
         .from("items")
         .select("*, item_batches(kuantiti)")
         .eq("aktif", true)
-        .order("nama_item")
+        .order(sortKey, { ascending: sortDir === "asc" })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (search) {
@@ -96,12 +102,6 @@ export default function StokPage() {
     return map;
   }, [forms]);
 
-  const categoriesMap = useMemo(() => {
-    const map = new Map<string, string>();
-    categories?.forEach(c => map.set(c.id, c.nama));
-    return map;
-  }, [categories]);
-
   const addItemMutation = useMutation({
     mutationFn: async (item: typeof newItem) => {
       const { error } = await supabase.from("items").insert({
@@ -126,6 +126,20 @@ export default function StokPage() {
   });
 
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
+
+  const toggleSort = (key: string) => {
+    if (sort?.key === key) {
+      setSort({ key, dir: sort.dir === "asc" ? "desc" : "asc" });
+    } else {
+      setSort({ key, dir: "asc" });
+    }
+    setPage(0);
+  };
+
+  function SortIcon({ columnKey }: { columnKey: string }) {
+    if (sort?.key !== columnKey) return <div className="h-3 w-3 opacity-0" />;
+    return sort.dir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />;
+  }
 
   return (
     <div className="space-y-6">
@@ -198,9 +212,15 @@ export default function StokPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Kod</TableHead>
-                <TableHead>Nama Item</TableHead>
-                <TableHead>Kuota</TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50 transition-colors" onClick={() => toggleSort("kod_item")}>
+                  <div className="flex items-center gap-1">Kod <SortIcon columnKey="kod_item" /></div>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50 transition-colors" onClick={() => toggleSort("nama_item")}>
+                  <div className="flex items-center gap-1">Nama Item <SortIcon columnKey="nama_item" /></div>
+                </TableHead>
+                <TableHead className="cursor-pointer select-none hover:bg-muted/50 transition-colors" onClick={() => toggleSort("kuota")}>
+                  <div className="flex items-center gap-1">Kuota <SortIcon columnKey="kuota" /></div>
+                </TableHead>
                 <TableHead>Jumlah Stok</TableHead>
                 <TableHead className="w-[80px]">Tindakan</TableHead>
               </TableRow>
@@ -239,7 +259,7 @@ export default function StokPage() {
 
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-4">
-              <p className="text-sm text-muted-foreground">Halaman {page + 1} daripada {totalPages}</p>
+              <p className="text-sm text-muted-foreground">Halaman {page + 1} daripada {totalPages} ({data?.total || 0} item)</p>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}><ChevronLeft className="h-4 w-4" /></Button>
                 <Button variant="outline" size="sm" onClick={() => setPage(Math.min(totalPages - 1, page + 1))} disabled={page >= totalPages - 1}><ChevronRight className="h-4 w-4" /></Button>
