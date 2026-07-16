@@ -271,19 +271,7 @@ export default function PatientDetailPage() {
     onError: () => toast.error("Gagal mengemaskini rekod bekalan."),
   });
 
-  if (!patient) return <div className="flex items-center justify-center py-12">Memuatkan...</div>;
-
-  const currentAssignment = openSupply ? assignments?.find(a => a.id === openSupply) : null;
-
-  const toggleExpand = (assignmentId: string) => {
-    if (expandedAssignment !== assignmentId) { setFoldDose(true); setFoldSupply(true); }
-    setExpandedAssignment(expandedAssignment === assignmentId ? null : assignmentId);
-    setEditSupplyRecord(null);
-  };
-
-  const filteredItems = (items || []).filter((item: any) => !itemSearch || item.nama_item.toLowerCase().includes(itemSearch.toLowerCase()) || item.kod_item?.toLowerCase().includes(itemSearch.toLowerCase()));
-
-  // Sorting & pagination helpers for assignments
+  // Sorting & pagination helpers (MUST be before early return to keep hook count consistent)
   const sortData = (data: any[], sort: { key: string; dir: SortDir } | null) => {
     if (!sort) return data;
     return [...data].sort((a, b) => {
@@ -308,6 +296,18 @@ export default function PatientDetailPage() {
 
   const sortedDoseHistory = useMemo(() => sortData(doseHistory || [], doseSort), [doseHistory, doseSort]);
   const sortedSupplyHistory = useMemo(() => sortData(supplyHistory || [], supplySort), [supplyHistory, supplySort]);
+
+  if (!patient) return <div className="flex items-center justify-center py-12">Memuatkan...</div>;
+
+  const currentAssignment = openSupply ? assignments?.find(a => a.id === openSupply) : null;
+
+  const toggleExpand = (assignmentId: string) => {
+    if (expandedAssignment !== assignmentId) { setFoldDose(true); setFoldSupply(true); }
+    setExpandedAssignment(expandedAssignment === assignmentId ? null : assignmentId);
+    setEditSupplyRecord(null);
+  };
+
+  const filteredItems = (items || []).filter((item: any) => !itemSearch || item.nama_item.toLowerCase().includes(itemSearch.toLowerCase()) || item.kod_item?.toLowerCase().includes(itemSearch.toLowerCase()));
 
   return (
     <div className="space-y-6">
