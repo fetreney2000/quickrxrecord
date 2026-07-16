@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
@@ -26,7 +26,7 @@ import { formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { ArrowLeft, Plus, Edit, XCircle, Package, Merge, Trash2, ChevronDown, ChevronUp, ClipboardList, Activity, Search } from "lucide-react";
 import { MergeDialog } from "@/components/pesakit/merge-dialog";
-import type { Patient, PatientItemAssignment, Item, ItemBatch } from "@/types";
+import type { Patient, PatientItemAssignment, Item, ItemBatch, ItemForm } from "@/types";
 
 export default function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -76,10 +76,25 @@ export default function PatientDetailPage() {
     },
   });
 
+  const { data: forms } = useQuery({
+    queryKey: ["item_forms"],
+    queryFn: async () => {
+      const { data } = await supabase.from("item_forms").select("id, nama");
+      return (data || []) as Pick<ItemForm, "id" | "nama">[];
+    },
+    staleTime: 60000,
+  });
+
+  const formsMap = useMemo(() => {
+    const map = new Map<string, string>();
+    forms?.forEach(f => map.set(f.id, f.nama));
+    return map;
+  }, [forms]);
+
   const { data: items } = useQuery({
     queryKey: ["items-with-stats"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("items").select("id, kod_item, nama_item, kekuatan, kuota, catatan").eq("aktif", true).order("nama_item");
+      const { data, error } = await supabase.from("items").select("id, kod_item, nama_item, kekuatan, id_bentuk, kuota, catatan").eq("aktif", true).order("nama_item");
       if (error) throw error;
       const itemsList = data as any[];
       const { data: counts } = await supabase.from("patient_item_assignments").select("item_id").eq("aktif", true);
@@ -88,6 +103,12 @@ export default function PatientDetailPage() {
       return itemsList.map(item => ({ ...item, patient_count: itemCountMap[item.id] || 0, baki_kuota: item.kuota != null ? Math.max(0, item.kuota - (itemCountMap[item.id] || 0)) : null }));
     },
   });
+
+  const getItemDisplayName = useCallback((item: any) => {
+    if (!item) return "";
+    const bentukDos = formsMap.get(item.id_bentuk) || "";
+    return [item.nama_item, item.kekuatan, bentukDos].filter(Boolean).join(" ");
+  }, [formsMap]);
 
   const { data: doseHistory } = useQuery({
     queryKey: ["dose-history", expandedAssignment],
@@ -328,7 +349,7 @@ export default function PatientDetailPage() {
                     <button className="w-full text-left" onClick={() => toggleExpand(assignment.id)}>
                       <div className="hidden sm:flex items-center justify-between px-6 py-4 hover:bg-accent/30 transition-colors">
                         <div className="flex-1 grid grid-cols-4 gap-4 items-center">
-                          <div><div className="font-medium">{assignment.item?.nama_item}</div><div className="text-xs text-muted-foreground">{assignment.item?.kekuatan}</div></div>
+                          <div><div className="font-medium">{getItemDisplayName(assignment.item)}</div><div className="text-xs text-muted-foreground">{assignment.item?.kod_item}</div></div>
                           <div className="text-sm">{assignment.dos || "-"}</div>
                           <div className="text-sm">{formatDate(assignment.tarikh_mula_guna)}</div>
                           <div><Badge variant={assignment.aktif ? "success" : "secondary"}>{assignment.aktif ? "Aktif" : "Tamat"}</Badge></div>
@@ -339,7 +360,7 @@ export default function PatientDetailPage() {
                       </div>
                       <div className="sm:hidden px-5 py-3 hover:bg-accent/30 transition-colors space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <div className="font-medium text-sm">{assignment.item?.nama_item}</div>
+                          <div className="font-medium text-sm">{getItemDisplayName(assignment.item)}</div>
                           <motion.div animate={{ rotate: expandedAssignment === assignment.id ? 180 : 0 }} transition={{ duration: 0.2 }}><ChevronDown className="h-4 w-4 text-muted-foreground" /></motion.div>
                         </div>
                         <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
