@@ -24,9 +24,29 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { ArrowLeft, Plus, Edit, XCircle, Package, Merge, Trash2, ChevronDown, ChevronUp, ClipboardList, Activity, Search } from "lucide-react";
+import { ArrowLeft, Plus, Edit, XCircle, Package, Merge, Trash2, ChevronDown, ChevronUp, ClipboardList, Activity, Search, UserX, ShieldAlert, ChevronLeft, ChevronRight } from "lucide-react";
 import { MergeDialog } from "@/components/pesakit/merge-dialog";
 import type { Patient, PatientItemAssignment, Item, ItemBatch, ItemForm } from "@/types";
+
+type SortDir = "asc" | "desc";
+
+const PAGE_SIZE = 50;
+
+function SortableHeader({ label, sortKey, currentSort, onSort }: { label: string; sortKey: string; currentSort: { key: string; dir: SortDir } | null; onSort: (key: string) => void }) {
+  const isActive = currentSort?.key === sortKey;
+  return (
+    <TableHead className="cursor-pointer select-none hover:bg-muted/50 transition-colors" onClick={() => onSort(sortKey)}>
+      <div className="flex items-center gap-1">
+        {label}
+        {isActive ? (
+          currentSort?.dir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
+        ) : (
+          <div className="h-3 w-3 opacity-0" />
+        )}
+      </div>
+    </TableHead>
+  );
+}
 
 export default function PatientDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -56,6 +76,11 @@ export default function PatientDetailPage() {
   const [openStopAssign, setOpenStopAssign] = useState<string | null>(null);
   const [stopReason, setStopReason] = useState("");
   const [openDeleteSupply, setOpenDeleteSupply] = useState<any>(null);
+  const [openDeactivate, setOpenDeactivate] = useState(false);
+  const [assignmentSort, setAssignmentSort] = useState<{ key: string; dir: SortDir } | null>(null);
+  const [assignmentPage, setAssignmentPage] = useState(0);
+  const [doseSort, setDoseSort] = useState<{ key: string; dir: SortDir } | null>(null);
+  const [supplySort, setSupplySort] = useState<{ key: string; dir: SortDir } | null>(null);
   const itemSearchRef = useRef<HTMLInputElement>(null);
 
   const { data: patient } = useQuery({
@@ -143,6 +168,19 @@ export default function PatientDetailPage() {
     onError: () => toast.error("Gagal mengemaskini pesakit."),
   });
 
+  const toggleActiveMutation = useMutation({
+    mutationFn: async ({ aktif }: { aktif: boolean }) => {
+      const { error } = await supabase.from("patients").update({ aktif }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(patient?.aktif ? "Pesakit dinyahaktifkan." : "Pesakit diaktifkan semula.");
+      setOpenDeactivate(false);
+      queryClient.invalidateQueries({ queryKey: ["patient", id] });
+    },
+    onError: () => toast.error("Gagal mengemaskini status pesakit."),
+  });
+
   const addAssignmentMutation = useMutation({
     mutationFn: async (data: typeof newAssignment) => {
       const { error } = await supabase.from("patient_item_assignments").insert({ patient_id: id, item_id: data.item_id, dos: data.dos || null, tarikh_mula_guna: data.tarikh_mula_guna, dimulakan_oleh: profile?.id, kakitangan_farmasi_perekod: profile?.id });
@@ -188,7 +226,6 @@ export default function PatientDetailPage() {
   const supplyMutation = useMutation({
     mutationFn: async (data: typeof supplyData & { assignment_id: string; dos: string }) => {
       const parsedKuantiti = parseInt(data.kuantiti, 10);
-      // Client-side validation before API call
       if (!data.kuantiti || isNaN(parsedKuantiti) || parsedKuantiti <= 0) {
         throw new Error("Kuantiti mesti lebih daripada 0.");
       }
@@ -206,7 +243,7 @@ export default function PatientDetailPage() {
           dos: data.dos,
           tempoh_dibekal: tempoh,
           kuantiti: data.kuantiti,
-          batch_id: data.batch_id || null, // null = auto FEFO
+          batch_id: data.batch_id || null,
           kakitangan_pembekal: profile?.id,
           catatan_bekalan: data.catatan_bekalan || null,
         }),
@@ -246,6 +283,32 @@ export default function PatientDetailPage() {
 
   const filteredItems = (items || []).filter((item: any) => !itemSearch || item.nama_item.toLowerCase().includes(itemSearch.toLowerCase()) || item.kod_item?.toLowerCase().includes(itemSearch.toLowerCase()));
 
+  // Sorting & pagination helpers for assignments
+  const sortData = (data: any[], sort: { key: string; dir: SortDir } | null) => {
+    if (!sort) return data;
+    return [...data].sort((a, b) => {
+      const aVal = (a[sort.key] || "").toString().toLowerCase();
+      const bVal = (b[sort.key] || "").toString().toLowerCase();
+      const cmp = aVal.localeCompare(bVal, "ms");
+      return sort.dir === "asc" ? cmp : -cmp;
+    });
+  };
+
+  const toggleSort = (sort: { key: string; dir: SortDir } | null, setSort: any, key: string) => {
+    if (sort?.key === key) {
+      setSort({ key, dir: sort.dir === "asc" ? "desc" : "asc" });
+    } else {
+      setSort({ key, dir: "asc" });
+    }
+  };
+
+  const sortedAssignments = useMemo(() => sortData(assignments || [], assignmentSort), [assignments, assignmentSort]);
+  const pagedAssignments = useMemo(() => sortedAssignments.slice(assignmentPage * PAGE_SIZE, (assignmentPage + 1) * PAGE_SIZE), [sortedAssignments, assignmentPage]);
+  const totalAssignmentPages = Math.ceil((sortedAssignments.length || 0) / PAGE_SIZE);
+
+  const sortedDoseHistory = useMemo(() => sortData(doseHistory || [], doseSort), [doseHistory, doseSort]);
+  const sortedSupplyHistory = useMemo(() => sortData(supplyHistory || [], supplySort), [supplyHistory, supplySort]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -258,10 +321,20 @@ export default function PatientDetailPage() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{patient.nama}</CardTitle>
+          <div className="flex items-center gap-3">
+            <CardTitle>{patient.nama}</CardTitle>
+            {!patient.aktif && <Badge variant="destructive">Tidak Aktif</Badge>}
+          </div>
           <div className="flex gap-2">
             {canEdit && <Button variant="outline" size="sm" onClick={() => setOpenMerge(true)}><Merge className="mr-2 h-4 w-4" /> Gabung</Button>}
-            {canEdit && !editMode && <Button variant="outline" size="sm" onClick={() => { setEditMode(true); setEditData(patient); }}><Edit className="mr-2 h-4 w-4" /> Edit</Button>}
+            {canEdit && !editMode && (
+              <>
+                <Button variant="outline" size="sm" onClick={() => { setEditMode(true); setEditData(patient); }}><Edit className="mr-2 h-4 w-4" /> Edit</Button>
+                <Button variant={patient.aktif ? "destructive" : "default"} size="sm" onClick={() => setOpenDeactivate(true)}>
+                  <UserX className="mr-2 h-4 w-4" /> {patient.aktif ? "Nyahaktif" : "Aktifkan"}
+                </Button>
+              </>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -270,7 +343,7 @@ export default function PatientDetailPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2"><Label>Nama</Label><Input value={editData.nama || ""} onChange={e => setEditData({ ...editData, nama: e.target.value })} /></div>
                 <div className="space-y-2"><Label>No. KP</Label><Input value={editData.nombor_kad_pengenalan || ""} onChange={e => setEditData({ ...editData, nombor_kad_pengenalan: e.target.value })} /></div>
-                <div className="space-y-2"><Label>No. Hospital</Label><Input value={editData.nombor_pendaftaran_hospital || ""} onChange={e => setEditData({ ...editData, nombor_pendaftaran_hospital: e.target.value })} /></div>
+                <div className="space-y-2"><Label>No. Pendaftaran Hospital</Label><Input value={editData.nombor_pendaftaran_hospital || ""} onChange={e => setEditData({ ...editData, nombor_pendaftaran_hospital: e.target.value })} /></div>
                 <div className="space-y-2"><Label>No. Telefon</Label><Input value={editData.nombor_telefon || ""} onChange={e => setEditData({ ...editData, nombor_telefon: e.target.value })} /></div>
               </div>
               <div className="space-y-2"><Label>Alamat</Label><Textarea value={editData.alamat || ""} onChange={e => setEditData({ ...editData, alamat: e.target.value })} /></div>
@@ -280,7 +353,7 @@ export default function PatientDetailPage() {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
               <div><span className="text-muted-foreground">No. KP:</span> {patient.nombor_kad_pengenalan || "-"}</div>
-              <div><span className="text-muted-foreground">No. Hospital:</span> {patient.nombor_pendaftaran_hospital || "-"}</div>
+              <div><span className="text-muted-foreground">No. Pendaftaran Hospital:</span> {patient.nombor_pendaftaran_hospital || "-"}</div>
               <div><span className="text-muted-foreground">No. Telefon:</span> {patient.nombor_telefon || "-"}</div>
               <div className="col-span-2"><span className="text-muted-foreground">Alamat:</span> {patient.alamat || "-"}</div>
               <div><span className="text-muted-foreground">Tarikh Daftar:</span> {formatDate(patient.created_at)}</div>
@@ -290,10 +363,62 @@ export default function PatientDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Deactivate/Activate Dialog */}
+      <Dialog open={openDeactivate} onOpenChange={setOpenDeactivate}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <ShieldAlert className="h-5 w-5" /> {patient.aktif ? "Nyahaktifkan Pesakit" : "Aktifkan Pesakit"}
+            </DialogTitle>
+            <DialogDescription>
+              {patient.aktif
+                ? "Anda akan menyahaktifkan pesakit ini. Tindakan ini akan menjejaskan data berikut:"
+                : "Anda akan mengaktifkan semula pesakit ini."}
+            </DialogDescription>
+          </DialogHeader>
+          {patient.aktif ? (
+            <div className="space-y-4">
+              <div className="bg-destructive/10 border border-destructive/20 rounded-md p-4 text-sm">
+                <p className="font-semibold text-destructive mb-2">⚠️ Amaran Penting</p>
+                <ul className="list-disc list-inside space-y-1.5 text-muted-foreground text-xs">
+                  <li>Pesakit akan ditandakan sebagai <strong>Tidak Aktif</strong></li>
+                  <li>Pesakit tidak akan muncul dalam carian atau senarai pesakit aktif</li>
+                  <li>Semua penugasan item yang aktif masih boleh diakses</li>
+                  <li>Sejarah dos dan bekalan sebelum ini akan kekal disimpan</li>
+                  <li>Pesakit boleh diaktifkan semula bila-bila masa</li>
+                </ul>
+              </div>
+              <div className="rounded-md border p-3 text-sm">
+                <p className="font-medium">{patient.nama}</p>
+                <p className="text-xs text-muted-foreground mt-1">No. KP: {patient.nombor_kad_pengenalan || "-"}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-md p-4 text-sm">
+              <p className="font-semibold text-emerald-700 mb-2">✅ Pengaktifan Semula</p>
+              <ul className="list-disc list-inside space-y-1 text-emerald-600 text-xs">
+                <li>Pesakit akan kelihatan semula dalam carian dan senarai</li>
+                <li>Semua data dan penugasan sebelumnya kekal tidak berubah</li>
+              </ul>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenDeactivate(false)}>Batal</Button>
+            <Button
+              variant={patient.aktif ? "destructive" : "default"}
+              onClick={() => toggleActiveMutation.mutate({ aktif: !patient.aktif })}
+              disabled={toggleActiveMutation.isPending}
+            >
+              {toggleActiveMutation.isPending ? "Memproses..." : patient.aktif ? "Ya, Nyahaktifkan" : "Ya, Aktifkan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Item Didaftarkan</CardTitle>
-          {canEdit && (
+          {patient.aktif && canEdit && (
             <Dialog open={openAddAssignment} onOpenChange={(v) => { setOpenAddAssignment(v); if (!v) { setSelectedItemId(null); setItemSearch(""); } }}>
               <DialogTrigger asChild><Button size="sm"><Plus className="mr-2 h-4 w-4" />Tambah Item</Button></DialogTrigger>
               <DialogContent className="max-w-lg">
@@ -339,12 +464,18 @@ export default function PatientDetailPage() {
             ) : (
               <>
                 <div className="hidden sm:grid grid-cols-4 gap-4 items-center px-6 py-2.5 border-b bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  <div>Item</div>
-                  <div>Dos</div>
-                  <div>Tarikh Mula</div>
+                  <div className="cursor-pointer select-none hover:text-foreground transition-colors flex items-center gap-1" onClick={() => toggleSort(assignmentSort, setAssignmentSort, "item.nama_item")}>
+                    Item {assignmentSort?.key === "item.nama_item" ? (assignmentSort.dir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <div className="h-3 w-3 opacity-0" />}
+                  </div>
+                  <div className="cursor-pointer select-none hover:text-foreground transition-colors flex items-center gap-1" onClick={() => toggleSort(assignmentSort, setAssignmentSort, "dos")}>
+                    Dos {assignmentSort?.key === "dos" ? (assignmentSort.dir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <div className="h-3 w-3 opacity-0" />}
+                  </div>
+                  <div className="cursor-pointer select-none hover:text-foreground transition-colors flex items-center gap-1" onClick={() => toggleSort(assignmentSort, setAssignmentSort, "tarikh_mula_guna")}>
+                    Tarikh Mula {assignmentSort?.key === "tarikh_mula_guna" ? (assignmentSort.dir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <div className="h-3 w-3 opacity-0" />}
+                  </div>
                   <div>Status</div>
                 </div>
-                {assignments?.map((assignment, idx) => (
+                {pagedAssignments?.map((assignment, idx) => (
                   <div key={assignment.id} style={{ backgroundColor: ["#ffffff", "#f7f7f7", "#f0f0f0", "#eaeaea", "#e5e5e5"][idx % 5] }} className="border-b last:border-b-0">
                     <button className="w-full text-left" onClick={() => toggleExpand(assignment.id)}>
                       <div className="hidden sm:flex items-center justify-between px-6 py-4 hover:bg-accent/30 transition-colors">
@@ -386,8 +517,19 @@ export default function PatientDetailPage() {
                                 {foldDose ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronUp className="h-4 w-4 text-primary" />}
                                 <Activity className="h-4 w-4 text-primary" /> Sejarah Dos <span className="text-xs text-muted-foreground font-normal">({doseHistory?.length || 0})</span>
                               </button>
-                              {!foldDose && (doseHistory && doseHistory.length > 0 ? (
-                                <div className="border rounded-md overflow-hidden"><Table><TableHeader><TableRow><TableHead>Tarikh</TableHead><TableHead>Dos</TableHead><TableHead>Dikemaskini Oleh</TableHead></TableRow></TableHeader><TableBody>{doseHistory.map((d: any) => (<TableRow key={d.id}><TableCell>{formatDate(d.tarikh)}</TableCell><TableCell className="font-medium">{d.dos}</TableCell><TableCell>{d.staff_name || "-"}</TableCell></TableRow>))}</TableBody></Table></div>
+                              {!foldDose && (sortedDoseHistory && sortedDoseHistory.length > 0 ? (
+                                <div className="border rounded-md overflow-hidden">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <SortableHeader label="Tarikh" sortKey="tarikh" currentSort={doseSort} onSort={k => toggleSort(doseSort, setDoseSort, k)} />
+                                        <SortableHeader label="Dos" sortKey="dos" currentSort={doseSort} onSort={k => toggleSort(doseSort, setDoseSort, k)} />
+                                        <TableHead>Dikemaskini Oleh</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>{sortedDoseHistory.map((d: any) => (<TableRow key={d.id}><TableCell>{formatDate(d.tarikh)}</TableCell><TableCell className="font-medium">{d.dos}</TableCell><TableCell>{d.staff_name || "-"}</TableCell></TableRow>))}</TableBody>
+                                  </Table>
+                                </div>
                               ) : <p className="text-sm text-muted-foreground">Tiada sejarah dos.</p>)}
                             </div>
                             <div>
@@ -395,8 +537,23 @@ export default function PatientDetailPage() {
                                 {foldSupply ? <ChevronDown className="h-4 w-4 text-primary" /> : <ChevronUp className="h-4 w-4 text-primary" />}
                                 <ClipboardList className="h-4 w-4 text-primary" /> Sejarah Bekalan <span className="text-xs text-muted-foreground font-normal">({supplyHistory?.length || 0})</span>
                               </button>
-                              {!foldSupply && (supplyHistory && supplyHistory.length > 0 ? (
-                                <div className="border rounded-md overflow-hidden"><Table><TableHeader><TableRow><TableHead>Tarikh</TableHead><TableHead>Dos</TableHead><TableHead>Tempoh</TableHead><TableHead>Kuantiti</TableHead><TableHead>Kelompok</TableHead><TableHead>Kakitangan</TableHead><TableHead className="w-[100px]">Tindakan</TableHead></TableRow></TableHeader><TableBody>{supplyHistory.map((record: any) => (<TableRow key={record.id}><TableCell>{formatDate(record.tarikh_dibekal)}</TableCell><TableCell>{record.dos}</TableCell><TableCell>{record.tempoh_dibekal || "-"}</TableCell><TableCell>{record.kuantiti}</TableCell><TableCell>{record.batch?.nombor_kelompok || "-"}</TableCell><TableCell>{record.staff?.nama || "-"}</TableCell><TableCell><div className="flex gap-1"><Button size="sm" variant="ghost" onClick={() => setEditSupplyRecord(record)}><Edit className="h-3.5 w-3.5" /></Button><Button size="sm" variant="ghost" onClick={() => setOpenDeleteSupply(record)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button></div></TableCell></TableRow>))}</TableBody></Table></div>
+                              {!foldSupply && (sortedSupplyHistory && sortedSupplyHistory.length > 0 ? (
+                                <div className="border rounded-md overflow-hidden">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <SortableHeader label="Tarikh" sortKey="tarikh_dibekal" currentSort={supplySort} onSort={k => toggleSort(supplySort, setSupplySort, k)} />
+                                        <SortableHeader label="Dos" sortKey="dos" currentSort={supplySort} onSort={k => toggleSort(supplySort, setSupplySort, k)} />
+                                        <TableHead>Tempoh</TableHead>
+                                        <SortableHeader label="Kuantiti" sortKey="kuantiti" currentSort={supplySort} onSort={k => toggleSort(supplySort, setSupplySort, k)} />
+                                        <TableHead>Kelompok</TableHead>
+                                        <TableHead>Kakitangan</TableHead>
+                                        <TableHead className="w-[100px]">Tindakan</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>{sortedSupplyHistory.map((record: any) => (<TableRow key={record.id}><TableCell>{formatDate(record.tarikh_dibekal)}</TableCell><TableCell>{record.dos}</TableCell><TableCell>{record.tempoh_dibekal || "-"}</TableCell><TableCell>{record.kuantiti}</TableCell><TableCell>{record.batch?.nombor_kelompok || "-"}</TableCell><TableCell>{record.staff?.nama || "-"}</TableCell><TableCell><div className="flex gap-1"><Button size="sm" variant="ghost" onClick={() => setEditSupplyRecord(record)}><Edit className="h-3.5 w-3.5" /></Button><Button size="sm" variant="ghost" onClick={() => setOpenDeleteSupply(record)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button></div></TableCell></TableRow>))}</TableBody>
+                                  </Table>
+                                </div>
                               ) : <p className="text-sm text-muted-foreground">Tiada sejarah bekalan.</p>)}
                             </div>
                           </div>
@@ -405,6 +562,27 @@ export default function PatientDetailPage() {
                     </AnimatePresence>
                   </div>
                 ))}
+                {/* Assignments Pagination */}
+                {totalAssignmentPages > 1 && (
+                  <div className="flex items-center justify-between px-6 py-3 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      Menunjukkan {(assignmentPage * PAGE_SIZE) + 1}-{Math.min((assignmentPage + 1) * PAGE_SIZE, sortedAssignments.length)} daripada {sortedAssignments.length}
+                    </p>
+                    <div className="flex gap-1">
+                      <Button variant="outline" size="sm" onClick={() => setAssignmentPage(Math.max(0, assignmentPage - 1))} disabled={assignmentPage === 0}>
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </Button>
+                      {Array.from({ length: totalAssignmentPages }, (_, i) => (
+                        <Button key={i} variant={i === assignmentPage ? "default" : "outline"} size="sm" className="h-7 min-w-[28px] px-1 text-xs" onClick={() => setAssignmentPage(i)}>
+                          {i + 1}
+                        </Button>
+                      ))}
+                      <Button variant="outline" size="sm" onClick={() => setAssignmentPage(Math.min(totalAssignmentPages - 1, assignmentPage + 1))} disabled={assignmentPage >= totalAssignmentPages - 1}>
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>
