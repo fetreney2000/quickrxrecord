@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { ArrowLeft, Plus, Edit, Trash2, History, Download, FileSpreadsheet, FileText, Search, X, ChevronDown, ChevronUp, Package, Users, Activity, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
-import type { Item, ItemBatch } from "@/types";
+import type { Item, ItemBatch, ItemForm, ItemCategory } from "@/types";
 
 type SortDir = "asc" | "desc";
 
@@ -106,6 +106,39 @@ export default function ItemDetailPage() {
       return data as Item;
     },
   });
+
+  const { data: forms } = useQuery({
+    queryKey: ["item_forms"],
+    queryFn: async () => {
+      const { data } = await supabase.from("item_forms").select("id, nama");
+      return (data || []) as Pick<ItemForm, "id" | "nama">[];
+    },
+    staleTime: 60000,
+  });
+
+  const { data: categories } = useQuery({
+    queryKey: ["item_categories"],
+    queryFn: async () => {
+      const { data } = await supabase.from("item_categories").select("id, nama");
+      return (data || []) as Pick<ItemCategory, "id" | "nama">[];
+    },
+    staleTime: 60000,
+  });
+
+  const currentFormName = useMemo(() => {
+    if (!item?.id_bentuk || !forms) return "";
+    return forms.find(f => f.id === item.id_bentuk)?.nama || "";
+  }, [item, forms]);
+
+  const currentCategoryName = useMemo(() => {
+    if (!item?.id_kategori || !categories) return "";
+    return categories.find(c => c.id === item.id_kategori)?.nama || "";
+  }, [item, categories]);
+
+  const itemDisplayName = useMemo(() => {
+    if (!item) return "";
+    return [item.nama_item, item.kekuatan, currentFormName].filter(Boolean).join(" ");
+  }, [item, currentFormName]);
 
   const { data: batches } = useQuery({
     queryKey: ["batches", id],
@@ -367,11 +400,11 @@ export default function ItemDetailPage() {
       </div>
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => router.push("/stok")}><ArrowLeft className="h-5 w-5" /></Button>
-        <h1 className="text-2xl font-bold">Butiran Item</h1>
+        <h1 className="text-2xl font-bold">{itemDisplayName}</h1>
       </div>
 
       {/* 1. Item Info */}
-      <FoldableCard title={item.nama_item + (item.kekuatan ? ` ${item.kekuatan}` : "")} defaultOpen={true} headerExtra={canEdit && !editMode ? <Button variant="outline" size="sm" onClick={e => { e.stopPropagation(); setEditMode(true); setEditData(item); }}><Edit className="mr-2 h-4 w-4" /> Edit</Button> : undefined}>
+      <FoldableCard title={itemDisplayName} defaultOpen={true} headerExtra={canEdit && !editMode ? <Button variant="outline" size="sm" onClick={e => { e.stopPropagation(); setEditMode(true); setEditData(item); }}><Edit className="mr-2 h-4 w-4" /> Edit</Button> : undefined}>
         {editMode ? (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -379,6 +412,22 @@ export default function ItemDetailPage() {
               <div className="space-y-2"><Label>Nama Item</Label><Input value={editData.nama_item || ""} onChange={e => setEditData({ ...editData, nama_item: e.target.value })} /></div>
               <div className="space-y-2"><Label>Nama Dagangan</Label><Input value={editData.nama_dagangan || ""} onChange={e => setEditData({ ...editData, nama_dagangan: e.target.value })} /></div>
               <div className="space-y-2"><Label>Kekuatan</Label><Input value={editData.kekuatan || ""} onChange={e => setEditData({ ...editData, kekuatan: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Kategori Item</Label>
+                <Select value={editData.id_kategori || ""} onValueChange={v => setEditData({ ...editData, id_kategori: v })}>
+                  <SelectTrigger><SelectValue placeholder="Pilih kategori" /></SelectTrigger>
+                  <SelectContent>
+                    {categories?.map(c => <SelectItem key={c.id} value={c.id}>{c.nama}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Bentuk Dos</Label>
+                <Select value={editData.id_bentuk || ""} onValueChange={v => setEditData({ ...editData, id_bentuk: v })}>
+                  <SelectTrigger><SelectValue placeholder="Pilih bentuk" /></SelectTrigger>
+                  <SelectContent>
+                    {forms?.map(f => <SelectItem key={f.id} value={f.id}>{f.nama}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2"><Label>Kuota</Label><Input type="number" value={editData.kuota ?? ""} onChange={e => setEditData({ ...editData, kuota: e.target.value ? parseInt(e.target.value) : null })} /></div>
             </div>
             <div className="flex gap-2">
@@ -392,6 +441,8 @@ export default function ItemDetailPage() {
               <div><span className="text-muted-foreground">Kod:</span> {item.kod_item}</div>
               <div><span className="text-muted-foreground">Nama Dagangan:</span> {item.nama_dagangan || "-"}</div>
               <div><span className="text-muted-foreground">Kekuatan:</span> {item.kekuatan || "-"}</div>
+              <div><span className="text-muted-foreground">Kategori:</span> {currentCategoryName || "-"}</div>
+              <div><span className="text-muted-foreground">Bentuk Dos:</span> {currentFormName || "-"}</div>
               <div><span className="text-muted-foreground">Catatan:</span> {item.catatan || "-"}</div>
             </div>
             <div className="grid gap-3 grid-cols-2 md:grid-cols-4">

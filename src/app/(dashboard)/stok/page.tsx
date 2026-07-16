@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
@@ -22,7 +22,7 @@ import {
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Plus, Search, ChevronLeft, ChevronRight, Eye, Package } from "lucide-react";
-import type { Item } from "@/types";
+import type { Item, ItemForm, ItemCategory } from "@/types";
 
 const PAGE_SIZE = 50;
 
@@ -31,7 +31,7 @@ export default function StokPage() {
   const [page, setPage] = useState(0);
   const [openAdd, setOpenAdd] = useState(false);
   const [newItem, setNewItem] = useState({
-    kod_item: "", nama_item: "", nama_dagangan: "", kekuatan: "", kuota: "", catatan: "",
+    kod_item: "", nama_item: "", nama_dagangan: "", kekuatan: "", id_kategori: "", id_bentuk: "", kuota: "", catatan: "",
   });
   const { profile } = useAuth();
   const router = useRouter();
@@ -40,16 +40,15 @@ export default function StokPage() {
 
   const canEdit = hasPermission(profile?.peranan, "manage_items");
 
+  // Fetch items
   const { data, isLoading } = useQuery({
     queryKey: ["items", search, page],
     queryFn: async () => {
-      // Build count query
       const countQuery = supabase
         .from("items")
         .select("*", { count: "exact", head: true })
         .eq("aktif", true);
 
-      // Build data query
       let dataQuery = supabase
         .from("items")
         .select("*, item_batches(kuantiti)")
@@ -72,6 +71,37 @@ export default function StokPage() {
     },
   });
 
+  // Fetch lookup tables for display
+  const { data: forms } = useQuery({
+    queryKey: ["item_forms"],
+    queryFn: async () => {
+      const { data } = await supabase.from("item_forms").select("id, nama");
+      return (data || []) as Pick<ItemForm, "id" | "nama">[];
+    },
+    staleTime: 60000,
+  });
+
+  const { data: categories } = useQuery({
+    queryKey: ["item_categories"],
+    queryFn: async () => {
+      const { data } = await supabase.from("item_categories").select("id, nama");
+      return (data || []) as Pick<ItemCategory, "id" | "nama">[];
+    },
+    staleTime: 60000,
+  });
+
+  const formsMap = useMemo(() => {
+    const map = new Map<string, string>();
+    forms?.forEach(f => map.set(f.id, f.nama));
+    return map;
+  }, [forms]);
+
+  const categoriesMap = useMemo(() => {
+    const map = new Map<string, string>();
+    categories?.forEach(c => map.set(c.id, c.nama));
+    return map;
+  }, [categories]);
+
   const addItemMutation = useMutation({
     mutationFn: async (item: typeof newItem) => {
       const { error } = await supabase.from("items").insert({
@@ -79,6 +109,8 @@ export default function StokPage() {
         nama_item: item.nama_item,
         nama_dagangan: item.nama_dagangan || null,
         kekuatan: item.kekuatan || null,
+        id_kategori: item.id_kategori || null,
+        id_bentuk: item.id_bentuk || null,
         kuota: item.kuota ? parseInt(item.kuota) : null,
         catatan: item.catatan || null,
       });
@@ -87,7 +119,7 @@ export default function StokPage() {
     onSuccess: () => {
       toast.success("Item berjaya ditambah.");
       setOpenAdd(false);
-      setNewItem({ kod_item: "", nama_item: "", nama_dagangan: "", kekuatan: "", kuota: "", catatan: "" });
+      setNewItem({ kod_item: "", nama_item: "", nama_dagangan: "", kekuatan: "", id_kategori: "", id_bentuk: "", kuota: "", catatan: "" });
       queryClient.invalidateQueries({ queryKey: ["items"] });
     },
     onError: () => toast.error("Gagal menambah item."),
@@ -120,6 +152,24 @@ export default function StokPage() {
                 </div>
                 <div className="space-y-2"><Label>Nama Item *</Label><Input value={newItem.nama_item} onChange={e => setNewItem({ ...newItem, nama_item: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Nama Dagangan</Label><Input value={newItem.nama_dagangan} onChange={e => setNewItem({ ...newItem, nama_dagangan: e.target.value })} /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2"><Label>Kategori Item</Label>
+                    <Select value={newItem.id_kategori} onValueChange={v => setNewItem({ ...newItem, id_kategori: v })}>
+                      <SelectTrigger><SelectValue placeholder="Pilih kategori" /></SelectTrigger>
+                      <SelectContent>
+                        {categories?.map(c => <SelectItem key={c.id} value={c.id}>{c.nama}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2"><Label>Bentuk Dos</Label>
+                    <Select value={newItem.id_bentuk} onValueChange={v => setNewItem({ ...newItem, id_bentuk: v })}>
+                      <SelectTrigger><SelectValue placeholder="Pilih bentuk" /></SelectTrigger>
+                      <SelectContent>
+                        {forms?.map(f => <SelectItem key={f.id} value={f.id}>{f.nama}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
                 <div className="space-y-2"><Label>Kuota (bil. pesakit)</Label><Input type="number" value={newItem.kuota} onChange={e => setNewItem({ ...newItem, kuota: e.target.value })} /></div>
                 <div className="space-y-2"><Label>Catatan</Label><Input value={newItem.catatan} onChange={e => setNewItem({ ...newItem, catatan: e.target.value })} /></div>
               </div>
@@ -163,7 +213,8 @@ export default function StokPage() {
               ) : (
                 (data?.items as any[])?.map((item: any) => {
                   const totalStock = item.item_batches?.reduce((sum: number, b: any) => sum + (b.kuantiti || 0), 0) || 0;
-                  const namaDisplay = [item.nama_item, item.kekuatan].filter(Boolean).join(" ");
+                  const bentukDos = formsMap.get(item.id_bentuk) || "";
+                  const namaDisplay = [item.nama_item, item.kekuatan, bentukDos].filter(Boolean).join(" ");
                   return (
                     <TableRow key={item.id} className="cursor-pointer" onClick={() => router.push(`/stok/${item.id}`)}>
                       <TableCell className="font-mono text-sm">{item.kod_item}</TableCell>
