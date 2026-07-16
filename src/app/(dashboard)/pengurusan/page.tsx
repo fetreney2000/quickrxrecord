@@ -22,7 +22,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, UserPlus, KeyRound, ChevronDown, ChevronUp, ShieldAlert, UserCheck, UserX, Lock, AlertTriangle, BellRing, CheckCircle2, XCircle, History, RefreshCw, Users, MailQuestion } from "lucide-react";
+import { Plus, Edit, Trash2, UserPlus, KeyRound, ChevronDown, ChevronUp, ShieldAlert, UserCheck, UserX, Lock, AlertTriangle, BellRing, CheckCircle2, XCircle, History, RefreshCw, Users, MailQuestion, BookOpen } from "lucide-react";
+import { LookupManager } from "@/components/pengurusan/lookup-manager";
 import type { Profile, Peranan } from "@/types";
 
 const ROLES: Peranan[] = ["Pentadbir", "Penjaga Stor", "Kakitangan Farmasi", "Kakitangan Klinik"];
@@ -209,6 +210,9 @@ export default function PengurusanPage() {
               <Badge variant="destructive" className="ml-1 text-[10px] px-1.5">{resetRequests.filter((r: any) => r.status === "pending").length}</Badge>
             )}
           </TabsTrigger>
+          <TabsTrigger value="lookups" className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4" /> Rujukan
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="users" className="space-y-4">
@@ -355,6 +359,14 @@ export default function PengurusanPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="lookups" className="space-y-4">
+          <h2 className="text-lg font-semibold">Rujukan Sistem</h2>
+          <p className="text-sm text-muted-foreground">Urus senarai rujukan untuk kategori item, bentuk dos, dan durasi bekalan.</p>
+          <LookupManager type="item_categories" />
+          <LookupManager type="item_forms" />
+          <LookupManager type="supply_durations" />
         </TabsContent>
       </Tabs>
     </div>

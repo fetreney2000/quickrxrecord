@@ -90,6 +90,27 @@ export interface DoseHistory {
   created_at: string;
 }
 
+export interface ItemCategory {
+  id: string;
+  nama: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ItemForm {
+  id: string;
+  nama: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SupplyDuration {
+  id: string;
+  nama: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface KategoriUbat {
   id: string;
   nama_kategori: string;
