@@ -87,6 +87,7 @@ export default function ItemDetailPage() {
   const [filterPatient, setFilterPatient] = useState("");
   const [filterStaff, setFilterStaff] = useState("");
   const [patientSearch, setPatientSearch] = useState("");
+  const [defaulterFilter, setDefaulterFilter] = useState("");
   const [batchSort, setBatchSort] = useState<{ key: string; dir: SortDir } | null>(null);
   const [txSort, setTxSort] = useState<{ key: string; dir: SortDir } | null>(null);
 
@@ -142,10 +143,16 @@ export default function ItemDetailPage() {
     queryKey: ["transaction-history", id],
     queryFn: async () => {
       const transactions: any[] = [];
+      // Get all assignment IDs for this item
+      const { data: assignments } = await supabase
+        .from("patient_item_assignments")
+        .select("id")
+        .eq("item_id", id);
+      const assignmentIds = (assignments || []).map(a => a.id);
       const { data: supplies } = await supabase
         .from("supply_records")
         .select("*, batch:item_batches(nombor_kelompok), assignment:patient_item_assignments(patient_id, patient:patients(nama)), staff:profiles!kakitangan_pembekal(nama)")
-        .eq("batch.item_id", id)
+        .in("assignment_id", assignmentIds.length > 0 ? assignmentIds : ["none"])
         .order("tarikh_dibekal", { ascending: false })
         .limit(200);
       for (const s of supplies || []) {
@@ -215,11 +222,26 @@ export default function ItemDetailPage() {
 
   const filteredPatients = useMemo(() => {
     if (!assignedPatients) return [];
-    return assignedPatients.filter((a: any) =>
-      !patientSearch || a.patient?.nama?.toLowerCase().includes(patientSearch.toLowerCase()) ||
-      a.patient?.nombor_kad_pengenalan?.includes(patientSearch)
-    );
-  }, [assignedPatients, patientSearch]);
+    let filtered = assignedPatients;
+    // Search filter
+    if (patientSearch) {
+      filtered = filtered.filter((a: any) =>
+        a.patient?.nama?.toLowerCase().includes(patientSearch.toLowerCase()) ||
+        a.patient?.nombor_kad_pengenalan?.includes(patientSearch)
+      );
+    }
+    // Defaulter filter
+    if (defaulterFilter) {
+      const now = new Date();
+      const months = parseInt(defaulterFilter);
+      const cutoff = new Date(now.getFullYear(), now.getMonth() - months, 1);
+      filtered = filtered.filter((a: any) => {
+        if (!a.last_supply) return true; // no supply = defaulter
+        return new Date(a.last_supply) < cutoff;
+      });
+    }
+    return filtered;
+  }, [assignedPatients, patientSearch, defaulterFilter]);
 
   const uniquePatients = useMemo(() => {
     const set = new Set<string>();
@@ -397,27 +419,54 @@ export default function ItemDetailPage() {
       {/* 2. Pesakit Yang Menggunakan */}
       <FoldableCard title="Pesakit Yang Menggunakan" count={filteredPatients.length} defaultOpen={true}>
         {assignedPatients && assignedPatients.length > 0 && (
-          <div className="relative mb-3">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input type="search" placeholder="Cari pesakit..." className="pl-8 h-8 text-sm" value={patientSearch} onChange={e => setPatientSearch(e.target.value)} />
+          <div className="flex flex-wrap gap-2 mb-3">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input type="search" placeholder="Cari pesakit..." className="pl-8 h-8 text-sm" value={patientSearch} onChange={e => setPatientSearch(e.target.value)} />
+            </div>
+            <Select value={defaulterFilter} onValueChange={setDefaulterFilter}>
+              <SelectTrigger className="h-8 w-44 text-xs"><SelectValue placeholder="Semua Pesakit" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Pesakit</SelectItem>
+                <SelectItem value="3">Tercicir 3 bulan</SelectItem>
+                <SelectItem value="6">Tercicir 6 bulan</SelectItem>
+                <SelectItem value="9">Tercicir 9 bulan</SelectItem>
+                <SelectItem value="12">Tercicir 1 tahun</SelectItem>
+                <SelectItem value="24">{`Tercicir > 1 tahun`}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         )}
         {filteredPatients.length > 0 ? (
           <Table>
             <TableHeader>
-              <TableRow><TableHead>Nama</TableHead><TableHead>No. KP</TableHead></TableRow>
+              <TableRow>
+                <TableHead>Nama</TableHead>
+                <TableHead>No. KP</TableHead>
+                <TableHead>Dos</TableHead>
+                <TableHead>Bekalan Terakhir</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredPatients.map((a: any) => (
-                <TableRow key={a.patient?.id} className="cursor-pointer" onClick={() => router.push(`/pesakit/${a.patient?.id}`)}>
-                  <TableCell>{a.patient?.nama}</TableCell>
-                  <TableCell>{a.patient?.nombor_kad_pengenalan || "-"}</TableCell>
-                </TableRow>
-              ))}
+              {filteredPatients.map((a: any) => {
+                const lastDate = a.last_supply ? new Date(a.last_supply) : null;
+                const monthsSince = lastDate ? Math.floor((Date.now() - lastDate.getTime()) / (30 * 24 * 60 * 60 * 1000)) : null;
+                const isDefaulter = monthsSince !== null && monthsSince >= 3;
+                return (
+                  <TableRow key={a.patient?.id} className="cursor-pointer" onClick={() => router.push(`/pesakit/${a.patient?.id}`)}>
+                    <TableCell>{a.patient?.nama}</TableCell>
+                    <TableCell>{a.patient?.nombor_kad_pengenalan || "-"}</TableCell>
+                    <TableCell className="text-xs">{a.dos || "-"}</TableCell>
+                    <TableCell className="text-xs">{lastDate ? formatDate(a.last_supply) : <Badge variant="destructive" className="text-[10px]">Tiada</Badge>}</TableCell>
+                    <TableCell>{isDefaulter ? <Badge variant="destructive" className="text-[10px]">Tercicir {monthsSince} bln</Badge> : <Badge variant="success" className="text-[10px]">Aktif</Badge>}</TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         ) : (
-          <p className="text-sm text-muted-foreground">{patientSearch ? "Tiada pesakit sepadan." : "Tiada pesakit menggunakan item ini."}</p>
+          <p className="text-sm text-muted-foreground">{patientSearch || defaulterFilter ? "Tiada pesakit sepadan." : "Tiada pesakit menggunakan item ini."}</p>
         )}
       </FoldableCard>
 
