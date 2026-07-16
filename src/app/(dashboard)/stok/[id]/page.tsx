@@ -23,7 +23,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { ArrowLeft, Plus, Edit, Trash2, History, Download, FileSpreadsheet, FileText, Search, X, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, History, Download, FileSpreadsheet, FileText, Search, X, ChevronDown, ChevronUp, Package, Users, Activity, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 import type { Item, ItemBatch } from "@/types";
 
 type SortDir = "asc" | "desc";
@@ -81,9 +81,16 @@ export default function ItemDetailPage() {
   const canEdit = hasPermission(profile?.peranan, "manage_items");
   const canManageBatches = hasPermission(profile?.peranan, "manage_batches");
 
+  // Default date range: start of month to today
+  const getStartOfMonth = () => {
+    const d = new Date(); d.setDate(1);
+    return d.toISOString().split("T")[0];
+  };
+  const getToday = () => new Date().toISOString().split("T")[0];
+
   // Filters & sorts
-  const [filterDateFrom, setFilterDateFrom] = useState("");
-  const [filterDateTo, setFilterDateTo] = useState("");
+  const [filterDateFrom, setFilterDateFrom] = useState(getStartOfMonth);
+  const [filterDateTo, setFilterDateTo] = useState(getToday);
   const [filterPatient, setFilterPatient] = useState("");
   const [filterStaff, setFilterStaff] = useState("");
   const [patientSearch, setPatientSearch] = useState("");
@@ -314,6 +321,20 @@ export default function ItemDetailPage() {
   if (!item) return <div className="flex items-center justify-center py-12">Memuatkan...</div>;
 
   const totalStock = batches?.reduce((sum, b) => sum + b.kuantiti, 0) || 0;
+  const totalPatients = assignedPatients?.length || 0;
+  const bakiKuota = item?.kuota != null ? Math.max(0, item.kuota - totalPatients) : null;
+
+  // Transaction stats for selected duration
+  const txStats = useMemo(() => {
+    const stats = { total: 0, masuk: 0, keluar: 0, patients: new Set<string>() };
+    for (const t of filteredTransactions) {
+      stats.total++;
+      if (t.perubahan > 0) stats.masuk += t.perubahan;
+      if (t.perubahan < 0) stats.keluar += Math.abs(t.perubahan);
+      if (t.pesakit && t.pesakit !== "-") stats.patients.add(t.pesakit);
+    }
+    return stats;
+  }, [filteredTransactions]);
 
   return (
     <div className="space-y-6">
@@ -342,14 +363,32 @@ export default function ItemDetailPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div><span className="text-muted-foreground">Kod:</span> {item.kod_item}</div>
-            <div><span className="text-muted-foreground">Nama Dagangan:</span> {item.nama_dagangan || "-"}</div>
-            <div><span className="text-muted-foreground">Kekuatan:</span> {item.kekuatan || "-"}</div>
-            <div><span className="text-muted-foreground">Kuota:</span> {item.kuota ?? "-"}</div>
-            <div><span className="text-muted-foreground">Jumlah Stok:</span> <Badge variant={totalStock > 0 ? "success" : "destructive"}>{totalStock}</Badge></div>
-            {item.catatan && <div className="col-span-3"><span className="text-muted-foreground">Catatan:</span> {item.catatan}</div>}
-          </div>
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
+              <div><span className="text-muted-foreground">Kod:</span> {item.kod_item}</div>
+              <div><span className="text-muted-foreground">Nama Dagangan:</span> {item.nama_dagangan || "-"}</div>
+              <div><span className="text-muted-foreground">Kekuatan:</span> {item.kekuatan || "-"}</div>
+              {item.catatan && <div className="col-span-1"><span className="text-muted-foreground">Catatan:</span> {item.catatan}</div>}
+            </div>
+            <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+              <div className="rounded-lg border p-3 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100"><Package className="h-5 w-5 text-blue-600" /></div>
+                <div><p className="text-xs text-muted-foreground">Jumlah Stok</p><p className="text-lg font-bold">{totalStock}</p></div>
+              </div>
+              <div className="rounded-lg border p-3 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100"><BarChart3 className="h-5 w-5 text-purple-600" /></div>
+                <div><p className="text-xs text-muted-foreground">Kuota</p><p className="text-lg font-bold">{item.kuota ?? "-"}</p></div>
+              </div>
+              <div className="rounded-lg border p-3 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100"><Users className="h-5 w-5 text-emerald-600" /></div>
+                <div><p className="text-xs text-muted-foreground">Jumlah Pesakit</p><p className="text-lg font-bold">{totalPatients}</p></div>
+              </div>
+              <div className="rounded-lg border p-3 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100"><Activity className="h-5 w-5 text-amber-600" /></div>
+                <div><p className="text-xs text-muted-foreground">Baki Kuota</p><p className="text-lg font-bold">{bakiKuota ?? "-"}</p></div>
+              </div>
+            </div>
+          </>
         )}
       </FoldableCard>
 
@@ -480,11 +519,29 @@ export default function ItemDetailPage() {
                 </SelectContent>
               </Select>
             </div>
-            {(filterDateFrom || filterDateTo || filterPatient || filterStaff) && (
-              <Button variant="ghost" size="sm" className="h-8" onClick={() => { setFilterDateFrom(""); setFilterDateTo(""); setFilterPatient(""); setFilterStaff(""); }}>
-                <X className="h-3 w-3 mr-1" /> Reset
-              </Button>
-            )}
+            <Button variant="ghost" size="sm" className="h-8" onClick={() => { setFilterDateFrom(getStartOfMonth()); setFilterDateTo(getToday()); setFilterPatient(""); setFilterStaff(""); }}>
+              <X className="h-3 w-3 mr-1" /> Reset
+            </Button>
+          </div>
+
+          {/* Transaction Stats */}
+          <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+            <div className="rounded-lg border p-3 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100"><BarChart3 className="h-5 w-5 text-gray-600" /></div>
+              <div><p className="text-xs text-muted-foreground">Jumlah Transaksi</p><p className="text-lg font-bold">{txStats.total}</p></div>
+            </div>
+            <div className="rounded-lg border p-3 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100"><TrendingUp className="h-5 w-5 text-green-600" /></div>
+              <div><p className="text-xs text-muted-foreground">Item Masuk</p><p className="text-lg font-bold text-green-600">+{txStats.masuk}</p></div>
+            </div>
+            <div className="rounded-lg border p-3 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100"><TrendingDown className="h-5 w-5 text-red-600" /></div>
+              <div><p className="text-xs text-muted-foreground">Item Keluar</p><p className="text-lg font-bold text-red-600">-{txStats.keluar}</p></div>
+            </div>
+            <div className="rounded-lg border p-3 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100"><Users className="h-5 w-5 text-blue-600" /></div>
+              <div><p className="text-xs text-muted-foreground">Pesakit Menerima</p><p className="text-lg font-bold">{txStats.patients.size}</p></div>
+            </div>
           </div>
 
           {filteredTransactions.length === 0 ? (
