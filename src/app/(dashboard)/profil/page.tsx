@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { ArrowLeft, User, Lock, KeyRound, Shield, BellRing } from "lucide-react";
+import { ArrowLeft, User, Lock, KeyRound } from "lucide-react";
 
 export default function ProfilePage() {
   const { profile, refreshProfile } = useAuth();
@@ -58,20 +58,6 @@ export default function ProfilePage() {
       setPwd({ current: "", newPwd: "", confirm: "" });
     },
     onError: (e: any) => toast.error(e.message || "Gagal menukar kata laluan."),
-  });
-
-  const resetRequestMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch("/api/reset-request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: profile?.id }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-    },
-    onSuccess: () => toast.success("Permintaan reset kata laluan telah dihantar kepada pentadbir."),
-    onError: (e: any) => toast.error(e.message || "Gagal menghantar permintaan."),
   });
 
   if (!profile) return null;
@@ -179,23 +165,6 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Request Admin Password Reset */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BellRing className="h-5 w-5" /> Minta Reset Kata Laluan
-          </CardTitle>
-          <CardDescription>
-            Jika anda terlupa kata laluan, minta pentadbir untuk menetapkan semula kata laluan anda. Pentadbir akan menerima permintaan ini dan menetapkan semula kata laluan anda.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button variant="outline" onClick={() => resetRequestMutation.mutate()} disabled={resetRequestMutation.isPending}>
-            <Shield className="mr-2 h-4 w-4" />
-            {resetRequestMutation.isPending ? "Menghantar..." : "Minta Reset Kata Laluan"}
-          </Button>
-        </CardContent>
-      </Card>
     </div>
   );
 }
