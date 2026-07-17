@@ -658,19 +658,6 @@ export default function PatientDetailPage() {
         </Card>
       </motion.div>
 
-      {/* ─── Stats Row ────────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-        className="grid grid-cols-2 sm:grid-cols-4 gap-3"
-      >
-        <StatBadge icon={Pill} label="Item Aktif" value={activeCount} color="blue" />
-        <StatBadge icon={History} label="Jumlah Item" value={totalCount} color="purple" />
-        <StatBadge icon={Syringe} label="Jumlah Bekalan" value={supplyHistory?.length || 0} color="green" />
-        <StatBadge icon={Activity} label="Kemaskini Dos" value={doseHistory?.length || 0} color="orange" />
-      </motion.div>
-
       {/* ─── Deactivate/Activate Dialog ───────────────────────────────── */}
       <Dialog open={openDeactivate} onOpenChange={setOpenDeactivate}>
         <DialogContent className="sm:max-w-md">
@@ -741,7 +728,16 @@ export default function PatientDetailPage() {
         <Card className="premium-card overflow-hidden border-0 shadow-lg shadow-primary/5">
           <div className="h-1.5 bg-gradient-to-r from-purple-500 via-primary to-blue-500" />
           <CardHeader className="premium-card-header flex flex-row items-center justify-between gap-4 flex-wrap">
-            <SectionHeader icon={Pill} title="Item Didaftarkan" count={totalCount}>
+            <div className="flex items-center gap-2.5">
+              <div className="icon-circle bg-gradient-to-br from-primary/15 to-primary/5 text-primary">
+                <Pill className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Item Didaftarkan</h3>
+                <p className="text-[11px] text-muted-foreground">{totalCount} rekod</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
               {patient.aktif && canEdit && (
                 <Dialog
                   open={openAddAssignment}
@@ -875,7 +871,7 @@ export default function PatientDetailPage() {
                   </DialogContent>
                 </Dialog>
               )}
-            </SectionHeader>
+            </div>
           </CardHeader>
 
           <CardContent className="p-0">
