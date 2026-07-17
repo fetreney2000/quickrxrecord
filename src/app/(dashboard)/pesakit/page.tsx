@@ -151,7 +151,7 @@ export default function PesakitPage() {
       </div>
 
       {/* ─── Page Header ─────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between page-header">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="icon-circle bg-gradient-to-br from-primary to-primary/70 text-white w-12 h-12 rounded-2xl shadow-lg shadow-primary/20">
             <Users className="h-6 w-6" />

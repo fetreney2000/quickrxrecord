@@ -500,7 +500,7 @@ export default function PatientDetailPage() {
       </div>
 
       {/* ─── Page Header ─────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 page-header">
+      <div className="flex items-center gap-3">
         <Button
           variant="ghost"
           size="icon"
