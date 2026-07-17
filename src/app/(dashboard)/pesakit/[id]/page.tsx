@@ -489,7 +489,11 @@ export default function PatientDetailPage() {
   return (
     <div className="space-y-6 pb-8">
       {/* ─── Breadcrumb ──────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between animate-fade-in">
+      <motion.div
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <Breadcrumb
           items={[
             { label: "Papan Pemuka", href: "/" },
@@ -497,10 +501,15 @@ export default function PatientDetailPage() {
             { label: patient.nama || "Butiran Pesakit" },
           ]}
         />
-      </div>
+      </motion.div>
 
       {/* ─── Page Header ─────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3">
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="flex items-center gap-3"
+      >
         <Button
           variant="ghost"
           size="icon"
@@ -512,7 +521,7 @@ export default function PatientDetailPage() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold tracking-tight">Butiran Pesakit</h1>
         </div>
-      </div>
+      </motion.div>
 
       {/* ─── Patient Profile Card ────────────────────────────────────── */}
       <motion.div

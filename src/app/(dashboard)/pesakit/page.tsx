@@ -143,15 +143,24 @@ export default function PesakitPage() {
   return (
     <div className="space-y-6 pb-8">
       {/* ─── Breadcrumb ──────────────────────────────────────────────── */}
-      <div className="animate-fade-in">
+      <motion.div
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <Breadcrumb items={[
           { label: "Papan Pemuka", href: "/" },
           { label: "Senarai Pesakit" },
         ]} />
-      </div>
+      </motion.div>
 
       {/* ─── Page Header ─────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="flex items-center justify-between"
+      >
         <div className="flex items-center gap-3">
           <div className="icon-circle bg-gradient-to-br from-primary to-primary/70 text-white w-12 h-12 rounded-2xl shadow-lg shadow-primary/20">
             <Users className="h-6 w-6" />
@@ -229,7 +238,7 @@ export default function PesakitPage() {
             </DialogContent>
           </Dialog>
         )}
-      </div>
+      </motion.div>
 
       {/* ─── Main Card ───────────────────────────────────────────────── */}
       <motion.div
