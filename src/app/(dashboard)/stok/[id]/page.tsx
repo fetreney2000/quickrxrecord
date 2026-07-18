@@ -23,11 +23,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { ArrowLeft, Plus, Edit, Trash2, History, Download, FileSpreadsheet, FileText, Search, X, ChevronDown, ChevronUp, Package, Users, Activity, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
+import { ArrowLeft, Plus, Edit, Trash2, History, Download, FileSpreadsheet, FileText, Search, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Package, Users, Activity, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 import { setNavSource } from "@/components/ui/breadcrumb";
 import type { Item, ItemBatch, ItemForm, ItemCategory } from "@/types";
 
 type SortDir = "asc" | "desc";
+const PAGE_SIZE = 50;
 
 function SortableHeader({ label, sortKey, currentSort, onSort }: { label: string; sortKey: string; currentSort: { key: string; dir: SortDir } | null; onSort: (key: string) => void }) {
   const isActive = currentSort?.key === sortKey;
@@ -91,6 +92,10 @@ export default function ItemDetailPage() {
   const [defaulterFilter, setDefaulterFilter] = useState("");
   const [batchSort, setBatchSort] = useState<{ key: string; dir: SortDir } | null>(null);
   const [txSort, setTxSort] = useState<{ key: string; dir: SortDir } | null>(null);
+  const [patientSort, setPatientSort] = useState<{ key: string; dir: SortDir } | null>(null);
+  const [patientPage, setPatientPage] = useState(0);
+  const [batchPage, setBatchPage] = useState(0);
+  const [txPage, setTxPage] = useState(0);
 
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState<Partial<Item>>({});
@@ -299,6 +304,30 @@ export default function ItemDetailPage() {
     }
     return filtered;
   }, [assignedPatients, patientSearch, defaulterFilter]);
+
+  const sortedPatients = useMemo(() => {
+    if (!patientSort) return filteredPatients;
+    const key = patientSort.key;
+    return [...filteredPatients].sort((a: any, b: any) => {
+      let aVal: any, bVal: any;
+      if (key === "nama") { aVal = a.patient?.nama || ""; bVal = b.patient?.nama || ""; }
+      else if (key === "nombor_kad_pengenalan") { aVal = a.patient?.nombor_kad_pengenalan || ""; bVal = b.patient?.nombor_kad_pengenalan || ""; }
+      else if (key === "dos") { aVal = a.dos || ""; bVal = b.dos || ""; }
+      else if (key === "last_supply") { aVal = a.last_supply || ""; bVal = b.last_supply || ""; }
+      else { aVal = ""; bVal = ""; }
+      const cmp = aVal.toString().toLowerCase().localeCompare(bVal.toString().toLowerCase(), "ms");
+      return patientSort.dir === "asc" ? cmp : -cmp;
+    });
+  }, [filteredPatients, patientSort]);
+
+  const pagedPatients = useMemo(() => sortedPatients.slice(patientPage * PAGE_SIZE, (patientPage + 1) * PAGE_SIZE), [sortedPatients, patientPage]);
+  const patientTotalPages = Math.ceil((sortedPatients.length || 0) / PAGE_SIZE);
+
+  const pagedBatches = useMemo(() => sortedBatches.slice(batchPage * PAGE_SIZE, (batchPage + 1) * PAGE_SIZE), [sortedBatches, batchPage]);
+  const batchTotalPages = Math.ceil((sortedBatches.length || 0) / PAGE_SIZE);
+
+  const pagedTransactions = useMemo(() => filteredTransactions.slice(txPage * PAGE_SIZE, (txPage + 1) * PAGE_SIZE), [filteredTransactions, txPage]);
+  const txTotalPages = Math.ceil((filteredTransactions.length || 0) / PAGE_SIZE);
 
   const uniquePatients = useMemo(() => {
     const set = new Set<string>();
@@ -523,34 +552,45 @@ export default function ItemDetailPage() {
             </Select>
           </div>
         )}
-        {filteredPatients.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nama</TableHead>
-                <TableHead>No. KP</TableHead>
-                <TableHead>Dos</TableHead>
-                <TableHead>Bekalan Terakhir</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredPatients.map((a: any) => {
-                const lastDate = a.last_supply ? new Date(a.last_supply) : null;
-                const monthsSince = lastDate ? Math.floor((Date.now() - lastDate.getTime()) / (30 * 24 * 60 * 60 * 1000)) : null;
-                const isDefaulter = monthsSince !== null && monthsSince >= 3;
-                return (
-                  <TableRow key={a.patient?.id} className="cursor-pointer" onClick={() => { setNavSource("stok:" + (item?.nama_item || "")); router.push(`/pesakit/${a.patient?.id}`); }}>
-                    <TableCell>{a.patient?.nama}</TableCell>
-                    <TableCell>{a.patient?.nombor_kad_pengenalan || "-"}</TableCell>
-                    <TableCell className="text-xs">{a.dos || "-"}</TableCell>
-                    <TableCell className="text-xs">{lastDate ? formatDate(a.last_supply) : <Badge variant="destructive" className="text-[10px]">Tiada</Badge>}</TableCell>
-                    <TableCell>{isDefaulter ? <Badge variant="destructive" className="text-[10px]">Tercicir {monthsSince} bln</Badge> : <Badge variant="success" className="text-[10px]">Aktif</Badge>}</TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+        {sortedPatients.length > 0 ? (
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <SortableHeader label="Nama" sortKey="nama" currentSort={patientSort} onSort={k => { toggleSort(patientSort, setPatientSort, k); setPatientPage(0); }} />
+                  <SortableHeader label="No. KP" sortKey="nombor_kad_pengenalan" currentSort={patientSort} onSort={k => { toggleSort(patientSort, setPatientSort, k); setPatientPage(0); }} />
+                  <SortableHeader label="Dos" sortKey="dos" currentSort={patientSort} onSort={k => { toggleSort(patientSort, setPatientSort, k); setPatientPage(0); }} />
+                  <SortableHeader label="Bekalan Terakhir" sortKey="last_supply" currentSort={patientSort} onSort={k => { toggleSort(patientSort, setPatientSort, k); setPatientPage(0); }} />
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pagedPatients.map((a: any) => {
+                  const lastDate = a.last_supply ? new Date(a.last_supply) : null;
+                  const monthsSince = lastDate ? Math.floor((Date.now() - lastDate.getTime()) / (30 * 24 * 60 * 60 * 1000)) : null;
+                  const isDefaulter = monthsSince !== null && monthsSince >= 3;
+                  return (
+                    <TableRow key={a.patient?.id} className="cursor-pointer" onClick={() => { setNavSource("stok:" + (item?.nama_item || "")); router.push(`/pesakit/${a.patient?.id}`); }}>
+                      <TableCell>{a.patient?.nama}</TableCell>
+                      <TableCell>{a.patient?.nombor_kad_pengenalan || "-"}</TableCell>
+                      <TableCell className="text-xs">{a.dos || "-"}</TableCell>
+                      <TableCell className="text-xs">{lastDate ? formatDate(a.last_supply) : <Badge variant="destructive" className="text-[10px]">Tiada</Badge>}</TableCell>
+                      <TableCell>{isDefaulter ? <Badge variant="destructive" className="text-[10px]">Tercicir {monthsSince} bln</Badge> : <Badge variant="success" className="text-[10px]">Aktif</Badge>}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            {patientTotalPages > 1 && (
+              <div className="flex justify-center gap-1 pt-3">
+                <Button size="sm" variant="outline" disabled={patientPage === 0} onClick={() => setPatientPage(p => p - 1)}><ChevronLeft className="h-4 w-4" /></Button>
+                {Array.from({ length: patientTotalPages }, (_, i) => (
+                  <Button key={i} size="sm" variant={i === patientPage ? "default" : "outline"} onClick={() => setPatientPage(i)}>{i + 1}</Button>
+                ))}
+                <Button size="sm" variant="outline" disabled={patientPage >= patientTotalPages - 1} onClick={() => setPatientPage(p => p + 1)}><ChevronRight className="h-4 w-4" /></Button>
+              </div>
+            )}
+          </>
         ) : (
           <p className="text-sm text-muted-foreground">{patientSearch || defaulterFilter ? "Tiada pesakit sepadan." : "Tiada pesakit menggunakan item ini."}</p>
         )}
@@ -572,7 +612,7 @@ export default function ItemDetailPage() {
             {sortedBatches.length === 0 ? (
               <TableRow><TableCell colSpan={canManageBatches ? 5 : 4} className="text-center py-8 text-muted-foreground">Tiada kelompok.</TableCell></TableRow>
             ) : (
-              sortedBatches.map(batch => {
+              pagedBatches.map(batch => {
                 const isExpired = new Date(batch.tarikh_luput) < new Date();
                 return (
                   <TableRow key={batch.id}>
@@ -602,6 +642,15 @@ export default function ItemDetailPage() {
             )}
           </TableBody>
         </Table>
+        {batchTotalPages > 1 && (
+          <div className="flex justify-center gap-1 pt-3">
+            <Button size="sm" variant="outline" disabled={batchPage === 0} onClick={() => setBatchPage(p => p - 1)}><ChevronLeft className="h-4 w-4" /></Button>
+            {Array.from({ length: batchTotalPages }, (_, i) => (
+              <Button key={i} size="sm" variant={i === batchPage ? "default" : "outline"} onClick={() => setBatchPage(i)}>{i + 1}</Button>
+            ))}
+            <Button size="sm" variant="outline" disabled={batchPage >= batchTotalPages - 1} onClick={() => setBatchPage(p => p + 1)}><ChevronRight className="h-4 w-4" /></Button>
+          </div>
+        )}
       </FoldableCard>
 
       {/* Add Batch Dialog */}
@@ -698,7 +747,7 @@ export default function ItemDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTransactions.map((t: any) => (
+                  {pagedTransactions.map((t: any) => (
                     <TableRow key={t.id}>
                       <TableCell className="text-xs whitespace-nowrap">{new Date(t.tarikh).toLocaleString("ms-MY")}</TableCell>
                       <TableCell className="text-xs">{t.jenis}</TableCell>
@@ -715,6 +764,15 @@ export default function ItemDetailPage() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+          {txTotalPages > 1 && (
+            <div className="flex justify-center gap-1 pt-3">
+              <Button size="sm" variant="outline" disabled={txPage === 0} onClick={() => setTxPage(p => p - 1)}><ChevronLeft className="h-4 w-4" /></Button>
+              {Array.from({ length: txTotalPages }, (_, i) => (
+                <Button key={i} size="sm" variant={i === txPage ? "default" : "outline"} onClick={() => setTxPage(i)}>{i + 1}</Button>
+              ))}
+              <Button size="sm" variant="outline" disabled={txPage >= txTotalPages - 1} onClick={() => setTxPage(p => p + 1)}><ChevronRight className="h-4 w-4" /></Button>
             </div>
           )}
         </div>
