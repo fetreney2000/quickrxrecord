@@ -200,10 +200,11 @@ export default function ItemDetailPage() {
         }
       }
 
-      // Merge last supply date into each assignment using patient id
+      // Merge last supply date into each assignment using assignmentToPatient map
+      // (a.patient_id may be undefined when Supabase joins the patient table)
       return assignments.map((a: any) => ({
         ...a,
-        last_supply: latestSupplyMap.get(a.patient_id) || null,
+        last_supply: latestSupplyMap.get(assignmentToPatient.get(a.id) || "") || null,
       }));
     },
   });

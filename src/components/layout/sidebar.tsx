@@ -52,10 +52,10 @@ export function Sidebar() {
           {/* Logo */}
           <div style={styles.logoSection}>
             <div style={styles.logoIcon}>
-              <Activity size={20} color="white" />
+              <Activity size={22} color="white" />
             </div>
             <div>
-              <div style={styles.logoTitle}>QuickRxRecord</div>
+              <div style={styles.logoTitle}>QuickRxRecord <span style={{ fontSize: "10px", fontWeight: 700, color: "#60a5fa", background: "rgba(24,119,242,0.15)", padding: "1px 6px", borderRadius: "6px", marginLeft: "4px", verticalAlign: "middle" }}>v4</span></div>
               <div style={styles.logoSubtitle}>Jabatan Farmasi Hospital Keningau</div>
             </div>
           </div>
@@ -180,16 +180,18 @@ const styles: Record<string, React.CSSProperties> = {
     flexShrink: 0,
   },
   logoTitle: {
-    fontSize: "14px",
-    fontWeight: 700,
+    fontSize: "15px",
+    fontWeight: 800,
     color: "#ffffff",
     lineHeight: 1.2,
+    letterSpacing: "-0.01em",
   },
   logoSubtitle: {
     fontSize: "10px",
-    color: "rgba(255, 255, 255, 0.5)",
+    color: "rgba(255, 255, 255, 0.45)",
     fontWeight: 500,
     lineHeight: 1.3,
+    marginTop: "2px",
   },
   nav: {
     flex: 1,
