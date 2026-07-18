@@ -210,10 +210,10 @@ export default function LoginPage() {
             <div style={styles.brandingDivider} />
             <div style={styles.featureList}>
               {[
-                "Pengurusan Stok Farmasi",
-                "Rekod Pesakit Digital",
-                "Penjejakan Resepi",
-                "Laporan Analitik",
+                "Pengurusan Stok",
+                "Pembekalan Ubat",
+                "Rekod Pesakit",
+                "Laporan Analitikal",
               ].map((feature, i) => (
                 <motion.div
                   key={feature}
@@ -266,7 +266,7 @@ export default function LoginPage() {
               >
                 <h3 style={styles.welcomeTitle}>Selamat Datang</h3>
                 <p style={styles.welcomeSubtitle}>
-                  Masukkan kelayakan anda untuk meneruskan
+                  Masukkan nama pengguna dan kata laluan anda
                 </p>
               </motion.div>
 

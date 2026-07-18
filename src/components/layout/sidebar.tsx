@@ -4,8 +4,6 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth, hasPermission } from "@/lib/auth-context";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import {
   Activity,
   LogOut,
@@ -18,11 +16,11 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { href: "/", label: "Papan Pemuka", icon: LayoutDashboard, gradient: "from-blue-500 to-blue-600", bgGradient: "from-blue-50 to-blue-100/50", permission: null },
-  { href: "/pesakit", label: "Pesakit", icon: Stethoscope, gradient: "from-emerald-500 to-emerald-600", bgGradient: "from-emerald-50 to-emerald-100/50", permission: "view_patients" },
-  { href: "/stok", label: "Stok & Item", icon: Pill, gradient: "from-violet-500 to-violet-600", bgGradient: "from-violet-50 to-violet-100/50", permission: "view_items" },
-  { href: "/laporan", label: "Laporan", icon: FileText, gradient: "from-rose-500 to-rose-600", bgGradient: "from-rose-50 to-rose-100/50", permission: "view_reports" },
-  { href: "/pengurusan", label: "Pengurusan", icon: UserCog, gradient: "from-cyan-500 to-cyan-600", bgGradient: "from-cyan-50 to-cyan-100/50", permission: "manage_users" },
+  { href: "/", label: "Papan Pemuka", icon: LayoutDashboard, color: "#3b82f6", permission: null },
+  { href: "/pesakit", label: "Pesakit", icon: Stethoscope, color: "#10b981", permission: "view_patients" },
+  { href: "/stok", label: "Stok & Item", icon: Pill, color: "#8b5cf6", permission: "view_items" },
+  { href: "/laporan", label: "Laporan", icon: FileText, color: "#f43f5e", permission: "view_reports" },
+  { href: "/pengurusan", label: "Pengurusan", icon: UserCog, color: "#06b6d4", permission: "manage_users" },
 ];
 
 export function Sidebar() {
@@ -30,83 +28,260 @@ export function Sidebar() {
   const { profile, signOut } = useAuth();
 
   return (
-    <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-sidebar border-r border-sidebar-border z-30 shadow-sm">
-      <div className="flex flex-col flex-1 min-h-0">
+    <aside style={styles.sidebar}>
+      <div style={styles.sidebarInner}>
         {/* Logo */}
-        <div className="flex items-center gap-3 h-16 flex-shrink-0 px-5 border-b border-sidebar-border bg-gradient-to-r from-primary/5 to-transparent">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 shadow-lg shadow-primary/20">
-            <Activity className="h-5 w-5 text-white" />
+        <div style={styles.logoSection}>
+          <div style={styles.logoIcon}>
+            <Activity size={20} color="white" />
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-bold text-sidebar-foreground leading-tight">QuickRxRecord</span>
-            <span className="text-[10px] text-primary font-medium tracking-wider uppercase">v4.0</span>
+          <div>
+            <div style={styles.logoTitle}>QuickRxRecord</div>
+            <div style={styles.logoVersion}>v4.0</div>
           </div>
         </div>
 
         {/* Navigation */}
-        <div className="flex-1 flex flex-col overflow-y-auto pt-6 pb-4 px-3">
-          <nav className="flex-1 space-y-1">
-            {navItems.map((item) => {
-              if (item.permission && !hasPermission(profile?.peranan, item.permission)) {
-                return null;
-              }
-              const isActive = pathname === item.href || 
-                (item.href !== "/" && pathname.startsWith(item.href));
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "group flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
-                    isActive
-                      ? `bg-gradient-to-r ${item.bgGradient} text-sidebar-primary shadow-sm border border-sidebar-primary/15`
-                      : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
-                  )}
-                >
-                  <div className={cn(
-                    "flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200",
-                    isActive 
-                      ? `bg-gradient-to-br ${item.gradient} text-white shadow-sm` 
-                      : "bg-sidebar-accent/50 text-sidebar-foreground/50 group-hover:bg-sidebar-accent group-hover:text-sidebar-foreground"
-                  )}>
-                    <item.icon className="h-4 w-4" />
-                  </div>
-                  <span>{item.label}</span>
-                  {isActive && (
-                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
+        <nav style={styles.nav}>
+          {navItems.map((item) => {
+            if (item.permission && !hasPermission(profile?.peranan, item.permission)) {
+              return null;
+            }
+            const isActive = pathname === item.href ||
+              (item.href !== "/" && pathname.startsWith(item.href));
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{
+                  ...styles.navItem,
+                  ...(isActive ? styles.navItemActive : {}),
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.06)";
+                    e.currentTarget.style.color = "#ffffff";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = "rgba(255, 255, 255, 0.55)";
+                  }
+                }}
+              >
+                <div style={{
+                  ...styles.navIcon,
+                  ...(isActive ? { background: item.color, boxShadow: "0 4px 12px " + item.color + "40" } : {}),
+                }}>
+                  <item.icon size={16} color="white" />
+                </div>
+                <span>{item.label}</span>
+                {isActive && <div style={styles.activeDot} />}
+              </Link>
+            );
+          })}
+        </nav>
 
         {/* User Profile */}
-        <div className="flex-shrink-0 border-t border-sidebar-border p-4 bg-gradient-to-b from-transparent to-sidebar-accent/30">
-          <div className="flex items-center gap-3">
-            <Link href="/profil" className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 text-white text-sm font-bold flex-shrink-0 hover:shadow-lg hover:shadow-primary/20 transition-all shadow-sm">
+        <div style={styles.userSection}>
+          <div style={styles.userCard}>
+            <Link href="/profil" style={styles.userAvatar}>
               {profile?.nama?.charAt(0)?.toUpperCase() || "?"}
             </Link>
-            <Link href="/profil" className="flex-1 min-w-0 group">
-              <p className="text-sm font-semibold text-sidebar-foreground truncate group-hover:text-primary transition-colors cursor-pointer">
-                {profile?.nama}
-              </p>
-              <p className="text-xs text-sidebar-foreground/50 truncate group-hover:text-primary/70 transition-colors cursor-pointer">
-                {profile?.peranan}
-              </p>
+            <Link href="/profil" style={styles.userInfo}>
+              <div style={styles.userName}>{profile?.nama}</div>
+              <div style={styles.userRole}>{profile?.peranan}</div>
             </Link>
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               onClick={() => signOut()}
               title="Log Keluar"
-              className="text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 h-9 w-9 rounded-lg transition-all"
+              style={styles.logoutButton}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(228, 30, 63, 0.15)";
+                e.currentTarget.style.color = "#e41e3f";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "rgba(255, 255, 255, 0.4)";
+              }}
             >
-              <LogOut className="h-4 w-4" />
-            </Button>
+              <LogOut size={16} />
+            </button>
           </div>
         </div>
       </div>
     </aside>
   );
 }
+
+/* ── Styles (Chrome 109 compatible) ──────────────────────────────── */
+const styles: Record<string, React.CSSProperties> = {
+  sidebar: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: "256px",
+    zIndex: 30,
+    display: "flex",
+    flexDirection: "column",
+    background: "linear-gradient(180deg, #0c1329 0%, #0a0e27 50%, #0d1117 100%)",
+    borderRight: "1px solid rgba(255, 255, 255, 0.06)",
+    boxShadow: "4px 0 24px rgba(0, 0, 0, 0.2)",
+    overflow: "hidden",
+  },
+  sidebarInner: {
+    display: "flex",
+    flexDirection: "column",
+    height: "100%",
+    minHeight: 0,
+  },
+
+  /* Logo */
+  logoSection: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    height: "64px",
+    flexShrink: 0,
+    padding: "0 20px",
+    borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+    background: "linear-gradient(90deg, rgba(24, 119, 242, 0.06) 0%, transparent 100%)",
+  },
+  logoIcon: {
+    width: "40px",
+    height: "40px",
+    borderRadius: "12px",
+    background: "linear-gradient(135deg, #1877f2, #0d5bd4)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 4px 12px rgba(24, 119, 242, 0.3), inset 0 1px 0 rgba(255,255,255,0.15)",
+    flexShrink: 0,
+  },
+  logoTitle: {
+    fontSize: "14px",
+    fontWeight: 700,
+    color: "#ffffff",
+    lineHeight: 1.2,
+  },
+  logoVersion: {
+    fontSize: "10px",
+    color: "#60a5fa",
+    fontWeight: 600,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase" as const,
+  },
+
+  /* Nav */
+  nav: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+    padding: "24px 12px 16px",
+    overflowY: "auto" as const,
+  },
+  navItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    padding: "10px 12px",
+    borderRadius: "12px",
+    fontSize: "13px",
+    fontWeight: 500,
+    color: "rgba(255, 255, 255, 0.55)",
+    textDecoration: "none",
+    transition: "all 0.2s ease",
+    position: "relative" as const,
+  },
+  navItemActive: {
+    background: "rgba(24, 119, 242, 0.1)",
+    color: "#60a5fa",
+    border: "1px solid rgba(24, 119, 242, 0.15)",
+    boxShadow: "0 2px 8px rgba(24, 119, 242, 0.08)",
+  },
+  navIcon: {
+    width: "32px",
+    height: "32px",
+    borderRadius: "10px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    background: "rgba(255, 255, 255, 0.06)",
+    transition: "all 0.2s ease",
+  },
+  activeDot: {
+    marginLeft: "auto",
+    width: "6px",
+    height: "6px",
+    borderRadius: "50%",
+    background: "#1877f2",
+    boxShadow: "0 0 8px rgba(24, 119, 242, 0.5)",
+  },
+
+  /* User */
+  userSection: {
+    flexShrink: 0,
+    padding: "16px",
+    borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+    background: "linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.02))",
+  },
+  userCard: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+  userAvatar: {
+    width: "40px",
+    height: "40px",
+    borderRadius: "12px",
+    background: "linear-gradient(135deg, #1877f2, #0d5bd4)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "#ffffff",
+    fontSize: "14px",
+    fontWeight: 700,
+    textDecoration: "none",
+    flexShrink: 0,
+    boxShadow: "0 4px 12px rgba(24, 119, 242, 0.3)",
+    transition: "box-shadow 0.2s ease",
+  },
+  userInfo: {
+    flex: 1,
+    minWidth: 0,
+    textDecoration: "none",
+  },
+  userName: {
+    fontSize: "13px",
+    fontWeight: 600,
+    color: "#ffffff",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap" as const,
+  },
+  userRole: {
+    fontSize: "11px",
+    color: "rgba(255, 255, 255, 0.4)",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap" as const,
+  },
+  logoutButton: {
+    background: "transparent",
+    border: "none",
+    padding: "8px",
+    borderRadius: "8px",
+    color: "rgba(255, 255, 255, 0.4)",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "all 0.2s ease",
+    flexShrink: 0,
+  },
+};

@@ -4,8 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import type { Patient } from "@/types";
 
 export function Header() {
@@ -13,6 +12,7 @@ export function Header() {
   const [searchResults, setSearchResults] = useState<Patient[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [focused, setFocused] = useState(false);
   const { profile } = useAuth();
   const router = useRouter();
   const supabase = createClient();
@@ -40,36 +40,246 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-header px-4 md:px-6 w-full shadow-sm">
-      <div className="flex-1" />
-      <div className="relative w-full max-w-md">
-        <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-          <Search className="h-4 w-4 text-primary/60" />
-        </div>
-        <Input type="search" placeholder="🔍 Cari pesakit..." 
-          className="pl-10 pr-4 w-full h-10 rounded-full border-2 border-primary/20 bg-primary/5 focus:bg-white focus:border-primary/50 transition-all duration-200 placeholder:text-muted-foreground/60 text-sm shadow-sm hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20"
-          value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setShowResults(true); }}
-          onFocus={() => setShowResults(true)} onBlur={() => setTimeout(() => setShowResults(false), 200)}
-        />
-        {showResults && (searchResults.length > 0 || searching) && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-primary/10 rounded-xl shadow-xl z-50 max-h-80 overflow-y-auto">
-            {searching && <div className="px-4 py-3 text-sm text-muted-foreground flex items-center gap-2"><span className="inline-block h-2 w-2 rounded-full bg-primary animate-pulse" /> Mencari...</div>}
-            {searchResults.map((patient) => (
-              <button key={patient.id} className="w-full text-left px-4 py-3 hover:bg-primary/5 transition-colors border-b border-primary/5 last:border-0 group"
-                onMouseDown={() => handleSelectPatient(patient.id)}
-              >
-                <div className="font-medium text-sm group-hover:text-primary transition-colors">{patient.nama}</div>
-                <div className="text-xs text-muted-foreground flex gap-2 mt-0.5">
-                  {patient.nombor_kad_pengenalan && <span className="inline-flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-primary/40 inline-block" /> KP: {patient.nombor_kad_pengenalan}</span>}
-                  {patient.nombor_pendaftaran_hospital && <span className="inline-flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-primary/40 inline-block" /> Hosp: {patient.nombor_pendaftaran_hospital}</span>}
-                </div>
-              </button>
-            ))}
-            {!searching && searchResults.length === 0 && <div className="px-4 py-3 text-sm text-muted-foreground">Tiada pesakit dijumpai.</div>}
+    <header style={styles.header}>
+      {/* Subtle background gradient */}
+      <div style={styles.headerBg} />
+
+      <div style={styles.headerInner}>
+        {/* Left spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* Search bar */}
+        <div style={styles.searchWrapper}>
+          <div style={{
+            ...styles.searchContainer,
+            ...(focused ? styles.searchContainerFocused : {}),
+          }}>
+            <div style={styles.searchIconWrapper}>
+              <Search size={16} color={focused ? "#1877f2" : "#9ca3af"} />
+            </div>
+            <input
+              type="search"
+              placeholder="Cari pesakit..."
+              style={styles.searchInput}
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setShowResults(true); }}
+              onFocus={() => { setFocused(true); setShowResults(true); }}
+              onBlur={() => { setFocused(false); setTimeout(() => setShowResults(false), 200); }}
+            />
+            {searching && (
+              <div style={styles.searchLoader}>
+                <Loader2 size={14} color="#1877f2" style={{ animation: "spin 1s linear infinite" }} />
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Search results dropdown */}
+          {showResults && (searchResults.length > 0 || searching) && (
+            <div style={styles.searchDropdown}>
+              {searching && searchResults.length === 0 && (
+                <div style={styles.searchingText}>
+                  <span style={styles.searchingDot} />
+                  Mencari...
+                </div>
+              )}
+              {searchResults.map((patient) => (
+                <button
+                  key={patient.id}
+                  style={styles.searchResultItem}
+                  onMouseDown={() => handleSelectPatient(patient.id)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(24, 119, 242, 0.06)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  <div style={styles.resultName}>{patient.nama}</div>
+                  <div style={styles.resultMeta}>
+                    {patient.nombor_kad_pengenalan && (
+                      <span style={styles.resultBadge}>KP: {patient.nombor_kad_pengenalan}</span>
+                    )}
+                    {patient.nombor_pendaftaran_hospital && (
+                      <span style={styles.resultBadge}>Hosp: {patient.nombor_pendaftaran_hospital}</span>
+                    )}
+                  </div>
+                </button>
+              ))}
+              {!searching && searchResults.length === 0 && (
+                <div style={styles.noResults}>Tiada pesakit dijumpai.</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Right spacer */}
+        <div style={{ flex: 1 }} />
       </div>
 
+      <style>{`
+        @-webkit-keyframes spin {
+          from { -webkit-transform: rotate(0deg); transform: rotate(0deg); }
+          to { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        input[type="search"]::-webkit-search-decoration,
+        input[type="search"]::-webkit-search-cancel-button,
+        input[type="search"]::-webkit-search-results-button,
+        input[type="search"]::-webkit-search-results-decoration {
+          -webkit-appearance: none;
+        }
+      `}</style>
     </header>
   );
 }
+
+/* ── Styles (Chrome 109 compatible) ──────────────────────────────── */
+const styles: Record<string, React.CSSProperties> = {
+  header: {
+    position: "sticky",
+    top: 0,
+    zIndex: 40,
+    height: "64px",
+    display: "flex",
+    alignItems: "center",
+    padding: "0 24px",
+    borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+    background: "rgba(255, 255, 255, 0.9)",
+    WebkitBackdropFilter: "blur(12px)",
+    backdropFilter: "blur(12px)",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+    overflow: "hidden",
+  },
+  headerBg: {
+    position: "absolute",
+    inset: 0,
+    background: "linear-gradient(90deg, rgba(24, 119, 242, 0.02) 0%, transparent 50%, rgba(124, 58, 237, 0.02) 100%)",
+    pointerEvents: "none",
+  },
+  headerInner: {
+    display: "flex",
+    alignItems: "center",
+    width: "100%",
+    position: "relative" as const,
+    zIndex: 1,
+  },
+
+  /* Search */
+  searchWrapper: {
+    position: "relative" as const,
+    width: "100%",
+    maxWidth: "480px",
+  },
+  searchContainer: {
+    display: "flex",
+    alignItems: "center",
+    height: "42px",
+    borderRadius: "12px",
+    border: "1.5px solid rgba(24, 119, 242, 0.12)",
+    background: "rgba(24, 119, 242, 0.03)",
+    transition: "all 0.25s ease",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+  },
+  searchContainerFocused: {
+    borderColor: "rgba(24, 119, 242, 0.4)",
+    background: "#ffffff",
+    boxShadow: "0 0 0 3px rgba(24, 119, 242, 0.08), 0 4px 12px rgba(24, 119, 242, 0.06)",
+  },
+  searchIconWrapper: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "42px",
+    height: "42px",
+    flexShrink: 0,
+  },
+  searchInput: {
+    flex: 1,
+    height: "100%",
+    border: "none",
+    background: "transparent",
+    outline: "none",
+    fontSize: "13px",
+    fontWeight: 500,
+    color: "#1c1e21",
+    fontFamily: "inherit",
+    paddingRight: "12px",
+  },
+  searchLoader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "42px",
+    height: "42px",
+    flexShrink: 0,
+  },
+
+  /* Dropdown */
+  searchDropdown: {
+    position: "absolute",
+    top: "calc(100% + 8px)",
+    left: 0,
+    right: 0,
+    background: "#ffffff",
+    border: "1px solid rgba(24, 119, 242, 0.12)",
+    borderRadius: "14px",
+    boxShadow: "0 12px 40px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06)",
+    maxHeight: "320px",
+    overflowY: "auto" as const,
+    zIndex: 50,
+  },
+  searchingText: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "14px 16px",
+    fontSize: "13px",
+    color: "#65676b",
+  },
+  searchingDot: {
+    width: "6px",
+    height: "6px",
+    borderRadius: "50%",
+    background: "#1877f2",
+    display: "inline-block",
+    animation: "pulse 1.5s ease-in-out infinite",
+  },
+  searchResultItem: {
+    width: "100%",
+    textAlign: "left" as const,
+    padding: "12px 16px",
+    background: "transparent",
+    border: "none",
+    borderBottom: "1px solid rgba(24, 119, 242, 0.05)",
+    cursor: "pointer",
+    transition: "background 0.15s ease",
+    fontFamily: "inherit",
+  },
+  resultName: {
+    fontSize: "13px",
+    fontWeight: 600,
+    color: "#1c1e21",
+    marginBottom: "3px",
+  },
+  resultMeta: {
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap" as const,
+  },
+  resultBadge: {
+    fontSize: "11px",
+    color: "#65676b",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+  },
+  noResults: {
+    padding: "14px 16px",
+    fontSize: "13px",
+    color: "#65676b",
+    textAlign: "center" as const,
+  },
+};

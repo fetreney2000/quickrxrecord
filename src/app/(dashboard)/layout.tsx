@@ -24,8 +24,18 @@ export default function DashboardLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#f0f2f5",
+      }}>
+        <Loader2 size={32} color="#1877f2" style={{ animation: "spin 1s linear infinite" }} />
+        <style>{`
+          @-webkit-keyframes spin { from { -webkit-transform: rotate(0deg); } to { -webkit-transform: rotate(360deg); } }
+          @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        `}</style>
       </div>
     );
   }
@@ -35,13 +45,33 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div style={{
+      minHeight: "100vh",
+      background: "#f0f2f5",
+    }}>
       <Sidebar />
-      <div className="md:ml-64 flex flex-col min-h-screen relative">
+      <div style={{
+        marginLeft: "256px",
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+        position: "relative" as const,
+      }}>
         <Header />
-        <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6">{children}</main>
+        <main style={{
+          flex: 1,
+          padding: "24px",
+        }}>
+          {children}
+        </main>
       </div>
       <MobileNav />
+
+      <style>{`
+        @media (max-width: 768px) {
+          .dashboard-main-area { margin-left: 0 !important; }
+        }
+      `}</style>
     </div>
   );
 }

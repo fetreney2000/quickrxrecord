@@ -4,7 +4,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { Users, Package, TrendingUp, AlertTriangle, Activity, Shield } from "lucide-react";
+import { Users, Package, TrendingUp, AlertTriangle, Activity } from "lucide-react";
 import { motion, useInView } from "framer-motion";
 
 /* ── Animated Counter ────────────────────────────────────────────── */
@@ -181,7 +181,7 @@ export default function DashboardPage() {
 
       {/* Stat Cards */}
       <div style={styles.grid}>
-        {statCards.map((card, idx) => (
+        {statCards.map((card) => (
           <motion.div
             key={card.title}
             style={styles.statCardOuter}
@@ -197,17 +197,10 @@ export default function DashboardPage() {
             whileHover={{ y: -6, scale: 1.02, transition: { duration: 0.25 } }}
           >
             <div style={styles.statCardInner}>
-              {/* Background gradient */}
               <div style={{ ...styles.statCardBg, background: card.gradient }} />
-
-              {/* Decorative circle */}
               <div style={styles.statCardCircle1} />
               <div style={styles.statCardCircle2} />
-
-              {/* Glow on hover */}
-              <div style={{ ...styles.statCardGlow, boxShadow: `0 0 60px ${card.glowColor}` }} />
-
-              {/* Content */}
+              <div style={{ ...styles.statCardGlow, boxShadow: "0 0 60px " + card.glowColor }} />
               <div style={styles.statCardContent}>
                 <div style={styles.statCardText}>
                   <p style={styles.statCardTitle}>{card.title}</p>
@@ -235,44 +228,6 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Quick Info Section */}
-      <motion.div
-        style={styles.infoSection}
-        initial={{ opacity: 0, y: 30 }}
-        animate={mounted ? { opacity: 1, y: 0 } : {}}
-        transition={{ delay: 0.8, duration: 0.6 }}
-      >
-        <div style={styles.infoCard}>
-          <div style={styles.infoCardBorder} />
-          <div style={styles.infoCardInner}>
-            <div style={styles.infoCardHeader}>
-              <Shield size={18} color="#60a5fa" />
-              <span style={styles.infoCardTitle}>Ringkasan Sistem</span>
-            </div>
-            <div style={styles.infoGrid}>
-              <div style={styles.infoItem}>
-                <div style={styles.infoItemLabel}>Pesakit Aktif</div>
-                <div style={styles.infoItemValue}>{stats?.totalPatients ?? "—"}</div>
-              </div>
-              <div style={styles.infoItem}>
-                <div style={styles.infoItemLabel}>Item Didaftarkan</div>
-                <div style={styles.infoItemValue}>{stats?.totalItems ?? "—"}</div>
-              </div>
-              <div style={styles.infoItem}>
-                <div style={styles.infoItemLabel}>Bekalan Hari Ini</div>
-                <div style={styles.infoItemValue}>{stats?.supplyToday ?? "—"}</div>
-              </div>
-              <div style={styles.infoItem}>
-                <div style={styles.infoItemLabel}>Perlu Tindakan</div>
-                <div style={{ ...styles.infoItemValue, color: (stats?.expiringSoon ?? 0) > 0 ? "#f97316" : "#22c55e" }}>
-                  {stats?.expiringSoon ?? "—"}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-
       <style>{`
         @-webkit-keyframes gradientShift {
           0% { background-position: 0% 50%; }
@@ -283,21 +238,6 @@ export default function DashboardPage() {
           0% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
           100% { background-position: 0% 50%; }
-        }
-        @-webkit-keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-        @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-        @media (max-width: 768px) {
-          .dashboard-grid { grid-template-columns: 1fr !important; }
-          .dashboard-header { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
-        }
-        @media (min-width: 769px) and (max-width: 1024px) {
-          .dashboard-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
       `}</style>
     </div>
@@ -328,8 +268,6 @@ const styles: Record<string, React.CSSProperties> = {
     backgroundSize: "40px 40px",
     pointerEvents: "none",
   },
-
-  /* Header */
   header: {
     display: "flex",
     alignItems: "center",
@@ -386,8 +324,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     color: "#65676b",
   },
-
-  /* Grid */
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(4, 1fr)",
@@ -396,8 +332,6 @@ const styles: Record<string, React.CSSProperties> = {
     position: "relative" as const,
     zIndex: 1,
   },
-
-  /* Stat Cards */
   statCardOuter: {
     cursor: "default",
   },
@@ -478,71 +412,5 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
-  },
-
-  /* Info Section */
-  infoSection: {
-    position: "relative" as const,
-    zIndex: 1,
-  },
-  infoCard: {
-    position: "relative",
-    borderRadius: "16px",
-  },
-  infoCardBorder: {
-    position: "absolute",
-    inset: 0,
-    borderRadius: "16px",
-    padding: "1px",
-    background: "linear-gradient(135deg, rgba(24, 119, 242, 0.2), rgba(124, 58, 237, 0.15), rgba(6, 182, 212, 0.1))",
-    WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-    WebkitMaskComposite: "xor" as any,
-    maskComposite: "exclude" as any,
-    pointerEvents: "none" as const,
-  },
-  infoCardInner: {
-    borderRadius: "16px",
-    background: "rgba(255, 255, 255, 0.85)",
-    WebkitBackdropFilter: "blur(12px)",
-    backdropFilter: "blur(12px)",
-    padding: "22px 24px",
-    border: "1px solid rgba(255, 255, 255, 0.5)",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)",
-  },
-  infoCardHeader: {
-    display: "flex",
-    alignItems: "center",
-    gap: "8px",
-    marginBottom: "18px",
-  },
-  infoCardTitle: {
-    fontSize: "14px",
-    fontWeight: 700,
-    color: "#1c1e21",
-  },
-  infoGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
-    gap: "16px",
-  },
-  infoItem: {
-    padding: "14px 16px",
-    borderRadius: "10px",
-    background: "rgba(240, 242, 245, 0.6)",
-    border: "1px solid rgba(221, 223, 226, 0.5)",
-  },
-  infoItemLabel: {
-    fontSize: "11px",
-    fontWeight: 600,
-    color: "#65676b",
-    textTransform: "uppercase" as const,
-    letterSpacing: "0.04em",
-    marginBottom: "6px",
-  },
-  infoItemValue: {
-    fontSize: "20px",
-    fontWeight: 800,
-    color: "#1c1e21",
-    letterSpacing: "-0.01em",
   },
 };

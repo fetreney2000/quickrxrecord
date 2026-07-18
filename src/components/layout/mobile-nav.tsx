@@ -4,16 +4,15 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth, hasPermission } from "@/lib/auth-context";
-import { cn } from "@/lib/utils";
 import { LayoutDashboard, Stethoscope, Pill, Truck, FileText, UserCog } from "lucide-react";
 
 const navItems = [
-  { href: "/", label: "Utama", icon: LayoutDashboard, color: "text-blue-500", permission: null },
-  { href: "/pesakit", label: "Pesakit", icon: Stethoscope, color: "text-emerald-500", permission: "view_patients" },
-  { href: "/stok", label: "Stok", icon: Pill, color: "text-violet-500", permission: "view_items" },
-  { href: "/bekalan", label: "Bekalan", icon: Truck, color: "text-amber-500", permission: "manage_supply" },
-  { href: "/laporan", label: "Laporan", icon: FileText, color: "text-rose-500", permission: "view_reports" },
-  { href: "/pengurusan", label: "Pengurusan", icon: UserCog, color: "text-cyan-500", permission: "manage_users" },
+  { href: "/", label: "Utama", icon: LayoutDashboard, color: "#3b82f6", permission: null },
+  { href: "/pesakit", label: "Pesakit", icon: Stethoscope, color: "#10b981", permission: "view_patients" },
+  { href: "/stok", label: "Stok", icon: Pill, color: "#8b5cf6", permission: "view_items" },
+  { href: "/bekalan", label: "Bekalan", icon: Truck, color: "#f59e0b", permission: "manage_supply" },
+  { href: "/laporan", label: "Laporan", icon: FileText, color: "#f43f5e", permission: "view_reports" },
+  { href: "/pengurusan", label: "Pengurusan", icon: UserCog, color: "#06b6d4", permission: "manage_users" },
 ];
 
 export function MobileNav() {
@@ -21,33 +20,121 @@ export function MobileNav() {
   const { profile } = useAuth();
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-sidebar border-t border-sidebar-border">
-      <div className="flex items-center justify-around h-16 px-1">
-        {navItems.map((item) => {
-          if (item.permission && !hasPermission(profile?.peranan, item.permission)) {
-            return null;
-          }
-          const isActive = pathname === item.href ||
-            (item.href !== "/" && pathname.startsWith(item.href));
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex flex-col items-center justify-center gap-0.5 px-2 py-1 rounded-md transition-colors min-w-0 flex-1",
-                isActive
-                  ? "text-sidebar-primary"
-                  : "text-sidebar-foreground/60 hover:text-sidebar-foreground"
-              )}
-            >
-              <item.icon className={cn("h-5 w-5", item.color || "")} />
-              <span className="text-[10px] leading-tight truncate w-full text-center">
-                {item.label}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+    <>
+      <style>{`
+        @media (min-width: 769px) {
+          .mobile-nav-root { display: none !important; }
+        }
+        @media (max-width: 768px) {
+          .mobile-nav-root { display: flex !important; }
+        }
+      `}</style>
+      <nav className="mobile-nav-root" style={styles.mobileNav}>
+        <div style={styles.navBg} />
+        <div style={styles.navInner}>
+          {navItems.map((item) => {
+            if (item.permission && !hasPermission(profile?.peranan, item.permission)) {
+              return null;
+            }
+            const isActive = pathname === item.href ||
+              (item.href !== "/" && pathname.startsWith(item.href));
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                style={{
+                  ...styles.navItem,
+                  color: isActive ? item.color : "rgba(255, 255, 255, 0.45)",
+                }}
+              >
+                <div style={{
+                  ...styles.iconWrap,
+                  ...(isActive ? { background: item.color + "18", boxShadow: "0 2px 8px " + item.color + "25" } : {}),
+                }}>
+                  <item.icon size={18} color={isActive ? item.color : "rgba(255, 255, 255, 0.45)"} />
+                </div>
+                <span style={{
+                  ...styles.label,
+                  color: isActive ? item.color : "rgba(255, 255, 255, 0.4)",
+                  fontWeight: isActive ? 600 : 500,
+                }}>
+                  {item.label}
+                </span>
+                {isActive && <div style={{ ...styles.activeIndicator, background: item.color }} />}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </>
   );
 }
+
+const styles: Record<string, React.CSSProperties> = {
+  mobileNav: {
+    display: "none",
+    position: "fixed",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 50,
+    height: "68px",
+    borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+    overflow: "hidden",
+  },
+  navBg: {
+    position: "absolute",
+    inset: 0,
+    background: "linear-gradient(180deg, rgba(12, 19, 41, 0.95), rgba(10, 14, 39, 0.98))",
+    WebkitBackdropFilter: "blur(20px)",
+    backdropFilter: "blur(20px)",
+  },
+  navInner: {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-around",
+    height: "68px",
+    padding: "0 4px",
+  },
+  navItem: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "4px",
+    padding: "6px 4px",
+    borderRadius: "8px",
+    textDecoration: "none",
+    transition: "all 0.2s ease",
+    position: "relative" as const,
+    minWidth: 0,
+    flex: 1,
+  },
+  iconWrap: {
+    width: "36px",
+    height: "28px",
+    borderRadius: "8px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "all 0.2s ease",
+  },
+  label: {
+    fontSize: "9px",
+    lineHeight: 1,
+    whiteSpace: "nowrap" as const,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    maxWidth: "100%",
+  },
+  activeIndicator: {
+    position: "absolute",
+    top: "-1px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    width: "20px",
+    height: "2px",
+    borderRadius: "1px",
+  },
+};
