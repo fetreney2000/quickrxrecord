@@ -125,12 +125,12 @@ export default function DashboardPage() {
 
   return (
     <div style={styles.pageWrapper}>
-      {/* Background decoration */}
       <div style={styles.bgDecoration} />
       <div style={styles.bgGrid} />
 
       {/* Header */}
       <motion.div
+        className="dash-header"
         style={styles.header}
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -165,6 +165,7 @@ export default function DashboardPage() {
           </div>
         </div>
         <motion.div
+          className="dash-status"
           style={styles.statusBadge}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -180,7 +181,7 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Stat Cards */}
-      <div style={styles.grid}>
+      <div className="dash-grid" style={styles.grid}>
         {statCards.map((card) => (
           <motion.div
             key={card.title}
@@ -229,15 +230,24 @@ export default function DashboardPage() {
       </div>
 
       <style>{`
-        @-webkit-keyframes gradientShift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+        @media (max-width: 768px) {
+          .dash-grid {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 12px !important;
+          }
+          .dash-header {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
+          }
+          .dash-status {
+            align-self: flex-start !important;
+          }
         }
-        @keyframes gradientShift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+        @media (max-width: 480px) {
+          .dash-grid {
+            grid-template-columns: 1fr !important;
+          }
         }
       `}</style>
     </div>
@@ -272,7 +282,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: "28px",
+    marginBottom: "24px",
     position: "relative" as const,
     zIndex: 1,
   },
@@ -280,6 +290,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: "14px",
+    minWidth: 0,
   },
   headerIcon: {
     width: "44px",
@@ -298,6 +309,9 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#1c1e21",
     letterSpacing: "-0.01em",
     marginBottom: "2px",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap" as const,
   },
   headerSubtitle: {
     fontSize: "13px",
@@ -312,6 +326,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: "10px",
     background: "rgba(34, 197, 94, 0.06)",
     border: "1px solid rgba(34, 197, 94, 0.15)",
+    flexShrink: 0,
   },
   statusDot: {
     width: "8px",
@@ -328,7 +343,6 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gridTemplateColumns: "repeat(4, 1fr)",
     gap: "20px",
-    marginBottom: "28px",
     position: "relative" as const,
     zIndex: 1,
   },
@@ -381,6 +395,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   statCardText: {
     flex: 1,
+    minWidth: 0,
   },
   statCardTitle: {
     fontSize: "11px",

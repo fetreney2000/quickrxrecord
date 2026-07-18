@@ -10,7 +10,6 @@ import {
   Stethoscope,
   LayoutDashboard,
   Pill,
-  Truck,
   FileText,
   UserCog,
 } from "lucide-react";
@@ -28,91 +27,98 @@ export function Sidebar() {
   const { profile, signOut } = useAuth();
 
   return (
-    <aside style={styles.sidebar}>
-      <div style={styles.sidebarInner}>
-        {/* Logo */}
-        <div style={styles.logoSection}>
-          <div style={styles.logoIcon}>
-            <Activity size={20} color="white" />
+    <>
+      <style>{`
+        @media (max-width: 768px) {
+          .app-sidebar { display: none !important; }
+        }
+      `}</style>
+      <aside className="app-sidebar" style={styles.sidebar}>
+        <div style={styles.sidebarInner}>
+          {/* Logo */}
+          <div style={styles.logoSection}>
+            <div style={styles.logoIcon}>
+              <Activity size={20} color="white" />
+            </div>
+            <div>
+              <div style={styles.logoTitle}>QuickRxRecord</div>
+              <div style={styles.logoVersion}>v4.0</div>
+            </div>
           </div>
-          <div>
-            <div style={styles.logoTitle}>QuickRxRecord</div>
-            <div style={styles.logoVersion}>v4.0</div>
-          </div>
-        </div>
 
-        {/* Navigation */}
-        <nav style={styles.nav}>
-          {navItems.map((item) => {
-            if (item.permission && !hasPermission(profile?.peranan, item.permission)) {
-              return null;
-            }
-            const isActive = pathname === item.href ||
-              (item.href !== "/" && pathname.startsWith(item.href));
+          {/* Navigation */}
+          <nav style={styles.nav}>
+            {navItems.map((item) => {
+              if (item.permission && !hasPermission(profile?.peranan, item.permission)) {
+                return null;
+              }
+              const isActive = pathname === item.href ||
+                (item.href !== "/" && pathname.startsWith(item.href));
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                style={{
-                  ...styles.navItem,
-                  ...(isActive ? styles.navItemActive : {}),
-                }}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  style={{
+                    ...styles.navItem,
+                    ...(isActive ? styles.navItemActive : {}),
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = "rgba(255, 255, 255, 0.06)";
+                      e.currentTarget.style.color = "#ffffff";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "rgba(255, 255, 255, 0.55)";
+                    }
+                  }}
+                >
+                  <div style={{
+                    ...styles.navIcon,
+                    ...(isActive ? { background: item.color, boxShadow: "0 4px 12px " + item.color + "40" } : {}),
+                  }}>
+                    <item.icon size={16} color="white" />
+                  </div>
+                  <span>{item.label}</span>
+                  {isActive && <div style={styles.activeDot} />}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* User Profile */}
+          <div style={styles.userSection}>
+            <div style={styles.userCard}>
+              <Link href="/profil" style={styles.userAvatar}>
+                {profile?.nama?.charAt(0)?.toUpperCase() || "?"}
+              </Link>
+              <Link href="/profil" style={styles.userInfo}>
+                <div style={styles.userName}>{profile?.nama}</div>
+                <div style={styles.userRole}>{profile?.peranan}</div>
+              </Link>
+              <button
+                onClick={() => signOut()}
+                title="Log Keluar"
+                style={styles.logoutButton}
                 onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.06)";
-                    e.currentTarget.style.color = "#ffffff";
-                  }
+                  e.currentTarget.style.background = "rgba(228, 30, 63, 0.15)";
+                  e.currentTarget.style.color = "#e41e3f";
                 }}
                 onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.color = "rgba(255, 255, 255, 0.55)";
-                  }
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "rgba(255, 255, 255, 0.4)";
                 }}
               >
-                <div style={{
-                  ...styles.navIcon,
-                  ...(isActive ? { background: item.color, boxShadow: "0 4px 12px " + item.color + "40" } : {}),
-                }}>
-                  <item.icon size={16} color="white" />
-                </div>
-                <span>{item.label}</span>
-                {isActive && <div style={styles.activeDot} />}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* User Profile */}
-        <div style={styles.userSection}>
-          <div style={styles.userCard}>
-            <Link href="/profil" style={styles.userAvatar}>
-              {profile?.nama?.charAt(0)?.toUpperCase() || "?"}
-            </Link>
-            <Link href="/profil" style={styles.userInfo}>
-              <div style={styles.userName}>{profile?.nama}</div>
-              <div style={styles.userRole}>{profile?.peranan}</div>
-            </Link>
-            <button
-              onClick={() => signOut()}
-              title="Log Keluar"
-              style={styles.logoutButton}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(228, 30, 63, 0.15)";
-                e.currentTarget.style.color = "#e41e3f";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = "rgba(255, 255, 255, 0.4)";
-              }}
-            >
-              <LogOut size={16} />
-            </button>
+                <LogOut size={16} />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }
 
@@ -138,8 +144,6 @@ const styles: Record<string, React.CSSProperties> = {
     height: "100%",
     minHeight: 0,
   },
-
-  /* Logo */
   logoSection: {
     display: "flex",
     alignItems: "center",
@@ -174,8 +178,6 @@ const styles: Record<string, React.CSSProperties> = {
     letterSpacing: "0.08em",
     textTransform: "uppercase" as const,
   },
-
-  /* Nav */
   nav: {
     flex: 1,
     display: "flex",
@@ -222,8 +224,6 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#1877f2",
     boxShadow: "0 0 8px rgba(24, 119, 242, 0.5)",
   },
-
-  /* User */
   userSection: {
     flexShrink: 0,
     padding: "16px",

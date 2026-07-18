@@ -45,23 +45,11 @@ export default function DashboardLayout({
   }
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: "#f0f2f5",
-    }}>
+    <div style={{ minHeight: "100vh", background: "#f0f2f5" }}>
       <Sidebar />
-      <div style={{
-        marginLeft: "256px",
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
-        position: "relative" as const,
-      }}>
+      <div className="dashboard-content-area" style={contentStyle}>
         <Header />
-        <main style={{
-          flex: 1,
-          padding: "24px",
-        }}>
+        <main style={{ flex: 1, padding: "24px", minWidth: 0 }}>
           {children}
         </main>
       </div>
@@ -69,9 +57,21 @@ export default function DashboardLayout({
 
       <style>{`
         @media (max-width: 768px) {
-          .dashboard-main-area { margin-left: 0 !important; }
+          .dashboard-content-area {
+            margin-left: 0 !important;
+            padding: 16px 12px !important;
+            padding-bottom: 80px !important;
+          }
         }
       `}</style>
     </div>
   );
 }
+
+const contentStyle: React.CSSProperties = {
+  marginLeft: "256px",
+  display: "flex",
+  flexDirection: "column",
+  minHeight: "100vh",
+  position: "relative",
+};
