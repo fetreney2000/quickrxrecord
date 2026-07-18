@@ -102,6 +102,7 @@ export default function PatientDetailPage() {
   const getItemDisplayName = useCallback((item: any) => { if (!item) return ""; const f = formsMap.get(item.id_bentuk) || ""; return [item.nama_item, item.kekuatan, f].filter(Boolean).join(" "); }, [formsMap]);
   const { data: doseHistory } = useQuery({ queryKey: ["dose-history", expandedAssignment], queryFn: async () => { if (!expandedAssignment) return []; const { data: d } = await supabase.from("dose_history").select("*").eq("assignment_id", expandedAssignment).order("tarikh", { ascending: false }); return d || []; }, enabled: !!expandedAssignment });
   const { data: supplyHistory } = useQuery({ queryKey: ["supply-history", expandedAssignment], queryFn: async () => { if (!expandedAssignment) return []; const { data, error } = await supabase.from("supply_records").select("*, batch:item_batches(nombor_kelompok), staff:profiles!kakitangan_pembekal(nama)").eq("assignment_id", expandedAssignment).order("created_at", { ascending: false }); if (error) throw error; return data as any[]; }, enabled: !!expandedAssignment });
+  const { data: durations } = useQuery({ queryKey: ["supply_durations"], queryFn: async () => { const { data } = await supabase.from("supply_durations").select("value").order("value"); return (data || []) as { value: string }[]; }, staleTime: 300000 });
 
   const updatePatientMutation = useMutation({ mutationFn: async (updates: Partial<Patient>) => { const { error } = await supabase.from("patients").update(updates).eq("id", id); if (error) throw error; }, onSuccess: () => { toast.success("Maklumat dikemaskini."); setEditMode(false); queryClient.invalidateQueries({ queryKey: ["patient", id] }); }, onError: () => toast.error("Gagal mengemaskini.") });
   const toggleActiveMutation = useMutation({ mutationFn: async ({ aktif }: { aktif: boolean }) => { const { error } = await supabase.from("patients").update({ aktif }).eq("id", id); if (error) throw error; }, onSuccess: () => { toast.success("Status dikemaskini."); setOpenDeactivate(false); queryClient.invalidateQueries({ queryKey: ["patient", id] }); } });
@@ -474,9 +475,9 @@ export default function PatientDetailPage() {
             <DialogTitle className="flex items-center gap-2"><Edit className="h-5 w-5" /> Kemaskini Dos</DialogTitle>
             <DialogDescription>Masukkan dos baharu untuk pesakit ini.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 py-2">
-            <Label>Dos Baru</Label>
-            <Input value={doseUpdate.dos} onChange={e => setDoseUpdate({ ...doseUpdate, dos: e.target.value })} placeholder="cth: 1 biji 2x sehari" />
+          <div className="space-y-4 py-2">
+            <div className="space-y-2"><Label>Dos Baru</Label><Input value={doseUpdate.dos} onChange={e => setDoseUpdate({ ...doseUpdate, dos: e.target.value })} placeholder="cth: 1 biji 2x sehari" /></div>
+            <div className="space-y-2"><Label>Catatan</Label><Textarea value={doseUpdate.catatan} onChange={e => setDoseUpdate({ ...doseUpdate, catatan: e.target.value })} placeholder="Catatan (opsional)" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenUpdateDose(null)}>Batal</Button>
@@ -496,6 +497,20 @@ export default function PatientDetailPage() {
           <div className="space-y-4 py-2">
             <div className="space-y-2"><Label>Dos Semasa</Label><Input value={currentAssignment?.dos || "-"} readOnly className="opacity-60" /></div>
             <div className="space-y-2"><Label>Kuantiti</Label><Input type="number" value={supplyData.kuantiti} onChange={e => setSupplyData({ ...supplyData, kuantiti: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Tempoh Dibekal</Label>
+              <div className="flex gap-2">
+                <Input type="number" value={supplyData.tempoh_nilai} onChange={e => setSupplyData({ ...supplyData, tempoh_nilai: e.target.value })} placeholder="Nilai" className="w-24" />
+                <Select value={supplyData.tempoh_unit} onValueChange={v => setSupplyData({ ...supplyData, tempoh_unit: v })}>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Unit" /></SelectTrigger>
+                  <SelectContent>
+                    {(durations || []).map(d => (
+                      <SelectItem key={d.value} value={d.value}>{d.value}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2"><Label>Catatan Bekalan</Label><Input value={supplyData.catatan_bekalan} onChange={e => setSupplyData({ ...supplyData, catatan_bekalan: e.target.value })} placeholder="Catatan (opsional)" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenSupply(null)}>Batal</Button>
