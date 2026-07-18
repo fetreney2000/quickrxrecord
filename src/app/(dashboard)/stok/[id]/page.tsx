@@ -167,15 +167,11 @@ export default function ItemDetailPage() {
       if (assgnErr) throw assgnErr;
       if (!assignments?.length) return [];
 
-      // Collect unique patient IDs
-      const patientIds = [...new Set((assignments as any[]).map(a => a.patient_id).filter(Boolean))] as string[];
-
-      // Get ALL assignments for these patients (active + inactive) WITHOUT join to get clean patient_id
+      // Get ALL assignments for this item (active + inactive) WITHOUT join
       const { data: allAssigns } = await supabase
         .from("patient_item_assignments")
         .select("id, patient_id")
-        .eq("item_id", id)
-        .in("patient_id", patientIds as string[]);
+        .eq("item_id", id);
       const allAssignIds = (allAssigns || []).map(a => a.id);
 
       // Build map: assignment_id -> patient_id
