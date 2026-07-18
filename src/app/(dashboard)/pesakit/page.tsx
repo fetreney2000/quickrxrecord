@@ -110,7 +110,7 @@ export default function PesakitPage() {
 
       {/* Breadcrumb */}
       <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} style={{ marginBottom: "20px" }}>
-        <Breadcrumb items={[{ label: "Papan Pemuka", href: "/" }, { label: "Senarai Pesakit" }]} />
+        <Breadcrumb items={[{ label: "Senarai Pesakit" }]} />
       </motion.div>
 
       {/* Header */}

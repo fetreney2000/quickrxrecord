@@ -175,7 +175,7 @@ export default function PengurusanPage() {
   return (
     <div style={{ position: "relative" }}>
       <div style={{ position: "absolute", top: "-60px", right: "-60px", width: "300px", height: "300px", borderRadius: "50%", background: "radial-gradient(circle, rgba(6, 182, 212, 0.03) 0%, transparent 70%)", filter: "blur(30px)", pointerEvents: "none" }} />
-      <Breadcrumb items={[{ label: "Papan Pemuka", href: "/" }, { label: "Pengurusan Pengguna" }]} />
+      <Breadcrumb items={[{ label: "Pengurusan Pengguna" }]} />
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px", flexWrap: "wrap" as const, gap: "12px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
