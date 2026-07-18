@@ -389,7 +389,7 @@ export default function PatientDetailPage() {
                                       <TableCell className="text-xs">{r.catatan_bekalan || "-"}</TableCell>
                                         <TableCell>
                                           <div className="flex gap-1">
-                                            <Button size="sm" variant="ghost" onClick={() => setEditSupplyRecord({ ...r, editDos: r.dos, editKuantiti: r.kuantiti, editTempoh: r.tempoh_dibekal })}><Edit className="h-3 w-3" /></Button>
+                                            <Button size="sm" variant="ghost" onClick={() => { const parts = (r.tempoh_dibekal || "").split(" "); setEditSupplyRecord({ ...r, editDos: r.dos, editKuantiti: r.kuantiti, editTempohNilai: parts[0] || "", editTempohUnit: parts[1] || "Hari", editCatatan: r.catatan_bekalan || "" }); }}><Edit className="h-3 w-3" /></Button>
                                             <Button size="sm" variant="ghost" onClick={() => setOpenDeleteSupply(r)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
                                           </div>
                                         </TableCell>
@@ -468,13 +468,26 @@ export default function PatientDetailPage() {
             <DialogTitle className="flex items-center gap-2"><Edit className="h-5 w-5" /> Edit Rekod</DialogTitle>
           </DialogHeader>
             <div className="space-y-4 py-2">
-            <div className="space-y-2"><Label>Dos</Label><Input value={editSupplyRecord?.editDos ?? editSupplyRecord?.dos} onChange={e => setEditSupplyRecord({ ...editSupplyRecord, editDos: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Dos</Label><Input value={editSupplyRecord?.editDos ?? editSupplyRecord?.dos} readOnly className="opacity-60" /></div>
             <div className="space-y-2"><Label>Kuantiti</Label><Input type="number" value={editSupplyRecord?.editKuantiti ?? editSupplyRecord?.kuantiti} onChange={e => setEditSupplyRecord({ ...editSupplyRecord, editKuantiti: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Tempoh Bekalan</Label><Input value={editSupplyRecord?.editTempoh ?? editSupplyRecord?.tempoh_dibekal} onChange={e => setEditSupplyRecord({ ...editSupplyRecord, editTempoh: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Tempoh Dibekal</Label>
+              <div className="flex gap-2">
+                <Input type="number" value={editSupplyRecord?.editTempohNilai ?? ""} onChange={e => setEditSupplyRecord({ ...editSupplyRecord, editTempohNilai: e.target.value })} className="w-24" />
+                <Select value={editSupplyRecord?.editTempohUnit ?? "Hari"} onValueChange={v => setEditSupplyRecord({ ...editSupplyRecord, editTempohUnit: v })}>
+                  <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(durations || []).map(d => (
+                      <SelectItem key={d.nama} value={d.nama}>{d.nama}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2"><Label>Catatan Bekalan</Label><Input value={editSupplyRecord?.editCatatan ?? ""} onChange={e => setEditSupplyRecord({ ...editSupplyRecord, editCatatan: e.target.value })} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditSupplyRecord(null)}>Batal</Button>
-            <Button onClick={() => { if (editSupplyRecord) saveEditSupplyMutation.mutate({ supplyId: editSupplyRecord.id, updates: { dos: editSupplyRecord.editDos ?? editSupplyRecord.dos, tempoh_dibekal: editSupplyRecord.editTempoh ?? editSupplyRecord.tempoh_dibekal, kuantiti: editSupplyRecord.editKuantiti ?? editSupplyRecord.kuantiti, catatan_bekalan: "" } }); }} disabled={saveEditSupplyMutation.isPending}>
+            <Button onClick={() => { if (editSupplyRecord) saveEditSupplyMutation.mutate({ supplyId: editSupplyRecord.id, updates: { dos: editSupplyRecord.editDos ?? editSupplyRecord.dos, tempoh_dibekal: `${editSupplyRecord.editTempohNilai ?? ""} ${editSupplyRecord.editTempohUnit ?? "Hari"}`, kuantiti: editSupplyRecord.editKuantiti ?? editSupplyRecord.kuantiti, catatan_bekalan: editSupplyRecord.editCatatan || "" } }); }} disabled={saveEditSupplyMutation.isPending}>
               {saveEditSupplyMutation.isPending ? "Menyimpan..." : "Simpan"}
             </Button>
           </DialogFooter>
