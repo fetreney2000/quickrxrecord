@@ -151,7 +151,7 @@ const styles: Record<string, React.CSSProperties> = {
     WebkitBackdropFilter: "blur(16px)",
     backdropFilter: "blur(16px)",
     boxShadow: "0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
-    overflow: "hidden",
+    overflow: "visible",
   },
   headerBg: {
     position: "absolute",
