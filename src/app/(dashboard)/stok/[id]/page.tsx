@@ -410,20 +410,31 @@ export default function ItemDetailPage() {
     } catch { toast.error("Gagal mengeksport PDF."); }
   };
 
-  if (!item) return <div className="flex items-center justify-center py-12">Memuatkan...</div>;
+  if (!item) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "50vh" }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ width: "32px", height: "32px", border: "3px solid rgba(124, 58, 237, 0.15)", borderTopColor: "#7c3aed", borderRadius: "50%", margin: "0 auto 12px", WebkitAnimation: "spin 1s linear infinite", animation: "spin 1s linear infinite" }} />
+        <p style={{ fontSize: "13px", color: "#65676b" }}>Memuatkan...</p>
+        <style>{`@-webkit-keyframes spin{from{-webkit-transform:rotate(0deg);transform:rotate(0deg)}to{-webkit-transform:rotate(360deg);transform:rotate(360deg)}}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+      </div>
+    </div>
+  );
 
   const totalStock = batches?.reduce((sum, b) => sum + b.kuantiti, 0) || 0;
   const totalPatients = assignedPatients?.length || 0;
   const bakiKuota = item?.kuota != null ? Math.max(0, item.kuota - totalPatients) : null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" style={{ position: "relative" }}>
+      <div style={{ position: "absolute", top: "-60px", right: "-60px", width: "300px", height: "300px", borderRadius: "50%", background: "radial-gradient(circle, rgba(124, 58, 237, 0.03) 0%, transparent 70%)", filter: "blur(30px)", pointerEvents: "none" }} />
       <div className="flex items-center justify-between">
         <Breadcrumb items={[{ label: "Papan Pemuka", href: "/" }, { label: "Stok & Item", href: "/stok" }, { label: item.nama_item || "Butiran Item" }]} />
       </div>
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.push("/stok")}><ArrowLeft className="h-5 w-5" /></Button>
-        <h1 className="text-2xl font-bold">{itemDisplayName}</h1>
+      <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+        <button onClick={() => router.push("/stok")} style={{ width: "44px", height: "44px", borderRadius: "12px", border: "1.5px solid rgba(124, 58, 237, 0.15)", background: "rgba(124, 58, 237, 0.05)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s ease", flexShrink: 0 }}>
+          <ArrowLeft size={20} color="#7c3aed" />
+        </button>
+        <h1 style={{ fontSize: "22px", fontWeight: 700, color: "#1c1e21", letterSpacing: "-0.01em" }}>{itemDisplayName}</h1>
       </div>
 
       {/* 1. Item Info */}
