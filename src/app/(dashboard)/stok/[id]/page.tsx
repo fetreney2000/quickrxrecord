@@ -167,8 +167,8 @@ export default function ItemDetailPage() {
       if (assgnErr) throw assgnErr;
       if (!assignments?.length) return [];
 
-      // Collect unique patient IDs from the joined patient objects (more reliable)
-      const patientIds = [...new Set(assignments.map(a => a.patient?.id || a.patient_id).filter(Boolean))];
+      // Collect unique patient IDs
+      const patientIds = [...new Set((assignments as any[]).map(a => a.patient_id).filter(Boolean))] as string[];
 
       // Get ALL assignments for these patients (active + inactive) WITHOUT join to get clean patient_id
       const { data: allAssigns } = await supabase
