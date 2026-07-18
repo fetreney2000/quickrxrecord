@@ -35,15 +35,61 @@ export default function LaporanPage() {
     },
   });
 
-  const exportToExcel = async (data: any[], filename: string) => {
+  const exportToExcel = async (data: any[], filename: string, columnLabels?: Record<string, string>) => {
     try {
       const ExcelJS = await import("exceljs");
       const wb = new ExcelJS.Workbook();
-      const ws = wb.addWorksheet(filename);
+      wb.creator = "QuickRxRecord";
+      wb.created = new Date();
+      const ws = wb.addWorksheet(filename.replace(/_/g, " "));
       if (data.length > 0) {
-        const headers = Object.keys(data[0]);
-        ws.addRow(headers);
-        data.forEach(row => ws.addRow(headers.map(h => String(row[h] ?? ""))));
+        const keys = Object.keys(data[0]);
+        const labels = keys.map(k => columnLabels?.[k] || k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()));
+        // Title row
+        ws.mergeCells(1, 1, 1, keys.length);
+        const titleCell = ws.getCell("A1");
+        titleCell.value = filename.replace(/_/g, " ");
+        titleCell.font = { size: 16, bold: true, color: { argb: "FFFFFFFF" } };
+        titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1877F2" } };
+        titleCell.alignment = { horizontal: "center", vertical: "middle" };
+        ws.getRow(1).height = 36;
+        // Date row
+        ws.mergeCells(2, 1, 2, keys.length);
+        const dateCell = ws.getCell("A2");
+        dateCell.value = `Dijana pada: ${new Date().toLocaleString("ms-MY")}`;
+        dateCell.font = { size: 10, italic: true, color: { argb: "FF65676B" } };
+        dateCell.alignment = { horizontal: "center" };
+        ws.getRow(2).height = 22;
+        // Header row
+        const headerRow = ws.addRow(labels);
+        headerRow.height = 28;
+        headerRow.eachCell((cell) => {
+          cell.font = { size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF374151" } };
+          cell.alignment = { horizontal: "center", vertical: "middle" };
+          cell.border = { top: { style: "thin", color: { argb: "FFE5E7EB" } }, bottom: { style: "thin", color: { argb: "FFE5E7EB" } }, left: { style: "thin", color: { argb: "FFE5E7EB" } }, right: { style: "thin", color: { argb: "FFE5E7EB" } } };
+        });
+        // Data rows
+        data.forEach((row, idx) => {
+          const r = ws.addRow(keys.map(k => String(row[k] ?? "")));
+          r.height = 20;
+          r.eachCell((cell) => {
+            cell.font = { size: 10 };
+            cell.alignment = { vertical: "middle" };
+            cell.border = { bottom: { style: "thin", color: { argb: "FFF3F4F6" } } };
+            if (idx % 2 === 0) {
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF9FAFB" } };
+            }
+          });
+        });
+        // Auto column widths
+        keys.forEach((k, i) => {
+          const maxLen = Math.max(labels[i].length, ...data.map(r => String(r[k] ?? "").length));
+          ws.getColumn(i + 1).width = Math.min(Math.max(maxLen + 4, 12), 40);
+        });
+        // Footer row
+        const footerRow = ws.addRow([]);
+        ws.addRow(["", `Jumlah rekod: ${data.length}`, ...Array(keys.length - 2).fill("")]);
       }
       const buffer = await wb.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
@@ -54,14 +100,50 @@ export default function LaporanPage() {
     } catch { toast.error("Gagal mengeksport fail Excel."); }
   };
 
-  const exportToPDF = async (data: any[], filename: string, columns: string[]) => {
+  const exportToPDF = async (data: any[], filename: string, columnLabels?: Record<string, string>) => {
     try {
       const { default: jsPDF } = await import("jspdf");
       const autoTable = (await import("jspdf-autotable")).default;
-      const doc = new jsPDF();
-      doc.text(filename, 14, 15);
-      const rows = data.map(row => columns.map(col => String(row[col] ?? "")));
-      autoTable(doc, { head: [columns], body: rows, startY: 20, styles: { fontSize: 8 } });
+      const doc = new jsPDF("landscape");
+      // Header bar
+      doc.setFillColor(24, 119, 242);
+      doc.rect(0, 0, 300, 32, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text("QuickRxRecord", 14, 14);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.text(filename.replace(/_/g, " "), 14, 24);
+      // Date
+      doc.setTextColor(100, 100, 100);
+      doc.setFontSize(9);
+      doc.text(`Dijana pada: ${new Date().toLocaleString("ms-MY")}`, 14, 40);
+      doc.text(`Jumlah rekod: ${data.length}`, 200, 40);
+      // Table
+      if (data.length > 0) {
+        const keys = Object.keys(data[0]);
+        const labels = keys.map(k => columnLabels?.[k] || k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()));
+        const rows = data.map(row => keys.map(k => String(row[k] ?? "")));
+        autoTable(doc, {
+          head: [labels],
+          body: rows,
+          startY: 46,
+          styles: { fontSize: 8, cellPadding: 3, lineColor: [229, 231, 235], lineWidth: 0.3 },
+          headStyles: { fillColor: [55, 65, 81], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
+          alternateRowStyles: { fillColor: [249, 250, 251] },
+          margin: { left: 14, right: 14 },
+        });
+      }
+      // Footer
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`QuickRxRecord - ${filename.replace(/_/g, " ")}`, 14, doc.internal.pageSize.height - 8);
+        doc.text(`Halaman ${i} / ${pageCount}`, doc.internal.pageSize.width - 30, doc.internal.pageSize.height - 8);
+      }
       doc.save(`${filename}.pdf`);
       toast.success("Fail PDF berjaya dimuat turun.");
     } catch { toast.error("Gagal mengeksport fail PDF."); }
@@ -127,7 +209,7 @@ export default function LaporanPage() {
                   }} style={styles.exportBtn}><FileSpreadsheet size={14} /> Excel</button>
                   <button onClick={() => {
                     const flatData = (inventoryData || []).flatMap((item: any) => (item.item_batches || []).map((batch: any) => ({ kod_item: item.kod_item, nama_item: item.nama_item, kekuatan: item.kekuatan, nombor_kelompok: batch.nombor_kelompok, tarikh_luput: batch.tarikh_luput, kuantiti: batch.kuantiti })));
-                    exportToPDF(flatData, "Laporan Inventori", ["kod_item", "nama_item", "kekuatan", "nombor_kelompok", "tarikh_luput", "kuantiti"]);
+                    exportToPDF(flatData, "Laporan Inventori", { kod_item: "Kod", nama_item: "Nama Item", kekuatan: "Kekuatan", nombor_kelompok: "Kelompok", tarikh_luput: "Tarikh Luput", kuantiti: "Kuantiti" });
                   }} style={styles.exportBtn}><FileText size={14} /> PDF</button>
                 </div>
               </div>
@@ -178,9 +260,14 @@ export default function LaporanPage() {
                   <Activity size={16} color="#7c3aed" />
                   <span style={{ fontSize: "15px", fontWeight: 700, color: "#1c1e21" }}>Log Transaksi Bekalan</span>
                 </div>
-                <button onClick={() => {
-                  exportToExcel((transactions || []).slice(0, 500).map((t: any) => ({ tarikh: t.tarikh_dibekal, pesakit: t.assignment?.patient?.nama, item: t.assignment?.item?.nama_item, dos: t.dos, kuantiti: t.kuantiti, kelompok: t.batch?.nombor_kelompok, kakitangan: t.staff?.nama })), "Laporan_Transaksi");
-                }} style={styles.exportBtn}><FileSpreadsheet size={14} /> Excel</button>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button onClick={() => {
+                    exportToExcel((transactions || []).slice(0, 500).map((t: any) => ({ tarikh: t.tarikh_dibekal, pesakit: t.assignment?.patient?.nama, item: t.assignment?.item?.nama_item, dos: t.dos, kuantiti: t.kuantiti, kelompok: t.batch?.nombor_kelompok, kakitangan: t.staff?.nama })), "Laporan_Transaksi");
+                  }} style={styles.exportBtn}><FileSpreadsheet size={14} /> Excel</button>
+                  <button onClick={() => {
+                    exportToPDF((transactions || []).slice(0, 500).map((t: any) => ({ tarikh: t.tarikh_dibekal, pesakit: t.assignment?.patient?.nama, item: t.assignment?.item?.nama_item, dos: t.dos, kuantiti: t.kuantiti, kelompok: t.batch?.nombor_kelompok, kakitangan: t.staff?.nama })), "Laporan Transaksi", { tarikh: "Tarikh", pesakit: "Pesakit", item: "Item", dos: "Dos", kuantiti: "Kuantiti", kelompok: "Kelompok", kakitangan: "Kakitangan" });
+                  }} style={styles.exportBtn}><FileText size={14} /> PDF</button>
+                </div>
               </div>
               {txLoading ? (
                 <div style={{ padding: "60px 24px", textAlign: "center" }}>
