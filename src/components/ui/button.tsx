@@ -8,14 +8,14 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 hover:from-primary/90 hover:to-primary active:scale-[0.97]",
-        destructive: "bg-gradient-to-r from-red-600 to-red-500 text-white shadow-md shadow-red-500/20 hover:shadow-lg hover:shadow-red-500/30 hover:from-red-700 hover:to-red-600 active:scale-[0.97]",
-        outline: "border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900 active:scale-[0.97]",
-        secondary: "bg-gray-100 text-gray-700 shadow-sm hover:bg-gray-200 active:scale-[0.97]",
-        ghost: "hover:bg-gray-100 hover:text-gray-900 active:scale-[0.97]",
+        default: "bg-primary text-white hover:bg-primary/90",
+        destructive: "bg-red-600 text-white hover:bg-red-700",
+        outline: "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-900",
+        secondary: "bg-gray-100 text-gray-700 hover:bg-gray-200",
+        ghost: "hover:bg-gray-100 hover:text-gray-900",
         link: "text-primary underline-offset-4 hover:underline",
-        success: "bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-md shadow-emerald-500/20 hover:shadow-lg hover:shadow-emerald-500/30 hover:from-emerald-700 hover:to-emerald-600 active:scale-[0.97]",
-        warning: "bg-gradient-to-r from-amber-500 to-amber-400 text-white shadow-md shadow-amber-500/20 hover:shadow-lg hover:shadow-amber-500/30 hover:from-amber-600 hover:to-amber-500 active:scale-[0.97]",
+        success: "bg-emerald-600 text-white hover:bg-emerald-700",
+        warning: "bg-amber-500 text-white hover:bg-amber-600",
       },
       size: {
         default: "h-10 px-5 py-2",
