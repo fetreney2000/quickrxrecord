@@ -41,8 +41,8 @@ export default function HakciptaPage() {
                 <User size={28} color="white" />
               </div>
               <div>
-                <h2 style={{ fontSize: "18px", fontWeight: 700, color: "#1c1e21" }}>Pembangun Sistem</h2>
-                <p style={{ fontSize: "13px", color: "#65676b" }}>QuickRxRecord v4.0</p>
+                <h2 style={{ fontSize: "18px", fontWeight: 700, color: "#1c1e21" }}>QuickRxRecord v4.0</h2>
+                <p style={{ fontSize: "13px", color: "#65676b" }}>Pembangun Sistem</p>
               </div>
             </div>
 
