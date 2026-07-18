@@ -204,10 +204,11 @@ export default function ItemDetailPage() {
       }
 
       // Combine: active assignments + patient details + supply dates
+      // Use a2p map as primary lookup since patient_id may be undefined in some contexts
       return activeAssigns.map((a: any) => ({
         ...a,
         patient: patientMap.get(a.patient_id) || { id: a.patient_id, nama: "-", nombor_kad_pengenalan: "-" },
-        last_supply: psl.get(a.patient_id) || null,
+        last_supply: psl.get(a2p.get(a.id) || a.patient_id) || null,
       }));
     },
   });
