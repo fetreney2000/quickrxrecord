@@ -161,32 +161,49 @@ export default function ItemDetailPage() {
       // Get active assignments for this item
       const { data: assignments, error: assgnErr } = await supabase
         .from("patient_item_assignments")
-        .select("id, dos, patient:patients(id, nama, nombor_kad_pengenalan)")
+        .select("id, patient_id, dos, patient:patients(id, nama, nombor_kad_pengenalan)")
         .eq("item_id", id)
         .eq("aktif", true);
       if (assgnErr) throw assgnErr;
       if (!assignments?.length) return [];
 
-      // Get the latest supply date for each assignment
-      const assignmentIds = assignments.map(a => a.id);
-      const { data: supplies } = await supabase
-        .from("supply_records")
-        .select("assignment_id, tarikh_dibekal")
-        .in("assignment_id", assignmentIds)
-        .order("tarikh_dibekal", { ascending: false });
+      // Get ALL assignment IDs for this item (active AND inactive) to find supply history
+      const { data: allAssignments } = await supabase
+        .from("patient_item_assignments")
+        .select("id, patient_id")
+        .eq("item_id", id);
+      const allAssignmentIds = (allAssignments || []).map(a => a.id);
 
-      // Build map of latest supply date per assignment
+      // Build map of assignment_id -> patient_id
+      const assignmentToPatient = new Map<string, string>();
+      for (const a of allAssignments || []) {
+        assignmentToPatient.set(a.id, a.patient_id);
+      }
+
+      // Get supply records for ALL assignments of this item
+      let supplies: any[] = [];
+      if (allAssignmentIds.length > 0) {
+        const { data } = await supabase
+          .from("supply_records")
+          .select("assignment_id, tarikh_dibekal")
+          .in("assignment_id", allAssignmentIds)
+          .order("tarikh_dibekal", { ascending: false });
+        supplies = data || [];
+      }
+
+      // Build map of latest supply date per PATIENT (not per assignment)
       const latestSupplyMap = new Map<string, string>();
-      for (const s of supplies || []) {
-        if (!latestSupplyMap.has(s.assignment_id)) {
-          latestSupplyMap.set(s.assignment_id, s.tarikh_dibekal);
+      for (const s of supplies) {
+        const patientId = assignmentToPatient.get(s.assignment_id);
+        if (patientId && !latestSupplyMap.has(patientId)) {
+          latestSupplyMap.set(patientId, s.tarikh_dibekal);
         }
       }
 
-      // Merge last supply date into each assignment
+      // Merge last supply date into each assignment using patient_id
       return assignments.map(a => ({
         ...a,
-        last_supply: latestSupplyMap.get(a.id) || null,
+        last_supply: latestSupplyMap.get(a.patient_id) || null,
       }));
     },
   });
