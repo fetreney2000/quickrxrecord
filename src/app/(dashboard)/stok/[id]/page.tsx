@@ -200,8 +200,8 @@ export default function ItemDetailPage() {
         }
       }
 
-      // Merge last supply date into each assignment using patient_id
-      return assignments.map(a => ({
+      // Merge last supply date into each assignment using patient id
+      return assignments.map((a: any) => ({
         ...a,
         last_supply: latestSupplyMap.get(a.patient_id) || null,
       }));
