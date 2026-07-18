@@ -1,49 +1,31 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth, hasPermission } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback } from "react";
-import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter,
+  DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { motion } from "framer-motion";
 import {
-  Plus, Search, ChevronLeft, ChevronRight, Eye,
+  Plus, Search, ChevronLeft, ChevronRight,
   ChevronDown, ChevronUp, ArrowUpDown, User,
-  IdCard, Phone, RefreshCw, Users, Activity,
-  ArrowRight, Sparkles, AlertCircle, Calendar,
+  IdCard, Phone, RefreshCw, Users, ArrowRight,
+  Activity, Calendar,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { toast } from "sonner";
 import type { Patient } from "@/types";
 
 type SortDir = "asc" | "desc";
-
 const PAGE_SIZE = 100;
 
 export default function PesakitPage() {
@@ -52,18 +34,14 @@ export default function PesakitPage() {
   const [openAdd, setOpenAdd] = useState(false);
   const [sort, setSort] = useState<{ key: string; dir: SortDir } | null>(null);
   const [newPatient, setNewPatient] = useState({
-    nama: "",
-    nombor_kad_pengenalan: "",
-    nombor_pendaftaran_hospital: "",
-    nombor_telefon: "",
-    alamat: "",
-    catatan: "",
+    nama: "", nombor_kad_pengenalan: "", nombor_pendaftaran_hospital: "",
+    nombor_telefon: "", alamat: "", catatan: "",
   });
+  const [searchFocused, setSearchFocused] = useState(false);
   const { profile } = useAuth();
   const router = useRouter();
   const supabase = createClient();
   const queryClient = useQueryClient();
-
   const canEdit = hasPermission(profile?.peranan, "manage_patients");
 
   const { data, isLoading } = useQuery({
@@ -71,33 +49,16 @@ export default function PesakitPage() {
     queryFn: async () => {
       const sortKey = sort?.key || "nama";
       const sortDir = sort?.dir || "asc";
-
-      const countQuery = supabase
-        .from("patients")
-        .select("*", { count: "exact", head: true })
-        .eq("aktif", true)
-        .is("merged_into", null);
-
-      let dataQuery = supabase
-        .from("patients")
-        .select("*")
-        .eq("aktif", true)
-        .is("merged_into", null)
-        .order(sortKey, { ascending: sortDir === "asc" })
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-
+      const countQuery = supabase.from("patients").select("*", { count: "exact", head: true }).eq("aktif", true).is("merged_into", null);
+      let dataQuery = supabase.from("patients").select("*").eq("aktif", true).is("merged_into", null).order(sortKey, { ascending: sortDir === "asc" }).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (search) {
         const filter = `nama.ilike.%${search}%,nombor_kad_pengenalan.ilike.%${search}%,nombor_pendaftaran_hospital.ilike.%${search}%`;
         countQuery.or(filter);
         dataQuery = dataQuery.or(filter);
       }
-
-      const [{ count }, { data, error }] = await Promise.all([
-        countQuery,
-        dataQuery,
-      ]);
+      const [{ count }, { data: patients, error }] = await Promise.all([countQuery, dataQuery]);
       if (error) throw error;
-      return { patients: (data as Patient[]) || [], total: count || 0 };
+      return { patients: (patients as Patient[]) || [], total: count || 0 };
     },
   });
 
@@ -119,330 +80,243 @@ export default function PesakitPage() {
       setNewPatient({ nama: "", nombor_kad_pengenalan: "", nombor_pendaftaran_hospital: "", nombor_telefon: "", alamat: "", catatan: "" });
       queryClient.invalidateQueries({ queryKey: ["patients"] });
     },
-    onError: () => {
-      toast.error("Gagal menambah pesakit.");
-    },
+    onError: () => { toast.error("Gagal menambah pesakit."); },
   });
 
   const totalPages = Math.ceil((data?.total || 0) / PAGE_SIZE);
 
   const toggleSort = useCallback((key: string) => {
-    if (sort?.key === key) {
-      setSort({ key, dir: sort.dir === "asc" ? "desc" : "asc" });
-    } else {
-      setSort({ key, dir: "asc" });
-    }
+    if (sort?.key === key) { setSort({ key, dir: sort.dir === "asc" ? "desc" : "asc" }); }
+    else { setSort({ key, dir: "asc" }); }
     setPage(0);
   }, [sort]);
 
   const SortIcon = useCallback(({ columnKey }: { columnKey: string }) => {
-    if (sort?.key !== columnKey) return <ArrowUpDown className="h-3 w-3 opacity-30" />;
-    return sort.dir === "asc" ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />;
+    if (sort?.key !== columnKey) return <ArrowUpDown size={12} style={{ opacity: 0.3 }} />;
+    return sort.dir === "asc" ? <ChevronUp size={12} color="#1877f2" /> : <ChevronDown size={12} color="#1877f2" />;
   }, [sort]);
 
+  const inputStyle: React.CSSProperties = {
+    width: "100%", height: "40px", padding: "0 14px", borderRadius: "10px",
+    border: "1.5px solid rgba(24, 119, 242, 0.12)", background: "rgba(24, 119, 242, 0.03)",
+    fontSize: "13px", fontWeight: 500, color: "#1c1e21", fontFamily: "inherit", outline: "none",
+    transition: "all 0.2s ease", boxSizing: "border-box" as const,
+  };
+
   return (
-    <div className="space-y-6 pb-8">
-      {/* ─── Breadcrumb ──────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, x: -10 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <Breadcrumb items={[
-          { label: "Papan Pemuka", href: "/" },
-          { label: "Senarai Pesakit" },
-        ]} />
+    <div style={{ position: "relative" }}>
+      <div style={{ position: "absolute", top: "-60px", right: "-60px", width: "300px", height: "300px", borderRadius: "50%", background: "radial-gradient(circle, rgba(24, 119, 242, 0.03) 0%, transparent 70%)", filter: "blur(30px)", pointerEvents: "none" }} />
+
+      {/* Breadcrumb */}
+      <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} style={{ marginBottom: "20px" }}>
+        <Breadcrumb items={[{ label: "Papan Pemuka", href: "/" }, { label: "Senarai Pesakit" }]} />
       </motion.div>
 
-      {/* ─── Page Header ─────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-        className="flex items-center justify-between"
-      >
-        <div className="flex items-center gap-3">
-          <div className="icon-circle bg-gradient-to-br from-primary to-primary/70 text-white w-12 h-12 rounded-2xl shadow-lg shadow-primary/20">
-            <Users className="h-6 w-6" />
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+          <div style={{ width: "48px", height: "48px", borderRadius: "14px", background: "linear-gradient(135deg, #1877f2, #0d5bd4)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(24, 119, 242, 0.3)", flexShrink: 0 }}>
+            <Users size={22} color="white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Senarai Pesakit</h1>
-            <p className="text-sm text-muted-foreground">
-              Urus dan cari rekod pesakit
-            </p>
+            <h1 style={{ fontSize: "22px", fontWeight: 700, color: "#1c1e21", letterSpacing: "-0.01em" }}>Senarai Pesakit</h1>
+            <p style={{ fontSize: "13px", color: "#65676b", fontWeight: 500 }}>Urus dan cari rekod pesakit</p>
           </div>
         </div>
         {canEdit && (
           <Dialog open={openAdd} onOpenChange={setOpenAdd}>
             <DialogTrigger asChild>
-              <Button className="rounded-xl bg-gradient-to-r from-primary to-primary/80 text-white shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all">
-                <Plus className="mr-2 h-4 w-4" />
-                Tambah Pesakit
-              </Button>
+              <button style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", borderRadius: "12px", border: "none", background: "linear-gradient(135deg, #1877f2, #0d5bd4)", color: "#ffffff", fontSize: "13px", fontWeight: 600, fontFamily: "inherit", cursor: "pointer", boxShadow: "0 4px 12px rgba(24, 119, 242, 0.25)", transition: "all 0.2s ease" }}>
+                <Plus size={16} /> Tambah Pesakit
+              </button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent style={{ maxWidth: "500px", borderRadius: "16px", border: "1px solid rgba(24, 119, 242, 0.1)", boxShadow: "0 25px 50px rgba(0,0,0,0.15)" }}>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-primary" /> Tambah Pesakit Baharu
+                <DialogTitle style={{ fontSize: "16px", fontWeight: 700, display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Activity size={18} color="#1877f2" /> Tambah Pesakit Baharu
                 </DialogTitle>
-                <DialogDescription>Isi maklumat pesakit di bawah.</DialogDescription>
+                <DialogDescription style={{ fontSize: "13px" }}>Isi maklumat pesakit di bawah.</DialogDescription>
               </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    <User className="h-3 w-3 inline mr-1" /> Nama *
-                  </Label>
-                  <Input value={newPatient.nama} onChange={(e) => setNewPatient({ ...newPatient, nama: e.target.value })} className="rounded-xl" placeholder="Nama penuh pesakit" />
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginTop: "8px" }}>
+                <div>
+                  <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><User size={12} /> Nama *</Label>
+                  <Input value={newPatient.nama} onChange={(e) => setNewPatient({ ...newPatient, nama: e.target.value })} style={inputStyle} placeholder="Nama penuh pesakit" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      <IdCard className="h-3 w-3 inline mr-1" /> No. Kad Pengenalan
-                    </Label>
-                    <Input value={newPatient.nombor_kad_pengenalan} onChange={(e) => setNewPatient({ ...newPatient, nombor_kad_pengenalan: e.target.value })} className="rounded-xl" placeholder="000101-01-0001" />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><IdCard size={12} /> No. KP</Label>
+                    <Input value={newPatient.nombor_kad_pengenalan} onChange={(e) => setNewPatient({ ...newPatient, nombor_kad_pengenalan: e.target.value })} style={inputStyle} placeholder="000101-01-0001" />
                   </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      <Activity className="h-3 w-3 inline mr-1" /> No. Pendaftaran Hospital
-                    </Label>
-                    <Input value={newPatient.nombor_pendaftaran_hospital} onChange={(e) => setNewPatient({ ...newPatient, nombor_pendaftaran_hospital: e.target.value })} className="rounded-xl" />
+                  <div>
+                    <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><Activity size={12} /> No. Hospital</Label>
+                    <Input value={newPatient.nombor_pendaftaran_hospital} onChange={(e) => setNewPatient({ ...newPatient, nombor_pendaftaran_hospital: e.target.value })} style={inputStyle} />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    <Phone className="h-3 w-3 inline mr-1" /> No. Telefon
-                  </Label>
-                  <Input value={newPatient.nombor_telefon} onChange={(e) => setNewPatient({ ...newPatient, nombor_telefon: e.target.value })} className="rounded-xl" placeholder="012-3456789" />
+                <div>
+                  <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><Phone size={12} /> No. Telefon</Label>
+                  <Input value={newPatient.nombor_telefon} onChange={(e) => setNewPatient({ ...newPatient, nombor_telefon: e.target.value })} style={inputStyle} placeholder="012-3456789" />
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Alamat</Label>
-                  <Textarea value={newPatient.alamat} onChange={(e) => setNewPatient({ ...newPatient, alamat: e.target.value })} className="rounded-xl" />
+                <div>
+                  <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px" }}>Alamat</Label>
+                  <Textarea value={newPatient.alamat} onChange={(e) => setNewPatient({ ...newPatient, alamat: e.target.value })} style={{ ...inputStyle, height: "72px", padding: "10px 14px", resize: "vertical" as const }} />
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Catatan</Label>
-                  <Textarea value={newPatient.catatan} onChange={(e) => setNewPatient({ ...newPatient, catatan: e.target.value })} className="rounded-xl" />
+                <div>
+                  <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px" }}>Catatan</Label>
+                  <Textarea value={newPatient.catatan} onChange={(e) => setNewPatient({ ...newPatient, catatan: e.target.value })} style={{ ...inputStyle, height: "72px", padding: "10px 14px", resize: "vertical" as const }} />
                 </div>
               </div>
-              <DialogFooter className="gap-2">
-                <Button variant="outline" onClick={() => setOpenAdd(false)} className="rounded-xl">Batal</Button>
-                <Button
-                  onClick={() => addPatientMutation.mutate(newPatient)}
-                  disabled={!newPatient.nama || addPatientMutation.isPending}
-                  className="rounded-xl"
-                >
-                  {addPatientMutation.isPending ? (
-                    <span className="flex items-center gap-1.5"><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Menyimpan...</span>
-                  ) : "Simpan"}
-                </Button>
+              <DialogFooter style={{ gap: "8px", marginTop: "8px" }}>
+                <button onClick={() => setOpenAdd(false)} style={{ padding: "8px 16px", borderRadius: "10px", border: "1.5px solid #dddfe2", background: "#ffffff", color: "#1c1e21", fontSize: "13px", fontWeight: 500, fontFamily: "inherit", cursor: "pointer" }}>Batal</button>
+                <button onClick={() => addPatientMutation.mutate(newPatient)} disabled={!newPatient.nama || addPatientMutation.isPending}
+                  style={{ padding: "8px 16px", borderRadius: "10px", border: "none", background: "linear-gradient(135deg, #1877f2, #0d5bd4)", color: "#ffffff", fontSize: "13px", fontWeight: 600, fontFamily: "inherit", cursor: "pointer", opacity: (!newPatient.nama || addPatientMutation.isPending) ? 0.6 : 1 }}>
+                  {addPatientMutation.isPending ? <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><RefreshCw size={14} style={{ animation: "spin 1s linear infinite" }} /> Menyimpan...</span> : "Simpan"}
+                </button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         )}
       </motion.div>
 
-      {/* ─── Main Card ───────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <Card className="premium-card overflow-hidden border-0 shadow-lg shadow-primary/5">
-          <div className="h-1.5 bg-gradient-to-r from-primary via-primary/80 to-purple-500" />
+      {/* Main Card */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}>
+        <div style={{ position: "relative", borderRadius: "16px", marginBottom: "16px" }}>
+          {/* Gradient border */}
+          <div style={{ position: "absolute", inset: 0, borderRadius: "16px", padding: "1px", background: "linear-gradient(135deg, rgba(24, 119, 242, 0.2), rgba(124, 58, 237, 0.15), rgba(6, 182, 212, 0.1))", WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)", WebkitMaskComposite: "xor", maskComposite: "exclude", pointerEvents: "none" }} />
+          {/* Card content */}
+          <div style={{ borderRadius: "16px", background: "rgba(255, 255, 255, 0.85)", WebkitBackdropFilter: "blur(12px)", backdropFilter: "blur(12px)", border: "1px solid rgba(255, 255, 255, 0.5)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+            {/* Accent bar */}
+            <div style={{ height: "3px", background: "linear-gradient(90deg, #1877f2, #7c3aed, #06b6d4, #1877f2)", backgroundSize: "200% 100%" }} />
 
-          <CardHeader className="premium-card-header">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="relative flex-1 w-full sm:max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  className="pl-9 rounded-xl"
+            {/* Search + Count */}
+            <div style={{ padding: "18px 24px", borderBottom: "1px solid rgba(221, 223, 226, 0.5)", display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+              <div style={{ position: "relative", flex: 1, minWidth: "200px", maxWidth: "400px" }}>
+                <Search size={16} color={searchFocused ? "#1877f2" : "#9ca3af"} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
+                <input
+                  type="search"
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setSearchFocused(false)}
                   placeholder="Cari nama, No. KP, No. Hospital..."
+                  style={{ ...inputStyle, paddingLeft: "36px", ...(searchFocused ? { borderColor: "rgba(24, 119, 242, 0.4)", boxShadow: "0 0 0 3px rgba(24, 119, 242, 0.08)" } : {}) }}
                 />
               </div>
-              <Badge
-                variant="secondary"
-                className="rounded-lg px-3 py-1.5 text-xs gap-1.5 whitespace-nowrap"
-              >
-                <Users className="h-3 w-3" />
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 14px", borderRadius: "10px", background: "rgba(24, 119, 242, 0.05)", border: "1px solid rgba(24, 119, 242, 0.1)", fontSize: "12px", fontWeight: 600, color: "#65676b", flexShrink: 0 }}>
+                <Users size={14} color="#1877f2" />
                 {data?.total || 0} pesakit
-              </Badge>
+              </div>
             </div>
-          </CardHeader>
 
-          <CardContent className="p-0">
-            {/* Loading State */}
+            {/* Table */}
             {isLoading ? (
-              <div className="p-12 flex flex-col items-center gap-3">
-                <div className="h-8 w-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
-                <p className="text-sm text-muted-foreground animate-pulse">Memuatkan pesakit...</p>
+              <div style={{ padding: "60px 24px", textAlign: "center" }}>
+                <div style={{ width: "32px", height: "32px", border: "3px solid rgba(24, 119, 242, 0.15)", borderTopColor: "#1877f2", borderRadius: "50%", margin: "0 auto 12px", animation: "spin 1s linear infinite" }} />
+                <p style={{ fontSize: "13px", color: "#65676b" }}>Memuatkan pesakit...</p>
               </div>
             ) : data?.patients.length === 0 ? (
-              /* Empty State */
-              <div className="p-12 text-center">
-                <div className="icon-circle bg-muted text-muted-foreground mx-auto w-14 h-14 rounded-2xl mb-3">
-                  {search ? <Search className="h-6 w-6" /> : <Users className="h-6 w-6" />}
+              <div style={{ padding: "60px 24px", textAlign: "center" }}>
+                <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: "rgba(240, 242, 245, 0.8)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+                  {search ? <Search size={22} color="#9ca3af" /> : <Users size={22} color="#9ca3af" />}
                 </div>
-                <p className="text-muted-foreground font-medium">
-                  {search ? "Tiada pesakit dijumpai." : "Tiada pesakit berdaftar."}
-                </p>
-                <p className="text-xs text-muted-foreground/60 mt-1">
-                  {search
-                    ? "Cuba tukar kata kunci carian anda."
-                    : "Klik \"Tambah Pesakit\" untuk mendaftarkan pesakit baru."}
-                </p>
+                <p style={{ fontSize: "14px", fontWeight: 500, color: "#65676b" }}>{search ? "Tiada pesakit dijumpai." : "Tiada pesakit berdaftar."}</p>
+                <p style={{ fontSize: "12px", color: "#9ca3af", marginTop: "4px" }}>{search ? "Cuba tukar kata kunci carian anda." : 'Klik "Tambah Pesakit" untuk mendaftarkan pesakit baru.'}</p>
               </div>
             ) : (
               <>
-                {/* Table Header - Desktop */}
-                <div className="hidden sm:grid grid-cols-12 gap-3 items-center px-6 py-3 border-b bg-gradient-to-r from-muted/80 to-muted/30 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  <div
-                    className="col-span-3 cursor-pointer select-none hover:text-foreground transition-colors flex items-center gap-1"
-                    onClick={() => toggleSort("nama")}
-                  >
-                    <User className="h-3 w-3" /> Nama <SortIcon columnKey="nama" />
-                  </div>
-                  <div
-                    className="col-span-3 cursor-pointer select-none hover:text-foreground transition-colors flex items-center gap-1"
-                    onClick={() => toggleSort("nombor_kad_pengenalan")}
-                  >
-                    <IdCard className="h-3 w-3" /> No. KP <SortIcon columnKey="nombor_kad_pengenalan" />
-                  </div>
-                  <div
-                    className="col-span-3 cursor-pointer select-none hover:text-foreground transition-colors flex items-center gap-1"
-                    onClick={() => toggleSort("nombor_pendaftaran_hospital")}
-                  >
-                    <Activity className="h-3 w-3" /> No. Hospital <SortIcon columnKey="nombor_pendaftaran_hospital" />
-                  </div>
-                  <div
-                    className="col-span-2 cursor-pointer select-none hover:text-foreground transition-colors flex items-center gap-1"
-                    onClick={() => toggleSort("nombor_telefon")}
-                  >
-                    <Phone className="h-3 w-3" /> No. Telefon <SortIcon columnKey="nombor_telefon" />
-                  </div>
-                  <div className="col-span-1 text-center">Tindakan</div>
+                {/* Desktop Header */}
+                <div style={{ display: "none", gridTemplateColumns: "3fr 3fr 3fr 2fr 1fr", gap: "12px", padding: "10px 24px", borderBottom: "1px solid rgba(221, 223, 226, 0.5)", background: "linear-gradient(90deg, rgba(240, 242, 245, 0.6), rgba(240, 242, 245, 0.2))", fontSize: "11px", fontWeight: 600, color: "#65676b", textTransform: "uppercase", letterSpacing: "0.05em" }} className="pesakit-table-header">
+                  <div onClick={() => toggleSort("nama")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}><User size={12} /> Nama <SortIcon columnKey="nama" /></div>
+                  <div onClick={() => toggleSort("nombor_kad_pengenalan")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}><IdCard size={12} /> No. KP <SortIcon columnKey="nombor_kad_pengenalan" /></div>
+                  <div onClick={() => toggleSort("nombor_pendaftaran_hospital")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}><Activity size={12} /> No. Hospital <SortIcon columnKey="nombor_pendaftaran_hospital" /></div>
+                  <div onClick={() => toggleSort("nombor_telefon")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}><Phone size={12} /> No. Telefon <SortIcon columnKey="nombor_telefon" /></div>
+                  <div style={{ textAlign: "center" }}>Tindakan</div>
                 </div>
 
-                {/* Patient Rows */}
-                <AnimatedPatientRows
-                  patients={data?.patients || []}
-                  onView={(id) => router.push(`/pesakit/${id}`)}
-                />
+                {/* Rows */}
+                {data.patients.map((patient, idx) => (
+                  <motion.div key={patient.id} initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.015, duration: 0.2 }}>
+                    {/* Desktop */}
+                    <div className="pesakit-desktop-row" onClick={() => router.push(`/pesakit/${patient.id}`)}
+                      style={{ display: "none", gridTemplateColumns: "3fr 3fr 3fr 2fr 1fr", gap: "12px", padding: "14px 24px", borderBottom: "1px solid rgba(221, 223, 226, 0.3)", cursor: "pointer", transition: "background 0.15s ease" }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(24, 119, 242, 0.03)"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+                        <div style={{ width: "32px", height: "32px", borderRadius: "10px", background: "linear-gradient(135deg, rgba(24,119,242,0.1), rgba(24,119,242,0.05))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><User size={14} color="#1877f2" /></div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: "13px", fontWeight: 500, color: "#1c1e21", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{patient.nama}</div>
+                          <div style={{ fontSize: "10px", color: "#9ca3af" }}>ID: {patient.id?.slice(0, 8)}...</div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: "13px", color: "#1c1e21", display: "flex", alignItems: "center" }}>{patient.nombor_kad_pengenalan || <span style={{ color: "#9ca3af", fontStyle: "italic" }}>-</span>}</div>
+                      <div style={{ fontSize: "13px", color: "#1c1e21", display: "flex", alignItems: "center" }}>{patient.nombor_pendaftaran_hospital || <span style={{ color: "#9ca3af", fontStyle: "italic" }}>-</span>}</div>
+                      <div style={{ fontSize: "13px", color: "#1c1e21", display: "flex", alignItems: "center" }}>{patient.nombor_telefon || <span style={{ color: "#9ca3af", fontStyle: "italic" }}>-</span>}</div>
+                      <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                        <ArrowRight size={14} color="#9ca3af" />
+                      </div>
+                    </div>
+
+                    {/* Mobile */}
+                    <div className="pesakit-mobile-row" onClick={() => router.push(`/pesakit/${patient.id}`)}
+                      style={{ padding: "14px 20px", borderBottom: "1px solid rgba(221, 223, 226, 0.3)", cursor: "pointer", display: "flex", alignItems: "center", gap: "12px" }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(24, 119, 242, 0.03)"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}>
+                      <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "linear-gradient(135deg, rgba(24,119,242,0.1), rgba(24,119,242,0.05))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><User size={16} color="#1877f2" /></div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: "14px", fontWeight: 500, color: "#1c1e21", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{patient.nama}</div>
+                        <div style={{ fontSize: "12px", color: "#65676b", display: "flex", gap: "12px", marginTop: "2px" }}>
+                          {patient.nombor_kad_pengenalan && <span>{patient.nombor_kad_pengenalan}</span>}
+                          {patient.nombor_telefon && <span>{patient.nombor_telefon}</span>}
+                        </div>
+                      </div>
+                      <ChevronRight size={16} color="#9ca3af" style={{ flexShrink: 0 }} />
+                    </div>
+                  </motion.div>
+                ))}
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/20">
-                    <p className="text-xs text-muted-foreground">
-                      Halaman {page + 1} daripada {totalPages}
-                      <span className="hidden sm:inline"> ({data?.total || 0} pesakit)</span>
-                    </p>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage(Math.max(0, page - 1))}
-                        disabled={page === 0}
-                        className="h-8 w-8 p-0 rounded-lg"
-                      >
-                        <ChevronLeft className="h-3.5 w-3.5" />
-                      </Button>
-                      {Array.from({ length: totalPages }, (_, i) => (
-                        <Button
-                          key={i}
-                          variant={i === page ? "default" : "outline"}
-                          size="sm"
-                          className="h-8 min-w-[32px] px-2 text-xs rounded-lg font-semibold"
-                          onClick={() => setPage(i)}
-                        >
-                          {i + 1}
-                        </Button>
-                      ))}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
-                        disabled={page >= totalPages - 1}
-                        className="h-8 w-8 p-0 rounded-lg"
-                      >
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </Button>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px", borderTop: "1px solid rgba(221, 223, 226, 0.5)", background: "rgba(240, 242, 245, 0.2)" }}>
+                    <p style={{ fontSize: "12px", color: "#65676b" }}>Halaman {page + 1} daripada {totalPages} ({data?.total || 0} pesakit)</p>
+                    <div style={{ display: "flex", gap: "4px" }}>
+                      <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0} style={{ width: "32px", height: "32px", borderRadius: "8px", border: "1px solid #dddfe2", background: "#ffffff", color: "#1c1e21", cursor: page === 0 ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: page === 0 ? 0.4 : 1 }}><ChevronLeft size={14} /></button>
+                      {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                        let pageNum = i;
+                        if (totalPages > 7) {
+                          if (page < 3) pageNum = i;
+                          else if (page > totalPages - 4) pageNum = totalPages - 7 + i;
+                          else pageNum = page - 3 + i;
+                        }
+                        return (
+                          <button key={pageNum} onClick={() => setPage(pageNum)}
+                            style={{ minWidth: "32px", height: "32px", borderRadius: "8px", border: pageNum === page ? "none" : "1px solid #dddfe2", background: pageNum === page ? "linear-gradient(135deg, #1877f2, #0d5bd4)" : "#ffffff", color: pageNum === page ? "#ffffff" : "#1c1e21", fontSize: "12px", fontWeight: pageNum === page ? 600 : 400, cursor: "pointer", padding: "0 8px" }}>
+                            {pageNum + 1}
+                          </button>
+                        );
+                      })}
+                      <button onClick={() => setPage(Math.min(totalPages - 1, page + 1))} disabled={page >= totalPages - 1} style={{ width: "32px", height: "32px", borderRadius: "8px", border: "1px solid #dddfe2", background: "#ffffff", color: "#1c1e21", cursor: page >= totalPages - 1 ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: page >= totalPages - 1 ? 0.4 : 1 }}><ChevronRight size={14} /></button>
                     </div>
                   </div>
                 )}
               </>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </motion.div>
+
+      <style>{`
+        @-webkit-keyframes spin { from { -webkit-transform: rotate(0deg); } to { -webkit-transform: rotate(360deg); } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @media (min-width: 640px) {
+          .pesakit-table-header { display: grid !important; }
+          .pesakit-desktop-row { display: grid !important; }
+          .pesakit-mobile-row { display: none !important; }
+        }
+        @media (max-width: 639px) {
+          .pesakit-desktop-row { display: none !important; }
+          .pesakit-mobile-row { display: flex !important; }
+        }
+      `}</style>
     </div>
-  );
-}
-
-// ─── Animated Patient Rows ─────────────────────────────────────────────────
-function AnimatedPatientRows({ patients, onView }: { patients: Patient[]; onView: (id: string) => void }) {
-  return (
-    <>
-      {patients.map((patient, idx) => (
-        <motion.div
-          key={patient.id}
-          initial={{ opacity: 0, y: -5 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: idx * 0.015, duration: 0.2 }}
-        >
-          {/* Desktop Row */}
-          <div
-            className="hidden sm:grid grid-cols-12 gap-3 items-center px-6 py-4 border-b last:border-b-0 cursor-pointer hover:bg-accent/20 transition-colors group"
-            onClick={() => onView(patient.id)}
-          >
-            <div className="col-span-3 flex items-center gap-3">
-              <div className="icon-circle bg-gradient-to-br from-primary/10 to-primary/5 text-primary w-9 h-9 rounded-xl shrink-0 group-hover:shadow-md group-hover:shadow-primary/10 transition-all">
-                <User className="h-4 w-4" />
-              </div>
-              <div className="min-w-0">
-                <div className="font-medium text-sm truncate">{patient.nama}</div>
-                <div className="text-[11px] text-muted-foreground">ID: {patient.id?.slice(0, 8)}...</div>
-              </div>
-            </div>
-            <div className="col-span-3 text-sm">{patient.nombor_kad_pengenalan || <span className="text-muted-foreground italic">-</span>}</div>
-            <div className="col-span-3 text-sm">{patient.nombor_pendaftaran_hospital || <span className="text-muted-foreground italic">-</span>}</div>
-            <div className="col-span-2 text-sm">{patient.nombor_telefon || <span className="text-muted-foreground italic">-</span>}</div>
-            <div className="col-span-1 flex justify-center">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => { e.stopPropagation(); onView(patient.id); }}
-                className="h-8 w-8 p-0 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-primary/10 hover:text-primary"
-              >
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Mobile Row */}
-          <div
-            className="sm:hidden px-5 py-3 border-b last:border-b-0 cursor-pointer hover:bg-accent/20 transition-colors"
-            onClick={() => onView(patient.id)}
-          >
-            <div className="flex items-center gap-3">
-              <div className="icon-circle bg-primary/10 text-primary w-9 h-9 rounded-xl shrink-0">
-                <User className="h-4 w-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm truncate">{patient.nama}</div>
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
-                  {patient.nombor_kad_pengenalan && (
-                    <span className="flex items-center gap-1"><IdCard className="h-3 w-3" /> {patient.nombor_kad_pengenalan}</span>
-                  )}
-                  {patient.nombor_telefon && (
-                    <span className="flex items-center gap-1"><Phone className="h-3 w-3" /> {patient.nombor_telefon}</span>
-                  )}
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-            </div>
-          </div>
-        </motion.div>
-      ))}
-    </>
   );
 }
