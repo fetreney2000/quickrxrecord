@@ -234,7 +234,12 @@ export default function PatientDetailPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive"><ShieldAlert className="h-5 w-5" /> Nyahaktifkan Pesakit</DialogTitle>
-            <DialogDescription>Anda akan menyahaktifkan pesakit ini. Tindakan ini boleh dibatalkan.</DialogDescription>
+            <DialogDescription className="text-sm">
+              <span className="block mb-2">Anda akan menyahaktifkan pesakit ini dari sistem.</span>
+              <span className="block p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+                <strong>Amaran:</strong> Pesakit yang dinyahaktifkan tidak akan dapat menerima bekalan baharu. Semua rekod item dan bekalan sedia ada akan kekal dalam sistem. Anda boleh mengaktifkan semula pesakit ini pada bila-bila masa.
+              </span>
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenDeactivate(false)}>Batal</Button>
@@ -421,7 +426,12 @@ export default function PatientDetailPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive"><XCircle className="h-5 w-5" /> Tamatkan Item</DialogTitle>
-            <DialogDescription>Pilih sebab penamatan item ini.</DialogDescription>
+            <DialogDescription className="text-sm">
+              <span className="block mb-2">Anda akan menamatkan item ini untuk pesakit.</span>
+              <span className="block p-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-xs">
+                <strong>Amaran:</strong> Item yang ditamatkan tidak akan dapat dibekalkan lagi kepada pesakit ini. Sejarah bekalan dan dos sedia ada akan kekal dalam sistem. Tindakan ini tidak boleh dibatalkan.
+              </span>
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-2">
             <Label>Sebab Tamat</Label>
