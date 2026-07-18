@@ -245,7 +245,6 @@ export default function PesakitPage() {
                         <div style={{ width: "32px", height: "32px", borderRadius: "10px", background: "linear-gradient(135deg, rgba(24,119,242,0.1), rgba(24,119,242,0.05))", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><User size={14} color="#1877f2" /></div>
                         <div style={{ minWidth: 0 }}>
                           <div style={{ fontSize: "13px", fontWeight: 500, color: "#1c1e21", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{patient.nama}</div>
-                          <div style={{ fontSize: "10px", color: "#9ca3af" }}>ID: {patient.id?.slice(0, 8)}...</div>
                         </div>
                       </div>
                       <div style={{ fontSize: "13px", color: "#1c1e21", display: "flex", alignItems: "center" }}>{patient.nombor_kad_pengenalan || <span style={{ color: "#9ca3af", fontStyle: "italic" }}>-</span>}</div>

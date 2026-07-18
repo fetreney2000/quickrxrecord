@@ -136,7 +136,6 @@ export default function ProfilePage() {
                     { label: "Nama Pengguna", value: profile.nama_pengguna, mono: true },
                     { label: "Jawatan", value: profile.jawatan || "-" },
                     { label: "Peranan", value: profile.peranan, badge: true },
-                    { label: "ID Pengguna", value: profile.id, mono: true, small: true, full: true },
                   ].map(field => (
                     <div key={field.label} style={field.full ? { gridColumn: "1 / -1" } : undefined}>
                       <p style={{ fontSize: "11px", fontWeight: 600, color: "#65676b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>{field.label}</p>

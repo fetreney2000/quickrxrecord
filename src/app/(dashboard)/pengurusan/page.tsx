@@ -271,7 +271,6 @@ export default function PengurusanPage() {
                               <motion.tr initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
                                 <td colSpan={6} className="p-0"><div className="px-6 py-5 bg-accent/20 border-t border-border space-y-5">{/* Detail Info */}
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                  <div><span className="text-muted-foreground">ID:</span><p className="font-mono text-xs mt-0.5 break-all">{user.id}</p></div>
                                   <div><span className="text-muted-foreground">Nama Pengguna:</span><p className="font-medium mt-0.5">{user.nama_pengguna}</p></div>
                                   <div><span className="text-muted-foreground">Didaftarkan:</span><p className="font-medium mt-0.5">{new Date(user.created_at).toLocaleDateString("ms-MY", { year: "numeric", month: "long", day: "numeric" })}</p></div>
                                   <div><span className="text-muted-foreground">Kemaskini:</span><p className="font-medium mt-0.5">{new Date(user.updated_at).toLocaleDateString("ms-MY", { year: "numeric", month: "long", day: "numeric" })}</p></div>

@@ -555,7 +555,7 @@ export default function PatientDetailPage() {
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   <IdCard className="h-3 w-3 inline mr-1" />
-                  ID: {patient.id?.slice(0, 8)}... | Daftar: {formatDate(patient.created_at)}
+                  Daftar: {formatDate(patient.created_at)}
                 </p>
               </div>
             </div>
