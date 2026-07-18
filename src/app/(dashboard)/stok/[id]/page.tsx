@@ -158,27 +158,34 @@ export default function ItemDetailPage() {
   const { data: assignedPatients } = useQuery({
     queryKey: ["item-patients", id],
     queryFn: async () => {
-      // Get active assignments - use patient?.id since PostgREST may hide patient_id when joining
-      const { data: assignments, error: assgnErr } = await supabase
+      // Get active assignments WITHOUT join to keep clean patient_id
+      const { data: activeAssigns, error: assgnErr } = await supabase
         .from("patient_item_assignments")
-        .select("id, patient_id, dos, patient:patients(id, nama, nombor_kad_pengenalan)")
+        .select("id, patient_id, dos")
         .eq("item_id", id)
         .eq("aktif", true);
       if (assgnErr) throw assgnErr;
-      if (!assignments?.length) return [];
+      if (!activeAssigns?.length) return [];
 
-      // Get ALL assignments for this item (active + inactive) WITHOUT join
+      // Get patient details separately
+      const patientIds = [...new Set(activeAssigns.map((a: any) => a.patient_id))];
+      const { data: patients } = await supabase
+        .from("patients")
+        .select("id, nama, nombor_kad_pengenalan")
+        .in("id", patientIds);
+      const patientMap = new Map<string, any>();
+      for (const p of patients || []) patientMap.set(p.id, p);
+
+      // Get ALL assignments for this item (for supply history lookup)
       const { data: allAssigns } = await supabase
         .from("patient_item_assignments")
         .select("id, patient_id")
         .eq("item_id", id);
-      const allAssignIds = (allAssigns || []).map(a => a.id);
-
-      // Build map: assignment_id -> patient_id
+      const allAssignIds = (allAssigns || []).map((a: any) => a.id);
       const a2p = new Map<string, string>();
       for (const a of allAssigns || []) a2p.set(a.id, a.patient_id);
 
-      // Get supply records
+      // Get supply records for all assignments
       let supplies: any[] = [];
       if (allAssignIds.length > 0) {
         const { data } = await supabase
@@ -196,9 +203,11 @@ export default function ItemDetailPage() {
         if (pid && !psl.has(pid)) psl.set(pid, s.tarikh_dibekal);
       }
 
-      return (assignments as any[]).map((a: any) => ({
+      // Combine: active assignments + patient details + supply dates
+      return activeAssigns.map((a: any) => ({
         ...a,
-        last_supply: psl.get(a2p.get(a.id) || "") || null,
+        patient: patientMap.get(a.patient_id) || { id: a.patient_id, nama: "-", nombor_kad_pengenalan: "-" },
+        last_supply: psl.get(a.patient_id) || null,
       }));
     },
   });
