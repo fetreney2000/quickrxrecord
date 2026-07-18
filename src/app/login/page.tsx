@@ -201,12 +201,12 @@ export default function LoginPage() {
         >
           <div style={styles.brandingContent}>
             <div style={styles.brandingBadge}>v4.0</div>
-            <h1 style={styles.brandingTitle}>
-              Quick<span style={styles.brandingTitleAccent}>Rx</span>Record
-            </h1>
-            <p style={styles.brandingSubtitle}>
-              Sistem Pengurusan Inventori & Pesakit
-            </p>
+              <h1 style={styles.brandingTitle}>
+                Quick<span style={styles.brandingTitleAccent}>Rx</span>Record
+              </h1>
+              <p style={styles.brandingSubtitle}>
+                Jabatan Farmasi Hospital Keningau
+              </p>
             <div style={styles.brandingDivider} />
             <div style={styles.featureList}>
               {[
@@ -253,7 +253,7 @@ export default function LoginPage() {
                   Quick<span style={styles.brandingTitleAccent}>Rx</span>Record
                 </h2>
                 <p style={styles.mobileSubtitle}>
-                  Sistem Pengurusan Inventori & Pesakit
+                  Jabatan Farmasi Hospital Keningau
                 </p>
               </div>
 

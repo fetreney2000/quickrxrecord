@@ -42,7 +42,7 @@ export default function HakciptaPage() {
               </div>
               <div>
                 <h2 style={{ fontSize: "18px", fontWeight: 700, color: "#1c1e21" }}>QuickRxRecord v4.0</h2>
-                <p style={{ fontSize: "13px", color: "#65676b" }}>Pembangun Sistem</p>
+                <p style={{ fontSize: "13px", color: "#65676b" }}>Jabatan Farmasi Hospital Keningau</p>
               </div>
             </div>
 
@@ -82,7 +82,7 @@ export default function HakciptaPage() {
 
               <div style={{ textAlign: "center", padding: "12px", borderRadius: "12px", background: "rgba(240, 242, 245, 0.5)" }}>
                 <p style={{ fontSize: "12px", color: "#9ca3af" }}>
-                  &copy; {new Date().getFullYear()} QuickRxRecord. Hak cipta terpelihara.
+                  &copy; {new Date().getFullYear()} QuickRxRecord &middot; Jabatan Farmasi Hospital Keningau. Hak cipta terpelihara.
                 </p>
               </div>
             </div>

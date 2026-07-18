@@ -56,7 +56,7 @@ export function Sidebar() {
             </div>
             <div>
               <div style={styles.logoTitle}>QuickRxRecord</div>
-              <div style={styles.logoVersion}>v4.0</div>
+              <div style={styles.logoSubtitle}>Jabatan Farmasi Hospital Keningau</div>
             </div>
           </div>
 
@@ -144,7 +144,7 @@ const styles: Record<string, React.CSSProperties> = {
     left: 0,
     bottom: 0,
     width: "256px",
-    zIndex: 30,
+    zIndex: 50,
     display: "flex",
     flexDirection: "column",
     background: "linear-gradient(180deg, #0c1329 0%, #0a0e27 50%, #0d1117 100%)",
@@ -185,12 +185,11 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#ffffff",
     lineHeight: 1.2,
   },
-  logoVersion: {
+  logoSubtitle: {
     fontSize: "10px",
-    color: "#60a5fa",
-    fontWeight: 600,
-    letterSpacing: "0.08em",
-    textTransform: "uppercase" as const,
+    color: "rgba(255, 255, 255, 0.5)",
+    fontWeight: 500,
+    lineHeight: 1.3,
   },
   nav: {
     flex: 1,
