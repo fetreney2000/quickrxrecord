@@ -75,11 +75,28 @@ export default function DashboardPage() {
           .lt("tarikh_luput", new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0])
           .gt("kuantiti", 0),
       ]);
+
+      // Fetch items with batches for stock calculation
+      const { data: itemsWithBatches } = await supabase
+        .from("items")
+        .select("kuota, item_batches(kuantiti)")
+        .eq("aktif", true);
+
+      let totalStock = 0;
+      let lowStockCount = 0;
+      for (const item of (itemsWithBatches || []) as any[]) {
+        const itemStock = item.item_batches?.reduce((s: number, b: any) => s + (b.kuantiti || 0), 0) || 0;
+        totalStock += itemStock;
+        if (item.kuota && itemStock < item.kuota) lowStockCount++;
+      }
+
       return {
         totalPatients: patients.count || 0,
         totalItems: items.count || 0,
         supplyToday: supplyToday.count || 0,
         expiringSoon: expiringBatches.count || 0,
+        totalStock,
+        lowStockCount,
       };
     },
   });
@@ -120,6 +137,24 @@ export default function DashboardPage() {
       glowColor: "rgba(234, 88, 12, 0.3)",
       subtitle: "Kelompok akan tamat tempoh",
       delay: 0.45,
+    },
+    {
+      title: "Jumlah Stok",
+      value: stats?.totalStock ?? 0,
+      icon: Package,
+      gradient: "linear-gradient(135deg, #0891b2, #06b6d4)",
+      glowColor: "rgba(8, 145, 178, 0.3)",
+      subtitle: "Unit stok keseluruhan",
+      delay: 0.6,
+    },
+    {
+      title: "Stok Rendah",
+      value: stats?.lowStockCount ?? 0,
+      icon: AlertTriangle,
+      gradient: "linear-gradient(135deg, #dc2626, #ef4444)",
+      glowColor: "rgba(220, 38, 38, 0.3)",
+      subtitle: "Item di bawah kuota",
+      delay: 0.75,
     },
   ];
 
@@ -341,7 +376,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
+    gridTemplateColumns: "repeat(3, 1fr)",
     gap: "20px",
     position: "relative" as const,
     zIndex: 1,
