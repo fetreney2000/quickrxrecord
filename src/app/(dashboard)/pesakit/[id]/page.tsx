@@ -543,11 +543,11 @@ export default function PatientDetailPage() {
       >
         <Card className="premium-card overflow-hidden border-0 shadow-lg shadow-primary/5">
           {/* Gradient header bar */}
-          <div className="h-2 bg-gradient-to-r from-primary via-primary/80 to-purple-500" />
+          <div style={{ height: "8px", background: "linear-gradient(90deg, #1877f2, #7c3aed)" }} />
 
           <CardHeader className="premium-card-header flex flex-row items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-4">
-              <div className="icon-circle bg-gradient-to-br from-primary to-primary/70 text-white w-14 h-14 rounded-2xl shadow-lg shadow-primary/20">
+                <div style={{ width: "56px", height: "56px", borderRadius: "16px", background: "#1877f2", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(24,119,242,0.3)", flexShrink: 0 }}>
                 <User className="h-7 w-7" />
               </div>
               <div>
