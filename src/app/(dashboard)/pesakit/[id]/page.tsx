@@ -559,7 +559,7 @@ export default function PatientDetailPage() {
                     </Badge>
                   )}
                   {patient.aktif && (
-                    <Badge variant="success" className="premium-badge gap-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white border-0">
+                    <Badge variant="success" className="premium-badge gap-1.5 text-white border-0" style={{ background: "#10b981" }}>
                       <CheckCircle className="h-3 w-3" /> Aktif
                     </Badge>
                   )}
@@ -773,7 +773,7 @@ export default function PatientDetailPage() {
                   onOpenChange={(v) => { setOpenAddAssignment(v); if (!v) { setSelectedItemId(null); setItemSearch(""); } }}
                 >
                   <DialogTrigger asChild>
-                    <Button size="sm" className="rounded-xl bg-gradient-to-r from-primary to-primary/80 text-white shadow-md shadow-primary/20 hover:shadow-lg hover:shadow-primary/30 transition-all">
+                    <Button size="sm" className="rounded-xl" style={{ background: "#1877f2", color: "#fff", border: "none" }}>
                       <Plus className="mr-1.5 h-4 w-4" /> Tambah Item
                     </Button>
                   </DialogTrigger>
@@ -1059,7 +1059,7 @@ export default function PatientDetailPage() {
                                         <Button
                                           size="sm"
                                           onClick={() => { setOpenSupply(assignment.id); setSupplyData({ tempoh_nilai: "", tempoh_unit: "Hari", kuantiti: "", batch_id: "", catatan_bekalan: "" }); }}
-                                          className="rounded-xl bg-gradient-to-r from-primary to-primary/80 text-white shadow-md shadow-primary/20"
+                                          className="rounded-xl" style={{ background: "#1877f2", color: "#fff", border: "none" }}
                                         >
                                           <Package className="mr-1.5 h-3.5 w-3.5" /> Bekal Item
                                         </Button>
@@ -1533,7 +1533,7 @@ export default function PatientDetailPage() {
             <Button
               onClick={() => { if (openSupply && currentAssignment) supplyMutation.mutate({ ...supplyData, assignment_id: openSupply, dos: currentAssignment.dos || "" }); }}
               disabled={!supplyData.kuantiti || supplyMutation.isPending}
-              className="rounded-xl bg-gradient-to-r from-primary to-primary/80 text-white shadow-md shadow-primary/20"
+              className="rounded-xl" style={{ background: "#1877f2", color: "#fff", border: "none" }}
             >
               {supplyMutation.isPending ? (
                 <span className="flex items-center gap-1.5"><RefreshCw className="h-3.5 w-3.5 animate-spin" /> Menyimpan...</span>
