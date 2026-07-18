@@ -501,9 +501,11 @@ export default function PatientDetailPage() {
         <Breadcrumb
           items={(() => {
             const source = getNavSource();
-            if (source === "stok") {
+            if (source && source.startsWith("stok:")) {
+              const itemName = source.replace("stok:", "");
               return [
-                { label: "Stok & Item", href: "/stok" },
+                { label: "Inventori", href: "/stok" },
+                ...(itemName ? [{ label: itemName }] : []),
                 { label: patient.nama || "Butiran Pesakit" },
               ];
             }

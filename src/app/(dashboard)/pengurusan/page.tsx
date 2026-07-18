@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -53,6 +53,7 @@ export default function PengurusanPage() {
   const [editData, setEditData] = useState<Partial<Profile>>({});
   const [confirmToggle, setConfirmToggle] = useState<{ id: string; name: string; newStatus: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState<{ id: string; name: string; nama_pengguna: string } | null>(null);
+  const [userSearch, setUserSearch] = useState("");
 
   const isAdmin = profile?.peranan === "Pentadbir";
 
@@ -137,6 +138,12 @@ export default function PengurusanPage() {
       setEditId(null);
     }
   };
+
+  const filteredUsers = useMemo(() => {
+    if (!users) return [];
+    if (!userSearch) return users;
+    return users.filter((u: any) => u.nama?.toLowerCase().includes(userSearch.toLowerCase()) || u.nama_pengguna?.toLowerCase().includes(userSearch.toLowerCase()) || u.jawatan?.toLowerCase().includes(userSearch.toLowerCase()));
+  }, [users, userSearch]);
 
   // Reset requests
   const { data: resetRequests = [], isLoading: loadingRequests } = useQuery({
@@ -232,7 +239,13 @@ export default function PengurusanPage() {
         <TabsContent value="users" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Senarai Pengguna</CardTitle>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", gap: "12px" }}>
+                <CardTitle>Senarai Pengguna</CardTitle>
+                <div style={{ position: "relative", width: "240px" }}>
+                  <input type="search" placeholder="Cari Pengguna..." value={userSearch} onChange={e => setUserSearch(e.target.value)}
+                    style={{ width: "100%", height: "36px", padding: "0 12px", borderRadius: "8px", border: "1px solid #dddfe2", fontSize: "13px", fontFamily: "inherit", outline: "none", boxSizing: "border-box" as const }} />
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               <div>
@@ -253,7 +266,7 @@ export default function PengurusanPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {users?.map((user, idx) => (
+                      {filteredUsers.map((user: any, idx: number) => (
                         <React.Fragment key={user.id}>
                           <TableRow className="cursor-pointer hover:bg-muted/50 transition-colors border-b"
                             style={{ backgroundColor: expandedUser === user.id ? "#f0f0f0" : ["#ffffff", "#f8f8f8"][idx % 2] }}
