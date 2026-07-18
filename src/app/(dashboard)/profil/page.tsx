@@ -98,7 +98,7 @@ export default function ProfilePage() {
               </div>
               {!editing && (
                 <button onClick={() => { setEditing(true); setEditData({ nama: profile.nama, jawatan: profile.jawatan || "", nama_pengguna: profile.nama_pengguna }); }}
-                  style={{ padding: "7px 14px", borderRadius: "10px", border: "1.5px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", fontSize: "12px", fontWeight: 600, fontFamily: "inherit", cursor: "pointer", transition: "all 0.2s ease" }}>
+                  style={{ padding: "7px 14px", borderRadius: "10px", border: "1.5px solid rgba(24, 119, 242, 0.25)", background: "rgba(24, 119, 242, 0.08)", color: "#1877f2", fontSize: "12px", fontWeight: 600, fontFamily: "inherit", cursor: "pointer", transition: "all 0.2s ease" }}>
                   Edit Profil
                 </button>
               )}
@@ -200,7 +200,7 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <button onClick={() => setChangingPassword(true)}
-                  style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", borderRadius: "10px", border: "1.5px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)", fontSize: "13px", fontWeight: 600, fontFamily: "inherit", cursor: "pointer", transition: "all 0.2s ease" }}>
+                  style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", borderRadius: "10px", border: "1.5px solid rgba(245, 158, 11, 0.25)", background: "rgba(245, 158, 11, 0.08)", color: "#d97706", fontSize: "13px", fontWeight: 600, fontFamily: "inherit", cursor: "pointer", transition: "all 0.2s ease" }}>
                   <KeyRound size={16} /> Tukar Kata Laluan
                 </button>
               )}
