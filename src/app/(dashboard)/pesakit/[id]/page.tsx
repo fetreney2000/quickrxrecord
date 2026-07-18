@@ -102,7 +102,7 @@ export default function PatientDetailPage() {
   const getItemDisplayName = useCallback((item: any) => { if (!item) return ""; const f = formsMap.get(item.id_bentuk) || ""; return [item.nama_item, item.kekuatan, f].filter(Boolean).join(" "); }, [formsMap]);
   const { data: doseHistory } = useQuery({ queryKey: ["dose-history", expandedAssignment], queryFn: async () => { if (!expandedAssignment) return []; const { data: d } = await supabase.from("dose_history").select("*, staff:profiles!dikemaskini_oleh(nama)").eq("assignment_id", expandedAssignment).order("tarikh", { ascending: false }); return d || []; }, enabled: !!expandedAssignment });
   const { data: supplyHistory } = useQuery({ queryKey: ["supply-history", expandedAssignment], queryFn: async () => { if (!expandedAssignment) return []; const { data, error } = await supabase.from("supply_records").select("*, batch:item_batches(nombor_kelompok), staff:profiles!kakitangan_pembekal(nama)").eq("assignment_id", expandedAssignment).order("created_at", { ascending: false }); if (error) throw error; return data as any[]; }, enabled: !!expandedAssignment });
-  const { data: durations } = useQuery({ queryKey: ["supply_durations"], queryFn: async () => { const { data } = await supabase.from("supply_durations").select("*").order("value"); return (data || []) as { value: string }[]; }, staleTime: 300000 });
+  const { data: durations } = useQuery({ queryKey: ["supply_durations"], queryFn: async () => { const { data } = await supabase.from("supply_durations").select("*").order("nama"); return (data || []) as { nama: string }[]; }, staleTime: 300000 });
 
   const updatePatientMutation = useMutation({ mutationFn: async (updates: Partial<Patient>) => { const { error } = await supabase.from("patients").update(updates).eq("id", id); if (error) throw error; }, onSuccess: () => { toast.success("Maklumat dikemaskini."); setEditMode(false); queryClient.invalidateQueries({ queryKey: ["patient", id] }); }, onError: () => toast.error("Gagal mengemaskini.") });
   const toggleActiveMutation = useMutation({ mutationFn: async ({ aktif }: { aktif: boolean }) => { const { error } = await supabase.from("patients").update({ aktif }).eq("id", id); if (error) throw error; }, onSuccess: () => { toast.success("Status dikemaskini."); setOpenDeactivate(false); queryClient.invalidateQueries({ queryKey: ["patient", id] }); } });
@@ -267,7 +267,7 @@ export default function PatientDetailPage() {
                   <div className="space-y-4 py-2">
                     <div className="relative">
                       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input type="search" placeholder="Cari item..." value={itemSearch} onChange={e => setItemSearch(e.target.value)} className="pl-8" />
+                      <Input type="search" value={itemSearch} onChange={e => setItemSearch(e.target.value)} className="pl-8" />
                     </div>
                     <div className="max-h-[240px] overflow-auto rounded-lg border">
                       {(items || []).filter((i: any) => !itemSearch || i.nama_item.toLowerCase().includes(itemSearch.toLowerCase())).map((item: any) => (
@@ -277,7 +277,8 @@ export default function PatientDetailPage() {
                         </div>
                       ))}
                     </div>
-                    <div className="space-y-2"><Label>Dos</Label><Input value={newAssignment.dos} onChange={e => setNewAssignment({ ...newAssignment, dos: e.target.value })} placeholder="cth: 1 biji 2x sehari" /></div>
+                    <div className="space-y-2"><Label>Dos</Label><Input value={newAssignment.dos} onChange={e => setNewAssignment({ ...newAssignment, dos: e.target.value })} /></div>
+                    <div className="space-y-2"><Label>Catatan</Label><Input value={newAssignment.catatan_penggunaan} onChange={e => setNewAssignment({ ...newAssignment, catatan_penggunaan: e.target.value })} /></div>
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setOpenAddAssignment(false)}>Batal</Button>
@@ -435,17 +436,7 @@ export default function PatientDetailPage() {
           </DialogHeader>
           <div className="space-y-2 py-2">
             <Label>Sebab Tamat</Label>
-            <Select value={stopReason} onValueChange={setStopReason}>
-              <SelectTrigger><SelectValue placeholder="Pilih sebab" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Tukar kepada item lain">Tukar kepada item lain</SelectItem>
-                <SelectItem value="Pesakit tamat rawatan">Pesakit tamat rawatan</SelectItem>
-                <SelectItem value="Pesakit tidak datang">Pesakit tidak datang</SelectItem>
-                <SelectItem value="Reaksi buruk / alahan">Reaksi buruk / alahan</SelectItem>
-                <SelectItem value="Atas nasihat doktor">Atas nasihat doktor</SelectItem>
-                <SelectItem value="Lain-lain">Lain-lain</SelectItem>
-              </SelectContent>
-            </Select>
+            <Input value={stopReason} onChange={e => setStopReason(e.target.value)} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenStopAssign(null)}>Batal</Button>
@@ -476,9 +467,10 @@ export default function PatientDetailPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Edit className="h-5 w-5" /> Edit Rekod</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+            <div className="space-y-4 py-2">
             <div className="space-y-2"><Label>Dos</Label><Input value={editSupplyRecord?.editDos ?? editSupplyRecord?.dos} onChange={e => setEditSupplyRecord({ ...editSupplyRecord, editDos: e.target.value })} /></div>
             <div className="space-y-2"><Label>Kuantiti</Label><Input type="number" value={editSupplyRecord?.editKuantiti ?? editSupplyRecord?.kuantiti} onChange={e => setEditSupplyRecord({ ...editSupplyRecord, editKuantiti: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Tempoh Bekalan</Label><Input value={editSupplyRecord?.editTempoh ?? editSupplyRecord?.tempoh_dibekal} onChange={e => setEditSupplyRecord({ ...editSupplyRecord, editTempoh: e.target.value })} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditSupplyRecord(null)}>Batal</Button>
@@ -495,9 +487,9 @@ export default function PatientDetailPage() {
             <DialogTitle className="flex items-center gap-2"><Edit className="h-5 w-5" /> Kemaskini Dos</DialogTitle>
             <DialogDescription>Masukkan dos baharu untuk pesakit ini.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2"><Label>Dos Baru</Label><Input value={doseUpdate.dos} onChange={e => setDoseUpdate({ ...doseUpdate, dos: e.target.value })} placeholder="cth: 1 biji 2x sehari" /></div>
-            <div className="space-y-2"><Label>Catatan</Label><Textarea value={doseUpdate.catatan} onChange={e => setDoseUpdate({ ...doseUpdate, catatan: e.target.value })} placeholder="Catatan (opsional)" /></div>
+            <div className="space-y-4 py-2">
+            <div className="space-y-2"><Label>Dos Baru</Label><Input value={doseUpdate.dos} onChange={e => setDoseUpdate({ ...doseUpdate, dos: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Catatan</Label><Input value={doseUpdate.catatan} onChange={e => setDoseUpdate({ ...doseUpdate, catatan: e.target.value })} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenUpdateDose(null)}>Batal</Button>
@@ -519,18 +511,18 @@ export default function PatientDetailPage() {
             <div className="space-y-2"><Label>Kuantiti</Label><Input type="number" value={supplyData.kuantiti} onChange={e => setSupplyData({ ...supplyData, kuantiti: e.target.value })} /></div>
             <div className="space-y-2"><Label>Tempoh Dibekal</Label>
               <div className="flex gap-2">
-                <Input type="number" value={supplyData.tempoh_nilai} onChange={e => setSupplyData({ ...supplyData, tempoh_nilai: e.target.value })} placeholder="Nilai" className="w-24" />
+                <Input type="number" value={supplyData.tempoh_nilai} onChange={e => setSupplyData({ ...supplyData, tempoh_nilai: e.target.value })} className="w-24" />
                 <Select value={supplyData.tempoh_unit} onValueChange={v => setSupplyData({ ...supplyData, tempoh_unit: v })}>
-                  <SelectTrigger className="flex-1"><SelectValue placeholder="Unit" /></SelectTrigger>
+                  <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {(durations || []).map(d => (
-                      <SelectItem key={d.value} value={d.value}>{d.value}</SelectItem>
+                      <SelectItem key={d.nama} value={d.nama}>{d.nama}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
-            <div className="space-y-2"><Label>Catatan Bekalan</Label><Input value={supplyData.catatan_bekalan} onChange={e => setSupplyData({ ...supplyData, catatan_bekalan: e.target.value })} placeholder="Catatan (opsional)" /></div>
+            <div className="space-y-2"><Label>Catatan Bekalan</Label><Input value={supplyData.catatan_bekalan} onChange={e => setSupplyData({ ...supplyData, catatan_bekalan: e.target.value })} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenSupply(null)}>Batal</Button>
