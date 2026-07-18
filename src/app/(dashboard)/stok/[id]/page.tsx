@@ -571,7 +571,7 @@ export default function ItemDetailPage() {
     <div className="space-y-6" style={{ position: "relative" }}>
       <div style={{ position: "absolute", top: "-60px", right: "-60px", width: "300px", height: "300px", borderRadius: "50%", background: "radial-gradient(circle, rgba(124, 58, 237, 0.03) 0%, transparent 70%)", filter: "blur(30px)", pointerEvents: "none" }} />
       <div className="flex items-center justify-between">
-        <Breadcrumb items={[{ label: "Utama", href: "/" }, { label: "Inventori", href: "/stok" }, { label: itemDisplayName || item.nama_item || "Butiran Item" }]} />
+        <Breadcrumb items={[{ label: "Inventori", href: "/stok" }, { label: itemDisplayName || item.nama_item || "Butiran Item" }]} />
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
         <button onClick={() => router.push("/stok")} style={{ width: "44px", height: "44px", borderRadius: "12px", border: "1.5px solid rgba(124, 58, 237, 0.15)", background: "rgba(124, 58, 237, 0.05)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s ease", flexShrink: 0 }}>
@@ -686,7 +686,7 @@ export default function ItemDetailPage() {
                   const monthsSince = lastDate ? Math.floor((Date.now() - lastDate.getTime()) / (30 * 24 * 60 * 60 * 1000)) : null;
                   const isDefaulter = monthsSince !== null && monthsSince >= 3;
                   return (
-                    <TableRow key={a.patient?.id} className="cursor-pointer" onClick={() => { setNavSource("stok:" + (item?.nama_item || "")); router.push(`/pesakit/${a.patient?.id}`); }}>
+                    <TableRow key={a.patient?.id} className="cursor-pointer" onClick={() => { setNavSource("stok:" + itemDisplayName); router.push(`/pesakit/${a.patient?.id}`); }}>
                       <TableCell>{a.patient?.nama}</TableCell>
                       <TableCell>{a.patient?.nombor_kad_pengenalan || "-"}</TableCell>
                       <TableCell className="text-xs">{a.dos || "-"}</TableCell>
