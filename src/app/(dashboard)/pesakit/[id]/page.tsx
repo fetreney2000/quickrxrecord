@@ -100,9 +100,9 @@ export default function PatientDetailPage() {
   const formsMap = useMemo(() => { const map = new Map<string, string>(); forms?.forEach(f => map.set(f.id, f.nama)); return map; }, [forms]);
   const { data: items } = useQuery({ queryKey: ["items-with-stats"], queryFn: async () => { const { data, error } = await supabase.from("items").select("id, kod_item, nama_item, kekuatan, id_bentuk, kuota").eq("aktif", true).order("nama_item"); if (error) throw error; const itemsList = data as any[]; const { data: counts } = await supabase.from("patient_item_assignments").select("item_id").eq("aktif", true); const m: Record<string, number> = {}; for (const c of (counts || [])) m[c.item_id] = (m[c.item_id] || 0) + 1; return itemsList.map(item => ({ ...item, patient_count: m[item.id] || 0, baki_kuota: item.kuota != null ? Math.max(0, item.kuota - (m[item.id] || 0)) : null })); } });
   const getItemDisplayName = useCallback((item: any) => { if (!item) return ""; const f = formsMap.get(item.id_bentuk) || ""; return [item.nama_item, item.kekuatan, f].filter(Boolean).join(" "); }, [formsMap]);
-  const { data: doseHistory } = useQuery({ queryKey: ["dose-history", expandedAssignment], queryFn: async () => { if (!expandedAssignment) return []; const { data: d } = await supabase.from("dose_history").select("*").eq("assignment_id", expandedAssignment).order("tarikh", { ascending: false }); return d || []; }, enabled: !!expandedAssignment });
+  const { data: doseHistory } = useQuery({ queryKey: ["dose-history", expandedAssignment], queryFn: async () => { if (!expandedAssignment) return []; const { data: d } = await supabase.from("dose_history").select("*, staff:profiles!dikemaskini_oleh(nama)").eq("assignment_id", expandedAssignment).order("tarikh", { ascending: false }); return d || []; }, enabled: !!expandedAssignment });
   const { data: supplyHistory } = useQuery({ queryKey: ["supply-history", expandedAssignment], queryFn: async () => { if (!expandedAssignment) return []; const { data, error } = await supabase.from("supply_records").select("*, batch:item_batches(nombor_kelompok), staff:profiles!kakitangan_pembekal(nama)").eq("assignment_id", expandedAssignment).order("created_at", { ascending: false }); if (error) throw error; return data as any[]; }, enabled: !!expandedAssignment });
-  const { data: durations } = useQuery({ queryKey: ["supply_durations"], queryFn: async () => { const { data } = await supabase.from("supply_durations").select("value").order("value"); return (data || []) as { value: string }[]; }, staleTime: 300000 });
+  const { data: durations } = useQuery({ queryKey: ["supply_durations"], queryFn: async () => { const { data } = await supabase.from("supply_durations").select("*").order("value"); return (data || []) as { value: string }[]; }, staleTime: 300000 });
 
   const updatePatientMutation = useMutation({ mutationFn: async (updates: Partial<Patient>) => { const { error } = await supabase.from("patients").update(updates).eq("id", id); if (error) throw error; }, onSuccess: () => { toast.success("Maklumat dikemaskini."); setEditMode(false); queryClient.invalidateQueries({ queryKey: ["patient", id] }); }, onError: () => toast.error("Gagal mengemaskini.") });
   const toggleActiveMutation = useMutation({ mutationFn: async ({ aktif }: { aktif: boolean }) => { const { error } = await supabase.from("patients").update({ aktif }).eq("id", id); if (error) throw error; }, onSuccess: () => { toast.success("Status dikemaskini."); setOpenDeactivate(false); queryClient.invalidateQueries({ queryKey: ["patient", id] }); } });
@@ -336,6 +336,8 @@ export default function PatientDetailPage() {
                                   <TableRow>
                                     <SortableHeader label="Tarikh" sortKey="tarikh" currentSort={doseSort} onSort={k => toggleSort(doseSort, setDoseSort, k)} />
                                     <SortableHeader label="Dos" sortKey="dos" currentSort={doseSort} onSort={k => toggleSort(doseSort, setDoseSort, k)} />
+                                    <TableHead>Dikemaskini Oleh</TableHead>
+                                    <TableHead>Catatan</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -343,6 +345,8 @@ export default function PatientDetailPage() {
                                     <TableRow key={d.id}>
                                       <TableCell className="text-xs">{formatDate(d.tarikh)}</TableCell>
                                       <TableCell className="text-xs">{d.dos}</TableCell>
+                                      <TableCell className="text-xs">{d.staff?.nama || "-"}</TableCell>
+                                      <TableCell className="text-xs">{d.catatan || "-"}</TableCell>
                                     </TableRow>
                                   ))}
                                 </TableBody>
@@ -357,20 +361,26 @@ export default function PatientDetailPage() {
                             <FoldableCard title="Sejarah Bekalan" count={supplyHistory?.length || 0} defaultOpen={false}>
                               {sortedSupplyHistory.length > 0 ? (
                                 <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <SortableHeader label="Tarikh" sortKey="tarikh_dibekal" currentSort={supplySort} onSort={k => toggleSort(supplySort, setSupplySort, k)} />
-                                      <SortableHeader label="Kuantiti" sortKey="kuantiti" currentSort={supplySort} onSort={k => toggleSort(supplySort, setSupplySort, k)} />
-                                      <SortableHeader label="Kelompok" sortKey="batch" currentSort={supplySort} onSort={k => toggleSort(supplySort, setSupplySort, k)} />
-                                      <TableHead>Tindakan</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {sortedSupplyHistory.map((r: any) => (
-                                      <TableRow key={r.id}>
-                                        <TableCell className="text-xs">{formatDate(r.tarikh_dibekal)}</TableCell>
-                                        <TableCell className="text-xs">{r.kuantiti}</TableCell>
-                                        <TableCell className="text-xs text-muted-foreground">{r.batch?.nombor_kelompok || "-"}</TableCell>
+                                <TableHeader>
+                                  <TableRow>
+                                    <SortableHeader label="Tarikh" sortKey="tarikh_dibekal" currentSort={supplySort} onSort={k => toggleSort(supplySort, setSupplySort, k)} />
+                                    <SortableHeader label="Kuantiti" sortKey="kuantiti" currentSort={supplySort} onSort={k => toggleSort(supplySort, setSupplySort, k)} />
+                                    <SortableHeader label="Dos" sortKey="dos" currentSort={supplySort} onSort={k => toggleSort(supplySort, setSupplySort, k)} />
+                                    <SortableHeader label="Tempoh" sortKey="tempoh_dibekal" currentSort={supplySort} onSort={k => toggleSort(supplySort, setSupplySort, k)} />
+                                    <TableHead>Kakitangan</TableHead>
+                                    <TableHead>Catatan</TableHead>
+                                    <TableHead>Tindakan</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {sortedSupplyHistory.map((r: any) => (
+                                    <TableRow key={r.id}>
+                                      <TableCell className="text-xs">{formatDate(r.tarikh_dibekal)}</TableCell>
+                                      <TableCell className="text-xs">{r.kuantiti}</TableCell>
+                                      <TableCell className="text-xs">{r.dos || "-"}</TableCell>
+                                      <TableCell className="text-xs">{r.tempoh_dibekal || "-"}</TableCell>
+                                      <TableCell className="text-xs">{r.staff?.nama || "-"}</TableCell>
+                                      <TableCell className="text-xs">{r.catatan_bekalan || "-"}</TableCell>
                                         <TableCell>
                                           <div className="flex gap-1">
                                             <Button size="sm" variant="ghost" onClick={() => setEditSupplyRecord({ ...r, editDos: r.dos, editKuantiti: r.kuantiti, editTempoh: r.tempoh_dibekal })}><Edit className="h-3 w-3" /></Button>

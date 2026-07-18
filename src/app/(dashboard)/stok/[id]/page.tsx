@@ -158,7 +158,7 @@ export default function ItemDetailPage() {
   const { data: assignedPatients } = useQuery({
     queryKey: ["item-patients", id],
     queryFn: async () => {
-      // Get active assignments for this item
+      // Get active assignments - use patient?.id since PostgREST may hide patient_id when joining
       const { data: assignments, error: assgnErr } = await supabase
         .from("patient_item_assignments")
         .select("id, patient_id, dos, patient:patients(id, nama, nombor_kad_pengenalan)")
@@ -167,47 +167,42 @@ export default function ItemDetailPage() {
       if (assgnErr) throw assgnErr;
       if (!assignments?.length) return [];
 
-      // Get patient IDs from active assignments
-      const patientIds = [...new Set(assignments.map(a => a.patient_id))];
+      // Collect unique patient IDs from the joined patient objects (more reliable)
+      const patientIds = [...new Set(assignments.map(a => a.patient?.id || a.patient_id).filter(Boolean))];
 
-      // Get ALL assignments for these patients with this item (active + inactive)
-      const { data: allPatientAssignments } = await supabase
+      // Get ALL assignments for these patients (active + inactive) WITHOUT join to get clean patient_id
+      const { data: allAssigns } = await supabase
         .from("patient_item_assignments")
         .select("id, patient_id")
         .eq("item_id", id)
-        .in("patient_id", patientIds);
+        .in("patient_id", patientIds as string[]);
+      const allAssignIds = (allAssigns || []).map(a => a.id);
 
-      const allAssignmentIds = (allPatientAssignments || []).map(a => a.id);
+      // Build map: assignment_id -> patient_id
+      const a2p = new Map<string, string>();
+      for (const a of allAssigns || []) a2p.set(a.id, a.patient_id);
 
-      // Get supply records for all assignments of these patients
+      // Get supply records
       let supplies: any[] = [];
-      if (allAssignmentIds.length > 0) {
+      if (allAssignIds.length > 0) {
         const { data } = await supabase
           .from("supply_records")
           .select("assignment_id, tarikh_dibekal")
-          .in("assignment_id", allAssignmentIds)
+          .in("assignment_id", allAssignIds)
           .order("tarikh_dibekal", { ascending: false });
         supplies = data || [];
       }
 
-      // Build map: assignment_id -> patient_id (from ALL assignments including inactive)
-      const a2p = new Map<string, string>();
-      for (const a of allPatientAssignments || []) {
-        a2p.set(a.id, a.patient_id);
-      }
-
-      // Build map: patient_id -> latest supply date
-      const patientLastSupply = new Map<string, string>();
+      // Build per-patient latest supply date
+      const psl = new Map<string, string>();
       for (const s of supplies) {
         const pid = a2p.get(s.assignment_id);
-        if (pid && !patientLastSupply.has(pid)) {
-          patientLastSupply.set(pid, s.tarikh_dibekal);
-        }
+        if (pid && !psl.has(pid)) psl.set(pid, s.tarikh_dibekal);
       }
 
-      return assignments.map((a: any) => ({
+      return (assignments as any[]).map((a: any) => ({
         ...a,
-        last_supply: patientLastSupply.get(a.patient_id) || null,
+        last_supply: psl.get(a.patient_id) || null,
       }));
     },
   });
