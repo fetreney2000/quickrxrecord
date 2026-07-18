@@ -154,11 +154,6 @@ export default function PatientDetailPage() {
   const currentAssignment = openSupply ? assignments?.find(a => a.id === openSupply) : null;
   const toggleExpand = (aid: string) => { setExpandedAssignment(expandedAssignment === aid ? null : aid); };
 
-  const statGridCols = isMobile ? (window.innerWidth < 480 ? 1 : 2) : 4;
-  const detailGridCols = isMobile ? 2 : 4;
-  const infoGridCols = isMobile ? 1 : 3;
-  const btnSize = isMobile ? ("sm" as const) : ("sm" as const);
-
   return (
     <div className="space-y-6 butiran-pesakit" style={{ position: "relative" }}>
       <div style={{ position: "absolute", top: "-60px", right: "-60px", width: "300px", height: "300px", borderRadius: "50%", background: "radial-gradient(circle, rgba(24, 119, 242, 0.03) 0%, transparent 70%)", filter: "blur(30px)", pointerEvents: "none" }} />
