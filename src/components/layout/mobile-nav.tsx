@@ -4,15 +4,14 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth, hasPermission } from "@/lib/auth-context";
-import { LayoutDashboard, Stethoscope, Pill, Truck, FileText, UserCog } from "lucide-react";
+import { LayoutDashboard, Stethoscope, Pill, FileText, UserCog } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Utama", icon: LayoutDashboard, color: "#3b82f6", permission: null },
   { href: "/pesakit", label: "Pesakit", icon: Stethoscope, color: "#10b981", permission: "view_patients" },
   { href: "/stok", label: "Stok", icon: Pill, color: "#8b5cf6", permission: "view_items" },
-  { href: "/bekalan", label: "Bekalan", icon: Truck, color: "#f59e0b", permission: "manage_supply" },
   { href: "/laporan", label: "Laporan", icon: FileText, color: "#f43f5e", permission: "view_reports" },
-  { href: "/pengurusan", label: "Pengurusan", icon: UserCog, color: "#06b6d4", permission: "manage_users" },
+  { href: "/pengurusan", label: "Admin", icon: UserCog, color: "#06b6d4", permission: "manage_users" },
 ];
 
 export function MobileNav() {
@@ -51,7 +50,7 @@ export function MobileNav() {
                   ...styles.iconWrap,
                   ...(isActive ? { background: item.color + "18", boxShadow: "0 2px 8px " + item.color + "25" } : {}),
                 }}>
-                  <item.icon size={18} color={isActive ? item.color : "rgba(255, 255, 255, 0.45)"} />
+                  <item.icon size={20} color={isActive ? item.color : "rgba(255, 255, 255, 0.45)"} />
                 </div>
                 <span style={{
                   ...styles.label,
@@ -78,42 +77,43 @@ const styles: Record<string, React.CSSProperties> = {
     left: 0,
     right: 0,
     zIndex: 50,
-    height: "68px",
-    borderTop: "1px solid rgba(255, 255, 255, 0.06)",
+    height: "64px",
+    borderTop: "1px solid rgba(255, 255, 255, 0.08)",
     overflow: "hidden",
   },
   navBg: {
     position: "absolute",
     inset: 0,
-    background: "linear-gradient(180deg, rgba(12, 19, 41, 0.95), rgba(10, 14, 39, 0.98))",
-    WebkitBackdropFilter: "blur(20px)",
-    backdropFilter: "blur(20px)",
+    background: "linear-gradient(180deg, rgba(10, 14, 39, 0.97), rgba(8, 12, 30, 0.99))",
+    WebkitBackdropFilter: "blur(24px)",
+    backdropFilter: "blur(24px)",
   },
   navInner: {
     position: "relative",
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-around",
-    height: "68px",
-    padding: "0 4px",
+    justifyContent: "space-evenly",
+    height: "64px",
+    padding: "0 2px",
   },
   navItem: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    gap: "4px",
-    padding: "6px 4px",
-    borderRadius: "8px",
+    gap: "3px",
+    padding: "6px 2px",
+    borderRadius: "10px",
     textDecoration: "none",
     transition: "all 0.2s ease",
     position: "relative" as const,
-    minWidth: 0,
     flex: 1,
+    minWidth: 0,
+    maxWidth: "72px",
   },
   iconWrap: {
-    width: "36px",
-    height: "28px",
+    width: "32px",
+    height: "26px",
     borderRadius: "8px",
     display: "flex",
     alignItems: "center",
@@ -121,19 +121,20 @@ const styles: Record<string, React.CSSProperties> = {
     transition: "all 0.2s ease",
   },
   label: {
-    fontSize: "9px",
+    fontSize: "10px",
     lineHeight: 1,
     whiteSpace: "nowrap" as const,
     overflow: "hidden",
     textOverflow: "ellipsis",
     maxWidth: "100%",
+    textAlign: "center" as const,
   },
   activeIndicator: {
     position: "absolute",
-    top: "-1px",
+    top: "0px",
     left: "50%",
     transform: "translateX(-50%)",
-    width: "20px",
+    width: "24px",
     height: "2px",
     borderRadius: "1px",
   },
