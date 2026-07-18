@@ -412,9 +412,64 @@ export default function ItemDetailPage() {
     try {
       const ExcelJS = await import("exceljs");
       const wb = new ExcelJS.Workbook();
-      const ws = wb.addWorksheet("Transaksi_Item");
-      ws.addRow(["Tarikh", "Jenis", "Kelompok", "Perubahan", "Keterangan", "Kakitangan", "Pesakit"]);
-      filteredTransactions.forEach((t: any) => ws.addRow([new Date(t.tarikh).toLocaleString("ms-MY"), t.jenis, t.kelompok, t.perubahan, t.keterangan, t.kakitangan, t.pesakit]));
+      wb.creator = "QuickRxRecord";
+      wb.created = new Date();
+      const title = `Transaksi Item: ${item?.nama_item || ""}`;
+      const headers = ["Tarikh", "Jenis", "Kelompok", "Perubahan", "Keterangan", "Kakitangan", "Pesakit"];
+      const keys = ["tarikh", "jenis", "kelompok", "perubahan", "keterangan", "kakitangan", "pesakit"];
+      const ws = wb.addWorksheet("Transaksi Item");
+      // Title row
+      ws.mergeCells(1, 1, 1, headers.length);
+      const titleCell = ws.getCell("A1");
+      titleCell.value = title;
+      titleCell.font = { size: 16, bold: true, color: { argb: "FFFFFFFF" } };
+      titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1877F2" } };
+      titleCell.alignment = { horizontal: "center", vertical: "middle" };
+      ws.getRow(1).height = 36;
+      // Date row
+      ws.mergeCells(2, 1, 2, headers.length);
+      const dateCell = ws.getCell("A2");
+      dateCell.value = `Dijana pada: ${new Date().toLocaleString("ms-MY")} | Jumlah: ${filteredTransactions.length} rekod`;
+      dateCell.font = { size: 10, italic: true, color: { argb: "FF65676B" } };
+      dateCell.alignment = { horizontal: "center" };
+      ws.getRow(2).height = 22;
+      // Header row
+      const headerRow = ws.addRow(headers);
+      headerRow.height = 28;
+      headerRow.eachCell((cell) => {
+        cell.font = { size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF374151" } };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+        cell.border = { top: { style: "thin", color: { argb: "FFE5E7EB" } }, bottom: { style: "thin", color: { argb: "FFE5E7EB" } }, left: { style: "thin", color: { argb: "FFE5E7EB" } }, right: { style: "thin", color: { argb: "FFE5E7EB" } } };
+      });
+      // Data rows
+      filteredTransactions.forEach((t: any, idx: number) => {
+        const row = ws.addRow(keys.map(k => {
+          const v = k === "tarikh" ? new Date(t[k]).toLocaleString("ms-MY") : k === "perubahan" ? (t[k] >= 0 ? `+${t[k]}` : String(t[k])) : String(t[k] ?? "");
+          return v;
+        }));
+        row.height = 20;
+        row.eachCell((cell) => {
+          cell.font = { size: 10 };
+          cell.alignment = { vertical: "middle" };
+          cell.border = { bottom: { style: "thin", color: { argb: "FFF3F4F6" } } };
+          if (idx % 2 === 0) cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF9FAFB" } };
+          // Color negative perubahan red, positive green
+          if (cell.col === 4) {
+            const val = String(cell.value || "");
+            cell.font = { size: 10, bold: true, color: { argb: val.startsWith("-") ? "FFDC2626" : "FF16A34A" } };
+          }
+        });
+      });
+      // Auto column widths
+      headers.forEach((h, i) => {
+        const maxLen = Math.max(h.length, ...filteredTransactions.map((t: any) => {
+          const k = keys[i];
+          const v = k === "tarikh" ? new Date(t[k]).toLocaleString("ms-MY") : String(t[k] ?? "");
+          return v.length;
+        }));
+        ws.getColumn(i + 1).width = Math.min(Math.max(maxLen + 4, 12), 45);
+      });
       const buffer = await wb.xlsx.writeBuffer();
       const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
       const url = URL.createObjectURL(blob);
@@ -428,13 +483,53 @@ export default function ItemDetailPage() {
     try {
       const { default: jsPDF } = await import("jspdf");
       const autoTable = (await import("jspdf-autotable")).default;
-      const doc = new jsPDF();
-      doc.text(`Transaksi Item: ${item?.nama_item || ""}`, 14, 15);
+      const doc = new jsPDF("landscape");
+      const title = `Transaksi Item: ${item?.nama_item || ""}`;
+      // Header bar
+      doc.setFillColor(24, 119, 242);
+      doc.rect(0, 0, 300, 32, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text("QuickRxRecord", 14, 14);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.text(title, 14, 24);
+      // Date & count
+      doc.setTextColor(100, 100, 100);
+      doc.setFontSize(9);
+      doc.text(`Dijana pada: ${new Date().toLocaleString("ms-MY")}`, 14, 40);
+      doc.text(`Jumlah rekod: ${filteredTransactions.length}`, 200, 40);
+      // Table
       autoTable(doc, {
-        head: [["Tarikh", "Jenis", "Kelompok", "Perubahan", "Keterangan", "Kakitangan"]],
-        body: filteredTransactions.map((t: any) => [new Date(t.tarikh).toLocaleString("ms-MY"), t.jenis, t.kelompok, t.perubahan > 0 ? `+${t.perubahan}` : String(t.perubahan), t.keterangan, t.kakitangan]),
-        startY: 25, styles: { fontSize: 7 },
+        head: [["Tarikh", "Jenis", "Kelompok", "Perubahan", "Keterangan", "Kakitangan", "Pesakit"]],
+        body: filteredTransactions.map((t: any) => [
+          new Date(t.tarikh).toLocaleString("ms-MY"), t.jenis, t.kelompok,
+          t.perubahan >= 0 ? `+${t.perubahan}` : String(t.perubahan),
+          t.keterangan, t.kakitangan, t.pesakit,
+        ]),
+        startY: 46,
+        styles: { fontSize: 8, cellPadding: 3, lineColor: [229, 231, 235], lineWidth: 0.3 },
+        headStyles: { fillColor: [55, 65, 81], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
+        alternateRowStyles: { fillColor: [249, 250, 251] },
+        margin: { left: 14, right: 14 },
+        columnStyles: { 3: { fontStyle: "bold" } },
+        didParseCell(data) {
+          if (data.section === "body" && data.column.index === 3) {
+            const val = String(data.cell.raw || "");
+            data.cell.styles.textColor = val.startsWith("-") ? [220, 38, 38] : [22, 163, 74];
+          }
+        },
       });
+      // Footer
+      const pageCount = doc.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`QuickRxRecord - ${title}`, 14, doc.internal.pageSize.height - 8);
+        doc.text(`Halaman ${i} / ${pageCount}`, doc.internal.pageSize.width - 30, doc.internal.pageSize.height - 8);
+      }
       doc.save(`Transaksi_${item?.kod_item || "item"}.pdf`);
       toast.success("Fail PDF berjaya dimuat turun.");
     } catch { toast.error("Gagal mengeksport PDF."); }
