@@ -95,9 +95,9 @@ export function Sidebar() {
               <Link href="/profil" style={styles.userAvatar}>
                 {profile?.nama?.charAt(0)?.toUpperCase() || "?"}
               </Link>
-              <Link href="/profil" style={styles.userInfo}>
+              <Link href="/hakcipta" style={styles.userInfo}>
                 <div style={styles.userName}>{profile?.nama}</div>
-                <div style={styles.userRole}>{profile?.peranan}</div>
+                <div style={styles.userRole}>Hak Cipta</div>
               </Link>
               <button
                 onClick={() => signOut()}
