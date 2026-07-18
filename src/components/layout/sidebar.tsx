@@ -12,6 +12,7 @@ import {
   Pill,
   FileText,
   UserCog,
+  Shield,
 } from "lucide-react";
 
 const navItems = [
@@ -20,6 +21,7 @@ const navItems = [
   { href: "/stok", label: "Inventori", icon: Pill, color: "#8b5cf6", permission: "view_items" },
   { href: "/laporan", label: "Laporan", icon: FileText, color: "#f43f5e", permission: "view_reports" },
   { href: "/pengurusan", label: "Pengurusan", icon: UserCog, color: "#06b6d4", permission: "manage_users" },
+  { href: "/hakcipta", label: "Hak Cipta", icon: Shield, color: "#f59e0b", permission: null },
 ];
 
 export function Sidebar() {

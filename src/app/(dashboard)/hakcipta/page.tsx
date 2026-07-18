@@ -49,20 +49,7 @@ export default function HakciptaPage() {
             {/* Developer Info */}
             <div style={{ padding: "20px 24px" }}>
               <div style={{ marginBottom: "20px", padding: "16px", borderRadius: "12px", background: "rgba(24, 119, 242, 0.03)", border: "1px solid rgba(24, 119, 242, 0.08)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-                  <Shield size={16} color="#1877f2" />
-                  <span style={{ fontSize: "14px", fontWeight: 700, color: "#1c1e21" }}>Ahmad Fetre Bin Mohammad Zime</span>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "rgba(34, 197, 94, 0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                      <User size={14} color="#22c55e" />
-                    </div>
-                    <div>
-                      <p style={{ fontSize: "11px", color: "#9ca3af", fontWeight: 500 }}>Nama</p>
-                      <p style={{ fontSize: "13px", fontWeight: 600, color: "#1c1e21" }}>Ahmad Fetre Bin Mohammad Zime</p>
-                    </div>
-                  </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                     <div style={{ width: "32px", height: "32px", borderRadius: "8px", background: "rgba(34, 197, 94, 0.08)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       <Phone size={14} color="#22c55e" />

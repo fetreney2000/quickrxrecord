@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { ArrowLeft, Plus, Edit, Trash2, History, Download, FileSpreadsheet, FileText, Search, X, ChevronDown, ChevronUp, Package, Users, Activity, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
+import { setNavSource } from "@/components/ui/breadcrumb";
 import type { Item, ItemBatch, ItemForm, ItemCategory } from "@/types";
 
 type SortDir = "asc" | "desc";
@@ -539,7 +540,7 @@ export default function ItemDetailPage() {
                 const monthsSince = lastDate ? Math.floor((Date.now() - lastDate.getTime()) / (30 * 24 * 60 * 60 * 1000)) : null;
                 const isDefaulter = monthsSince !== null && monthsSince >= 3;
                 return (
-                  <TableRow key={a.patient?.id} className="cursor-pointer" onClick={() => router.push(`/pesakit/${a.patient?.id}`)}>
+                  <TableRow key={a.patient?.id} className="cursor-pointer" onClick={() => { setNavSource("stok"); router.push(`/pesakit/${a.patient?.id}`); }}>
                     <TableCell>{a.patient?.nama}</TableCell>
                     <TableCell>{a.patient?.nombor_kad_pengenalan || "-"}</TableCell>
                     <TableCell className="text-xs">{a.dos || "-"}</TableCell>
