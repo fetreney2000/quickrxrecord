@@ -195,7 +195,7 @@ export default function DashboardPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.25, duration: 0.4 }}
             >
-              Papan Pemuka Sistem Pengurusan Inventori & Pesakit
+              Papan Pemuka QuickRxRecord v4
             </motion.p>
           </div>
         </div>

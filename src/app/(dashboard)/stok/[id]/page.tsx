@@ -428,7 +428,7 @@ export default function ItemDetailPage() {
     <div className="space-y-6" style={{ position: "relative" }}>
       <div style={{ position: "absolute", top: "-60px", right: "-60px", width: "300px", height: "300px", borderRadius: "50%", background: "radial-gradient(circle, rgba(124, 58, 237, 0.03) 0%, transparent 70%)", filter: "blur(30px)", pointerEvents: "none" }} />
       <div className="flex items-center justify-between">
-        <Breadcrumb items={[{ label: "Papan Pemuka", href: "/" }, { label: "Stok & Item", href: "/stok" }, { label: item.nama_item || "Butiran Item" }]} />
+        <Breadcrumb items={[{ label: "Papan Pemuka", href: "/" }, { label: "Inventori", href: "/stok" }, { label: item.nama_item || "Butiran Item" }]} />
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
         <button onClick={() => router.push("/stok")} style={{ width: "44px", height: "44px", borderRadius: "12px", border: "1.5px solid rgba(124, 58, 237, 0.15)", background: "rgba(124, 58, 237, 0.05)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s ease", flexShrink: 0 }}>
@@ -556,7 +556,7 @@ export default function ItemDetailPage() {
       </FoldableCard>
 
       {/* 3. Batches */}
-      <FoldableCard title="Kelompok (Batches)" count={sortedBatches.length} defaultOpen={true} headerExtra={canManageBatches ? <Button size="sm" onClick={e => { e.stopPropagation(); setOpenAddBatch(true); }}><Plus className="mr-1 h-3.5 w-3.5" />Tambah</Button> : undefined}>
+      <FoldableCard title="Kelompok" count={sortedBatches.length} defaultOpen={true} headerExtra={canManageBatches ? <Button size="sm" onClick={e => { e.stopPropagation(); setOpenAddBatch(true); }}><Plus className="mr-1 h-3.5 w-3.5" />Tambah</Button> : undefined}>
         <Table>
           <TableHeader>
             <TableRow>

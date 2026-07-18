@@ -122,7 +122,7 @@ export default function PesakitPage() {
           </div>
           <div>
             <h1 style={{ fontSize: "22px", fontWeight: 700, color: "#1c1e21", letterSpacing: "-0.01em" }}>Senarai Pesakit</h1>
-            <p style={{ fontSize: "13px", color: "#65676b", fontWeight: 500 }}>Urus dan cari rekod pesakit</p>
+            <p style={{ fontSize: "13px", color: "#65676b", fontWeight: 500 }}>Urus rekod pesakit</p>
           </div>
         </div>
         {canEdit && (
@@ -199,7 +199,7 @@ export default function PesakitPage() {
                   onChange={(e) => { setSearch(e.target.value); setPage(0); }}
                   onFocus={() => setSearchFocused(true)}
                   onBlur={() => setSearchFocused(false)}
-                  placeholder="Cari nama, No. KP, No. Hospital..."
+                  placeholder="Cari Pesakit..."
                   style={{ ...inputStyle, paddingLeft: "36px", ...(searchFocused ? { borderColor: "rgba(24, 119, 242, 0.4)", boxShadow: "0 0 0 3px rgba(24, 119, 242, 0.08)" } : {}) }}
                 />
               </div>

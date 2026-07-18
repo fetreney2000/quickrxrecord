@@ -21,7 +21,7 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: "QuickRxRecord v4 - Sistem Pengurusan Inventori & Pesakit",
+  title: "QuickRxRecord v4",
   description: "Sistem pengurusan inventori dan pesakit untuk klinik/farmasi - Versi 4.0",
   manifest: "/manifest.json",
   icons: { icon: "/favicon.ico" },

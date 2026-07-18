@@ -112,7 +112,7 @@ export default function StokPage() {
 
       {/* Breadcrumb */}
       <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} style={{ marginBottom: "20px" }}>
-        <Breadcrumb items={[{ label: "Papan Pemuka", href: "/" }, { label: "Stok & Item" }]} />
+        <Breadcrumb items={[{ label: "Papan Pemuka", href: "/" }, { label: "Inventori" }]} />
       </motion.div>
 
       {/* Header */}
@@ -123,8 +123,8 @@ export default function StokPage() {
             <Pill size={22} color="white" />
           </div>
           <div>
-            <h1 style={{ fontSize: "22px", fontWeight: 700, color: "#1c1e21", letterSpacing: "-0.01em" }}>Pengurusan Stok & Item</h1>
-            <p style={{ fontSize: "13px", color: "#65676b", fontWeight: 500 }}>Urus dan cari item ubat</p>
+            <h1 style={{ fontSize: "22px", fontWeight: 700, color: "#1c1e21", letterSpacing: "-0.01em" }}>Pengurusan Inventori</h1>
+            <p style={{ fontSize: "13px", color: "#65676b", fontWeight: 500 }}>Urus Inventori</p>
           </div>
         </div>
         {canEdit && (
@@ -211,7 +211,7 @@ export default function StokPage() {
                 <Search size={16} color={searchFocused ? "#7c3aed" : "#9ca3af"} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
                 <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); setPage(0); }}
                   onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)}
-                  placeholder="Cari kod, nama item, nama dagangan..."
+                  placeholder="Cari Item..."
                   style={{ ...inputStyle, paddingLeft: "36px", ...(searchFocused ? { borderColor: "rgba(124, 58, 237, 0.4)", boxShadow: "0 0 0 3px rgba(124, 58, 237, 0.08)" } : {}) }} />
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "6px", padding: "6px 14px", borderRadius: "10px", background: "rgba(124, 58, 237, 0.05)", border: "1px solid rgba(124, 58, 237, 0.1)", fontSize: "12px", fontWeight: 600, color: "#65676b", flexShrink: 0 }}>

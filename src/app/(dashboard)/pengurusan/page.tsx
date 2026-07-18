@@ -184,7 +184,7 @@ export default function PengurusanPage() {
           </div>
           <div>
             <h1 style={{ fontSize: "22px", fontWeight: 700, color: "#1c1e21" }}>Pengurusan Pengguna</h1>
-            <p style={{ fontSize: "13px", color: "#65676b" }}>Urus pengguna dan permintaan sistem</p>
+            <p style={{ fontSize: "13px", color: "#65676b" }}>Urus pengguna dan tetapan sistem</p>
           </div>
         </div>
         <Dialog open={openAdd} onOpenChange={setOpenAdd}>
