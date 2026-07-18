@@ -472,7 +472,7 @@ export default function ItemDetailPage() {
           cell.border = { bottom: { style: "thin", color: { argb: "FFF3F4F6" } } };
           if (idx % 2 === 0) cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF9FAFB" } };
           // Color negative perubahan red, positive green
-          if (cell.col === 4) {
+          if (Number(cell.col) === 4) {
             const val = String(cell.value || "");
             cell.font = { size: 10, bold: true, color: { argb: val.startsWith("-") ? "FFDC2626" : "FF16A34A" } };
           }
