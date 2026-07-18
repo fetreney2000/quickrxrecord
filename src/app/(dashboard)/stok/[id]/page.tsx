@@ -167,25 +167,47 @@ export default function ItemDetailPage() {
       if (assgnErr) throw assgnErr;
       if (!assignments?.length) return [];
 
-      // Get latest supply date for each active assignment directly
-      const activeIds = assignments.map(a => a.id);
-      const { data: supplies } = await supabase
-        .from("supply_records")
-        .select("assignment_id, tarikh_dibekal")
-        .in("assignment_id", activeIds)
-        .order("tarikh_dibekal", { ascending: false });
+      // Get patient IDs from active assignments
+      const patientIds = [...new Set(assignments.map(a => a.patient_id))];
 
-      // Build map: assignment_id -> latest supply date
-      const supplyMap = new Map<string, string>();
-      for (const s of supplies || []) {
-        if (!supplyMap.has(s.assignment_id)) {
-          supplyMap.set(s.assignment_id, s.tarikh_dibekal);
+      // Get ALL assignments for these patients with this item (active + inactive)
+      const { data: allPatientAssignments } = await supabase
+        .from("patient_item_assignments")
+        .select("id, patient_id")
+        .eq("item_id", id)
+        .in("patient_id", patientIds);
+
+      const allAssignmentIds = (allPatientAssignments || []).map(a => a.id);
+
+      // Get supply records for all assignments of these patients
+      let supplies: any[] = [];
+      if (allAssignmentIds.length > 0) {
+        const { data } = await supabase
+          .from("supply_records")
+          .select("assignment_id, tarikh_dibekal")
+          .in("assignment_id", allAssignmentIds)
+          .order("tarikh_dibekal", { ascending: false });
+        supplies = data || [];
+      }
+
+      // Build map: assignment_id -> patient_id (from ALL assignments including inactive)
+      const a2p = new Map<string, string>();
+      for (const a of allPatientAssignments || []) {
+        a2p.set(a.id, a.patient_id);
+      }
+
+      // Build map: patient_id -> latest supply date
+      const patientLastSupply = new Map<string, string>();
+      for (const s of supplies) {
+        const pid = a2p.get(s.assignment_id);
+        if (pid && !patientLastSupply.has(pid)) {
+          patientLastSupply.set(pid, s.tarikh_dibekal);
         }
       }
 
       return assignments.map((a: any) => ({
         ...a,
-        last_supply: supplyMap.get(a.id) || null,
+        last_supply: patientLastSupply.get(a.patient_id) || null,
       }));
     },
   });
