@@ -487,7 +487,10 @@ export default function PatientDetailPage() {
   const totalCount = assignments?.length || 0;
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-6 pb-8" style={{ position: "relative" }}>
+      {/* Background decoration */}
+      <div style={{ position: "absolute", top: "-60px", right: "-60px", width: "300px", height: "300px", borderRadius: "50%", background: "radial-gradient(circle, rgba(24, 119, 242, 0.03) 0%, transparent 70%)", filter: "blur(30px)", pointerEvents: "none" }} />
+
       {/* ─── Breadcrumb ──────────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, x: -10 }}
@@ -508,18 +511,16 @@ export default function PatientDetailPage() {
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
-        className="flex items-center gap-3"
+        style={{ display: "flex", alignItems: "center", gap: "14px" }}
       >
-        <Button
-          variant="ghost"
-          size="icon"
+        <button
           onClick={() => router.push("/pesakit")}
-          className="shrink-0 rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
+          style={{ width: "44px", height: "44px", borderRadius: "12px", border: "1.5px solid rgba(24, 119, 242, 0.15)", background: "rgba(24, 119, 242, 0.05)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s ease", flexShrink: 0 }}
         >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold tracking-tight">Butiran Pesakit</h1>
+          <ArrowLeft size={20} color="#1877f2" />
+        </button>
+        <div style={{ flex: 1 }}>
+          <h1 style={{ fontSize: "22px", fontWeight: 700, color: "#1c1e21", letterSpacing: "-0.01em" }}>Butiran Pesakit</h1>
         </div>
       </motion.div>
 
