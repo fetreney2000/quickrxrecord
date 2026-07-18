@@ -126,7 +126,7 @@ export default function ProfilePage() {
                       style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 18px", borderRadius: "10px", border: "none", background: "linear-gradient(135deg, #22c55e, #16a34a)", color: "#fff", fontSize: "13px", fontWeight: 600, fontFamily: "inherit", cursor: "pointer", opacity: updateProfileMutation.isPending ? 0.7 : 1, boxShadow: "0 4px 12px rgba(34, 197, 94, 0.25)" }}>
                       {updateProfileMutation.isPending ? <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><RefreshCw size={14} style={{ animation: "spin 1s linear infinite" }} /> Menyimpan...</span> : <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><Save size={14} /> Simpan</span>}
                     </button>
-                    <button onClick={() => setEditing(false)} style={{ padding: "9px 18px", borderRadius: "10px", border: "1.5px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)", fontSize: "13px", fontWeight: 500, fontFamily: "inherit", cursor: "pointer" }}>Batal</button>
+                    <button onClick={() => setEditing(false)} style={{ padding: "9px 18px", borderRadius: "10px", border: "1.5px solid #dddfe2", background: "#ffffff", color: "#374151", fontSize: "13px", fontWeight: 500, fontFamily: "inherit", cursor: "pointer" }}>Batal</button>
                   </div>
                 </div>
               ) : (
@@ -195,7 +195,7 @@ export default function ProfilePage() {
                       style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 18px", borderRadius: "10px", border: "none", background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "#fff", fontSize: "13px", fontWeight: 600, fontFamily: "inherit", cursor: "pointer", opacity: changePasswordMutation.isPending ? 0.7 : 1, boxShadow: "0 4px 12px rgba(245, 158, 11, 0.25)" }}>
                       {changePasswordMutation.isPending ? <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><RefreshCw size={14} style={{ animation: "spin 1s linear infinite" }} /> Menukar...</span> : "Tukar Kata Laluan"}
                     </button>
-                    <button onClick={() => { setChangingPassword(false); setPwd({ current: "", newPwd: "", confirm: "" }); }} style={{ padding: "9px 18px", borderRadius: "10px", border: "1.5px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)", fontSize: "13px", fontWeight: 500, fontFamily: "inherit", cursor: "pointer" }}>Batal</button>
+                    <button onClick={() => { setChangingPassword(false); setPwd({ current: "", newPwd: "", confirm: "" }); }} style={{ padding: "9px 18px", borderRadius: "10px", border: "1.5px solid #dddfe2", background: "#ffffff", color: "#374151", fontSize: "13px", fontWeight: 500, fontFamily: "inherit", cursor: "pointer" }}>Batal</button>
                   </div>
                 </div>
               ) : (
