@@ -27,10 +27,67 @@ export function MobileNav() {
         @media (max-width: 768px) {
           .mobile-nav-root { display: flex !important; }
         }
+        .mobile-nav-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 3px;
+          padding: 6px 0;
+          border-radius: 10px;
+          text-decoration: none;
+          transition: all 0.2s ease;
+          position: relative;
+          flex: 1;
+          min-width: 0;
+        }
+        .mobile-nav-icon {
+          width: 32px;
+          height: 26px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+        }
+        .mobile-nav-label {
+          font-size: 10px;
+          line-height: 1;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 100%;
+          text-align: center;
+        }
       `}</style>
-      <nav className="mobile-nav-root" style={styles.mobileNav}>
-        <div style={styles.navBg} />
-        <div style={styles.navInner}>
+      <nav className="mobile-nav-root" style={{
+        display: "none",
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        height: "64px",
+        borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+        overflow: "hidden",
+      }}>
+        {/* Background */}
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          background: "linear-gradient(180deg, rgba(10, 14, 39, 0.97), rgba(8, 12, 30, 0.99))",
+          WebkitBackdropFilter: "blur(24px)",
+          backdropFilter: "blur(24px)",
+        }} />
+        {/* Nav items */}
+        <div style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          width: "100%",
+          height: "64px",
+          padding: "0 4px",
+        }}>
           {navItems.map((item) => {
             if (item.permission && !hasPermission(profile?.peranan, item.permission)) {
               return null;
@@ -41,25 +98,39 @@ export function MobileNav() {
               <Link
                 key={item.href}
                 href={item.href}
+                className="mobile-nav-item"
                 style={{
-                  ...styles.navItem,
                   color: isActive ? item.color : "rgba(255, 255, 255, 0.45)",
                 }}
               >
-                <div style={{
-                  ...styles.iconWrap,
-                  ...(isActive ? { background: item.color + "18", boxShadow: "0 2px 8px " + item.color + "25" } : {}),
-                }}>
+                {isActive && <div style={{
+                  position: "absolute",
+                  top: "0px",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  width: "24px",
+                  height: "2px",
+                  borderRadius: "1px",
+                  background: item.color,
+                }} />}
+                <div
+                  className="mobile-nav-icon"
+                  style={isActive ? {
+                    background: item.color + "18",
+                    boxShadow: "0 2px 8px " + item.color + "25",
+                  } : {}}
+                >
                   <item.icon size={20} color={isActive ? item.color : "rgba(255, 255, 255, 0.45)"} />
                 </div>
-                <span style={{
-                  ...styles.label,
-                  color: isActive ? item.color : "rgba(255, 255, 255, 0.4)",
-                  fontWeight: isActive ? 600 : 500,
-                }}>
+                <span
+                  className="mobile-nav-label"
+                  style={{
+                    color: isActive ? item.color : "rgba(255, 255, 255, 0.4)",
+                    fontWeight: isActive ? 600 : 500,
+                  }}
+                >
                   {item.label}
                 </span>
-                {isActive && <div style={{ ...styles.activeIndicator, background: item.color }} />}
               </Link>
             );
           })}
@@ -68,74 +139,3 @@ export function MobileNav() {
     </>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  mobileNav: {
-    display: "none",
-    position: "fixed",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: 50,
-    height: "64px",
-    borderTop: "1px solid rgba(255, 255, 255, 0.08)",
-    overflow: "hidden",
-  },
-  navBg: {
-    position: "absolute",
-    inset: 0,
-    background: "linear-gradient(180deg, rgba(10, 14, 39, 0.97), rgba(8, 12, 30, 0.99))",
-    WebkitBackdropFilter: "blur(24px)",
-    backdropFilter: "blur(24px)",
-  },
-  navInner: {
-    position: "relative",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-evenly",
-    height: "64px",
-    padding: "0 2px",
-  },
-  navItem: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "3px",
-    padding: "6px 2px",
-    borderRadius: "10px",
-    textDecoration: "none",
-    transition: "all 0.2s ease",
-    position: "relative" as const,
-    flex: 1,
-    minWidth: 0,
-    maxWidth: "72px",
-  },
-  iconWrap: {
-    width: "32px",
-    height: "26px",
-    borderRadius: "8px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    transition: "all 0.2s ease",
-  },
-  label: {
-    fontSize: "10px",
-    lineHeight: 1,
-    whiteSpace: "nowrap" as const,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    maxWidth: "100%",
-    textAlign: "center" as const,
-  },
-  activeIndicator: {
-    position: "absolute",
-    top: "0px",
-    left: "50%",
-    transform: "translateX(-50%)",
-    width: "24px",
-    height: "2px",
-    borderRadius: "1px",
-  },
-};
