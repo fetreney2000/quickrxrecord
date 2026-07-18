@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
@@ -94,6 +94,14 @@ export default function PatientDetailPage() {
   const [doseSort, setDoseSort] = useState<{ key: string; dir: SortDir } | null>(null);
   const [supplySort, setSupplySort] = useState<{ key: string; dir: SortDir } | null>(null);
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   const { data: patient, isLoading: patientLoading } = useQuery({ queryKey: ["patient", id], queryFn: async () => { const { data, error } = await supabase.from("patients").select("*").eq("id", id).single(); if (error) throw error; return data as Patient; } });
   const { data: assignments, isLoading: assignmentsLoading } = useQuery({ queryKey: ["assignments", id], queryFn: async () => { const { data, error } = await supabase.from("patient_item_assignments").select("*, item:items(*), dimulakan:profiles!dimulakan_oleh(nama), ditamatkan:profiles!ditamatkan_oleh(nama), perekod:profiles!kakitangan_farmasi_perekod(nama)").eq("patient_id", id).order("created_at", { ascending: false }); if (error) throw error; return data as any[]; } });
   const { data: forms } = useQuery({ queryKey: ["item_forms"], queryFn: async () => { const { data } = await supabase.from("item_forms").select("id, nama"); return (data || []) as Pick<ItemForm, "id" | "nama">[]; }, staleTime: 60000 });
@@ -118,7 +126,6 @@ export default function PatientDetailPage() {
   const toggleSort = (sort: any, setSort: any, key: string) => { setSort(sort?.key === key ? { key, dir: sort.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }); };
   const sortedAssignments = useMemo(() => {
     const sorted = sortData(assignments || [], assignmentSort);
-    // Always put aktif items at top, ditamatkan at bottom
     return [...sorted].sort((a: any, b: any) => (a.aktif === b.aktif ? 0 : a.aktif ? -1 : 1));
   }, [assignments, assignmentSort]);
   const pagedAssignments = useMemo(() => sortedAssignments.slice(assignmentPage * PAGE_SIZE, (assignmentPage + 1) * PAGE_SIZE), [sortedAssignments, assignmentPage]);
@@ -128,17 +135,13 @@ export default function PatientDetailPage() {
   const filteredItems = (items || []).filter((item: any) => !itemSearch || item.nama_item.toLowerCase().includes(itemSearch.toLowerCase()));
   const totalCount = assignments?.length || 0;
   const activeCount = useMemo(() => (assignments || []).filter(a => a.aktif).length, [assignments]);
-  const totalSupplies = useMemo(() => {
-    if (!assignments) return 0;
-    return assignments.length;
-  }, [assignments]);
 
   if (patientLoading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "50vh" }}>
       <div style={{ textAlign: "center" }}>
-        <div style={{ width: "32px", height: "32px", border: "3px solid rgba(24, 119, 242, 0.15)", borderTopColor: "#1877f2", borderRadius: "50%", margin: "0 auto 12px", WebkitAnimation: "spin 1s linear infinite", animation: "spin 1s linear infinite" }} />
+        <div style={{ width: "32px", height: "32px", border: "3px solid rgba(24, 119, 242, 0.15)", borderTopColor: "#1877f2", borderRadius: "50%", margin: "0 auto 12px", animation: "spin 1s linear infinite" }} />
         <p style={{ fontSize: "13px", color: "#65676b" }}>Memuatkan...</p>
-        <style>{`@-webkit-keyframes spin{from{-webkit-transform:rotate(0deg);transform:rotate(0deg)}to{-webkit-transform:rotate(360deg);transform:rotate(360deg)}}@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+        <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
       </div>
     </div>
   );
@@ -151,19 +154,24 @@ export default function PatientDetailPage() {
   const currentAssignment = openSupply ? assignments?.find(a => a.id === openSupply) : null;
   const toggleExpand = (aid: string) => { setExpandedAssignment(expandedAssignment === aid ? null : aid); };
 
+  const statGridCols = isMobile ? (window.innerWidth < 480 ? 1 : 2) : 4;
+  const detailGridCols = isMobile ? 2 : 4;
+  const infoGridCols = isMobile ? 1 : 3;
+  const btnSize = isMobile ? ("sm" as const) : ("sm" as const);
+
   return (
-    <div className="space-y-6" style={{ position: "relative" }}>
+    <div className="space-y-6 butiran-pesakit" style={{ position: "relative" }}>
       <div style={{ position: "absolute", top: "-60px", right: "-60px", width: "300px", height: "300px", borderRadius: "50%", background: "radial-gradient(circle, rgba(24, 119, 242, 0.03) 0%, transparent 70%)", filter: "blur(30px)", pointerEvents: "none" }} />
 
       <div className="flex items-center justify-between">
-<Breadcrumb items={(() => { const source = getNavSource(); if (source?.startsWith("stok:")) { const n = source.replace("stok:", ""); return [{ label: "Inventori", href: "/stok" }, ...(n ? [{ label: n }] : []), { label: patient.nama }]; } return [{ label: "Pesakit", href: "/pesakit" }, { label: patient.nama }]; })()} />
+        <Breadcrumb items={(() => { const source = getNavSource(); if (source?.startsWith("stok:")) { const n = source.replace("stok:", ""); return [{ label: "Inventori", href: "/stok" }, ...(n ? [{ label: n }] : []), { label: patient.nama }]; } return [{ label: "Pesakit", href: "/pesakit" }, { label: patient.nama }]; })()} />
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} style={{ display: "flex", alignItems: "center", gap: isMobile ? "8px" : "14px" }}>
         <button onClick={() => router.push("/pesakit")} style={{ width: "44px", height: "44px", borderRadius: "12px", border: "1.5px solid rgba(24, 119, 242, 0.15)", background: "rgba(24, 119, 242, 0.05)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s ease", flexShrink: 0 }}>
           <ArrowLeft size={20} color="#1877f2" />
         </button>
-        <h1 style={{ fontSize: "22px", fontWeight: 700, color: "#1c1e21", letterSpacing: "-0.01em" }}>Butiran Pesakit</h1>
+        <h1 style={{ fontSize: isMobile ? "18px" : "22px", fontWeight: 700, color: "#1c1e21", letterSpacing: "-0.01em" }}>Butiran Pesakit</h1>
       </motion.div>
 
       {/* 1. Patient Info Card */}
@@ -172,7 +180,7 @@ export default function PatientDetailPage() {
           title={patient.nama}
           defaultOpen={true}
           headerExtra={
-            <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-2" onClick={e => e.stopPropagation()} style={{ flexWrap: "wrap" }}>
               <Badge variant={patient.aktif ? "success" : "destructive"}>{patient.aktif ? "Aktif" : "Tidak Aktif"}</Badge>
               {canEdit && <Button variant="outline" size="sm" onClick={() => setOpenMerge(true)}><Merge className="mr-2 h-4 w-4" /> Gabung</Button>}
               {canEdit && !editMode && <Button variant="outline" size="sm" onClick={() => { setEditMode(true); setEditData(patient); }}><Edit className="mr-2 h-4 w-4" /> Edit</Button>}
@@ -182,7 +190,7 @@ export default function PatientDetailPage() {
         >
           {editMode ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px" }}>
                 <div className="space-y-2"><Label>Nama</Label><Input value={editData.nama || ""} onChange={e => setEditData({ ...editData, nama: e.target.value })} /></div>
                 <div className="space-y-2"><Label>No. KP</Label><Input value={editData.nombor_kad_pengenalan || ""} onChange={e => setEditData({ ...editData, nombor_kad_pengenalan: e.target.value })} /></div>
                 <div className="space-y-2"><Label>No. Telefon</Label><Input value={editData.nombor_telefon || ""} onChange={e => setEditData({ ...editData, nombor_telefon: e.target.value })} /></div>
@@ -198,30 +206,38 @@ export default function PatientDetailPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: isMobile ? "8px" : "16px", fontSize: "14px", marginBottom: "16px" }}>
                 <div><span className="text-muted-foreground">No. KP:</span> {patient.nombor_kad_pengenalan || "-"}</div>
                 <div><span className="text-muted-foreground">No. Hospital:</span> {patient.nombor_pendaftaran_hospital || "-"}</div>
                 <div><span className="text-muted-foreground">No. Telefon:</span> {patient.nombor_telefon || "-"}</div>
                 <div><span className="text-muted-foreground">Tarikh Daftar:</span> {formatDate(patient.created_at)}</div>
-                <div className="col-span-2"><span className="text-muted-foreground">Alamat:</span> {patient.alamat || "-"}</div>
-                {patient.catatan && <div className="col-span-2"><span className="text-muted-foreground">Catatan:</span> {patient.catatan}</div>}
+                <div style={{ gridColumn: isMobile ? "1" : "span 2" }}><span className="text-muted-foreground">Alamat:</span> {patient.alamat || "-"}</div>
+                {patient.catatan && <div style={{ gridColumn: isMobile ? "1" : "span 2" }}><span className="text-muted-foreground">Catatan:</span> {patient.catatan}</div>}
               </div>
-              <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
-                <div className="rounded-lg border p-3 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100"><Pill className="h-5 w-5 text-blue-600" /></div>
-                  <div><p className="text-xs text-muted-foreground">Jumlah Item</p><p className="text-lg font-bold">{totalCount}</p></div>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? "8px" : "12px" }}>
+                <div className="rounded-lg border p-3 flex items-center gap-3" style={{ padding: isMobile ? "10px" : "12px" }}>
+                  <div className="flex items-center justify-center rounded-full bg-blue-100" style={{ width: isMobile ? "36px" : "40px", height: isMobile ? "36px" : "40px", flexShrink: 0 }}>
+                    <Pill className="text-blue-600" style={{ width: isMobile ? "16px" : "20px", height: isMobile ? "16px" : "20px" }} />
+                  </div>
+                  <div style={{ minWidth: 0 }}><p className="text-xs text-muted-foreground">Jumlah Item</p><p style={{ fontSize: isMobile ? "14px" : "18px", fontWeight: 700 }}>{totalCount}</p></div>
                 </div>
-                <div className="rounded-lg border p-3 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100"><Activity className="h-5 w-5 text-emerald-600" /></div>
-                  <div><p className="text-xs text-muted-foreground">Item Aktif</p><p className="text-lg font-bold">{activeCount}</p></div>
+                <div className="rounded-lg border p-3 flex items-center gap-3" style={{ padding: isMobile ? "10px" : "12px" }}>
+                  <div className="flex items-center justify-center rounded-full bg-emerald-100" style={{ width: isMobile ? "36px" : "40px", height: isMobile ? "36px" : "40px", flexShrink: 0 }}>
+                    <Activity className="text-emerald-600" style={{ width: isMobile ? "16px" : "20px", height: isMobile ? "16px" : "20px" }} />
+                  </div>
+                  <div style={{ minWidth: 0 }}><p className="text-xs text-muted-foreground">Item Aktif</p><p style={{ fontSize: isMobile ? "14px" : "18px", fontWeight: 700 }}>{activeCount}</p></div>
                 </div>
-                <div className="rounded-lg border p-3 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-100"><Users className="h-5 w-5 text-purple-600" /></div>
-                  <div><p className="text-xs text-muted-foreground">Status</p><p className="text-lg font-bold">{patient.aktif ? "Aktif" : "Tidak"}</p></div>
+                <div className="rounded-lg border p-3 flex items-center gap-3" style={{ padding: isMobile ? "10px" : "12px" }}>
+                  <div className="flex items-center justify-center rounded-full bg-purple-100" style={{ width: isMobile ? "36px" : "40px", height: isMobile ? "36px" : "40px", flexShrink: 0 }}>
+                    <Users className="text-purple-600" style={{ width: isMobile ? "16px" : "20px", height: isMobile ? "16px" : "20px" }} />
+                  </div>
+                  <div style={{ minWidth: 0 }}><p className="text-xs text-muted-foreground">Status</p><p style={{ fontSize: isMobile ? "14px" : "18px", fontWeight: 700 }}>{patient.aktif ? "Aktif" : "Tidak"}</p></div>
                 </div>
-                <div className="rounded-lg border p-3 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100"><Calendar className="h-5 w-5 text-amber-600" /></div>
-                  <div><p className="text-xs text-muted-foreground">Daftar</p><p className="text-sm font-bold">{formatDate(patient.created_at)}</p></div>
+                <div className="rounded-lg border p-3 flex items-center gap-3" style={{ padding: isMobile ? "10px" : "12px" }}>
+                  <div className="flex items-center justify-center rounded-full bg-amber-100" style={{ width: isMobile ? "36px" : "40px", height: isMobile ? "36px" : "40px", flexShrink: 0 }}>
+                    <Calendar className="text-amber-600" style={{ width: isMobile ? "16px" : "20px", height: isMobile ? "16px" : "20px" }} />
+                  </div>
+                  <div style={{ minWidth: 0 }}><p className="text-xs text-muted-foreground">Daftar</p><p style={{ fontSize: isMobile ? "12px" : "14px", fontWeight: 700 }}>{formatDate(patient.created_at)}</p></div>
                 </div>
               </div>
             </>
@@ -298,16 +314,16 @@ export default function PatientDetailPage() {
               {pagedAssignments.map((a: any) => (
                 <div key={a.id} className="rounded-lg border overflow-hidden">
                   <div onClick={() => toggleExpand(a.id)} className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full" style={{ background: a.aktif ? "rgba(24, 119, 242, 0.1)" : "rgba(107, 114, 128, 0.1)" }}>
+                    <div className="flex items-center gap-3" style={{ minWidth: 0, flex: 1 }}>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full" style={{ background: a.aktif ? "rgba(24, 119, 242, 0.1)" : "rgba(107, 114, 128, 0.1)", flexShrink: 0 }}>
                         <Pill className="h-4 w-4" style={{ color: a.aktif ? "#1877f2" : "#6b7280" }} />
                       </div>
-                      <div>
-                        <div className="font-medium text-sm">{getItemDisplayName(a.item)}</div>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="font-medium text-sm" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{getItemDisplayName(a.item)}</div>
                         <div className="text-xs text-muted-foreground">{a.dos || "Tiada dos"} &middot; {formatDate(a.tarikh_mula_guna)}</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2" style={{ flexShrink: 0 }}>
                       <Badge variant={a.aktif ? "success" : "secondary"} className="text-[10px]">{a.aktif ? "Aktif" : "Tamat"}</Badge>
                       <motion.div animate={{ rotate: expandedAssignment === a.id ? 180 : 0 }} transition={{ duration: 0.2 }}>
                         <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -318,7 +334,7 @@ export default function PatientDetailPage() {
                     {expandedAssignment === a.id && (
                       <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
                         <div className="px-3 pb-3 pt-1 border-t bg-muted/30">
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-3 p-3 bg-white rounded-lg border">
+                          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? "6px" : "12px", fontSize: "14px", marginBottom: "12px", padding: "12px", background: "#fff", borderRadius: "8px", border: "1px solid #e5e7eb" }}>
                             <div><span className="text-muted-foreground text-xs">Dos:</span> <p className="font-medium">{a.dos || "-"}</p></div>
                             <div><span className="text-muted-foreground text-xs">Mula Guna:</span> <p className="font-medium">{formatDate(a.tarikh_mula_guna) || "-"}</p></div>
                             <div><span className="text-muted-foreground text-xs">Tamat Guna:</span> <p className="font-medium">{a.tarikh_tamat_guna ? formatDate(a.tarikh_tamat_guna) : "-"}</p></div>
@@ -328,7 +344,7 @@ export default function PatientDetailPage() {
                             <div><span className="text-muted-foreground text-xs">Direkod Oleh:</span> <p className="font-medium">{a.perekod?.nama || "-"}</p></div>
                             <div><span className="text-muted-foreground text-xs">Tarikh Didaftar:</span> <p className="font-medium">{formatDate(a.created_at)}</p></div>
                           </div>
-                          <div className="flex gap-2 mb-3">
+                          <div style={{ display: "flex", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
                             {a.aktif && <Button size="sm" onClick={() => setOpenSupply(a.id)}><Package className="mr-1 h-3.5 w-3.5" /> Bekal</Button>}
                             {a.aktif && <Button size="sm" variant="outline" onClick={() => { setOpenUpdateDose(a.id); setDoseUpdate({ dos: a.dos || "", catatan: "" }); }}><Edit className="mr-1 h-3.5 w-3.5" /> Kemaskini Dos</Button>}
                             {canEdit && a.aktif && <Button size="sm" variant="destructive" onClick={() => { setOpenStopAssign(a.id); setStopReason(""); }}><XCircle className="mr-1 h-3.5 w-3.5" /> Tamatkan</Button>}
@@ -337,7 +353,8 @@ export default function PatientDetailPage() {
                           {/* Dose History */}
                           <FoldableCard title="Sejarah Dos" count={doseHistory?.length || 0} defaultOpen={false}>
                             {sortedDoseHistory.length > 0 ? (
-                              <Table>
+                              <div style={{ overflowX: "auto" }}>
+                                <Table>
                                 <TableHeader>
                                   <TableRow>
                                     <SortableHeader label="Tarikh" sortKey="tarikh" currentSort={doseSort} onSort={k => toggleSort(doseSort, setDoseSort, k)} />
@@ -357,15 +374,17 @@ export default function PatientDetailPage() {
                                   ))}
                                 </TableBody>
                               </Table>
+                              </div>
                             ) : (
                               <p className="text-sm text-muted-foreground py-2">Tiada sejarah dos.</p>
                             )}
                           </FoldableCard>
 
                           {/* Supply History */}
-                          <div className="mt-2">
+                          <div style={{ marginTop: "8px" }}>
                             <FoldableCard title="Sejarah Bekalan" count={supplyHistory?.length || 0} defaultOpen={false}>
                               {sortedSupplyHistory.length > 0 ? (
+                                <div style={{ overflowX: "auto" }}>
                                 <Table>
                                 <TableHeader>
                                   <TableRow>
@@ -397,6 +416,7 @@ export default function PatientDetailPage() {
                                     ))}
                                   </TableBody>
                                 </Table>
+                                </div>
                               ) : (
                                 <p className="text-sm text-muted-foreground py-2">Tiada sejarah bekalan.</p>
                               )}
@@ -550,67 +570,28 @@ export default function PatientDetailPage() {
 
       <style>{`
         @media (max-width: 768px) {
-          /* Page root */
-          main { padding-bottom: 24px !important; }
-          /* Back button + title row - stack vertically */
-          main > div:first-child + div + div[style*="flex"] {
-            gap: 8px !important;
+          main {
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+            padding-bottom: 100px !important;
           }
-          /* Stat cards - 2 cols on mobile, 1 col on very small */
-          main .grid.gap-3.grid-cols-2 {
-            grid-template-columns: 1fr 1fr !important;
-            gap: 8px !important;
-          }
-          main .grid.gap-3.grid-cols-2 > div {
-            padding: 10px !important;
-          }
-          main .grid.gap-3.grid-cols-2 > div > div:first-child {
-            width: 36px !important;
-            height: 36px !important;
-          }
-          main .grid.gap-3.grid-cols-2 > div > div:first-child > svg {
-            width: 16px !important;
-            height: 16px !important;
-          }
-          main .grid.gap-3.grid-cols-2 > div > div:last-child > p.text-lg {
-            font-size: 16px !important;
-          }
-          /* Action buttons - wrap on mobile */
-          main .flex.gap-2.mb-3 {
-            flex-wrap: wrap !important;
-          }
-          main .flex.gap-2.mb-3 > button {
-            flex-shrink: 0;
-          }
-          /* Detail grids - 2 cols */
-          main .grid.grid-cols-2.gap-3.text-sm {
-            grid-template-columns: 1fr 1fr !important;
-            gap: 8px !important;
-          }
-          main .grid.grid-cols-2.gap-3.text-sm > div {
-            padding: 4px 0 !important;
-          }
-          /* Dialogs - responsive width */
           [role="dialog"] {
             max-width: calc(100vw - 32px) !important;
-            max-height: calc(100vh - 80px) !important;
+            max-height: calc(100dvh - 80px) !important;
             overflow-y: auto !important;
+            margin: 16px !important;
           }
-          /* Foldable card header buttons - wrap */
-          .card-header .flex.items-center.gap-2 {
-            flex-wrap: wrap !important;
+          [role="dialog"] > div {
+            padding-left: 16px !important;
+            padding-right: 16px !important;
           }
-          .card-header .flex.items-center.gap-2 > button {
-            flex-shrink: 0;
-          }
-          /* Patient info grid - single column */
-          main .grid.grid-cols-2.gap-4.text-sm {
-            grid-template-columns: 1fr !important;
+          .butiran-pesakit .space-y-6 > * + * {
+            margin-top: 12px !important;
           }
         }
-        @media (max-width: 480px) {
-          main .grid.gap-3.grid-cols-2 {
-            grid-template-columns: 1fr !important;
+        @media (min-width: 769px) {
+          main {
+            padding-bottom: 80px !important;
           }
         }
       `}</style>
