@@ -142,7 +142,7 @@ export default function ProfilePage() {
                       {field.badge ? (
                         <Badge variant="outline" style={{ borderColor: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)", background: "rgba(255,255,255,0.06)" }}>{field.value}</Badge>
                       ) : (
-                        <p style={{ fontSize: field.small ? "11px" : "14px", fontFamily: field.mono ? "monospace" : "inherit", color: field.small ? "#9ca3af" : "#1c1e21", fontWeight: 500, wordBreak: "break-all" }}>{field.value}</p>
+                        <p style={{ fontSize: "14px", fontFamily: field.mono ? "monospace" : "inherit", color: "#1c1e21", fontWeight: 500 }}>{field.value}</p>
                       )}
                     </div>
                   ))}
