@@ -75,7 +75,7 @@ export default function PatientDetailPage() {
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState<Partial<Patient>>({});
   const [openAddAssignment, setOpenAddAssignment] = useState(false);
-  const [newAssignment, setNewAssignment] = useState({ item_id: "", dos: "", tarikh_mula_guna: new Date().toISOString().split("T")[0] });
+  const [newAssignment, setNewAssignment] = useState({ item_id: "", dos: "", tarikh_mula_guna: new Date().toISOString().split("T")[0], catatan_penggunaan: "" });
   const [itemSearch, setItemSearch] = useState("");
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [openSupply, setOpenSupply] = useState<string | null>(null);
