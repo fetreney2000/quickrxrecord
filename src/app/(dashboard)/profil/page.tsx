@@ -137,7 +137,7 @@ export default function ProfilePage() {
                     { label: "Jawatan", value: profile.jawatan || "-" },
                     { label: "Peranan", value: profile.peranan, badge: true },
                   ].map(field => (
-                    <div key={field.label} style={field.full ? { gridColumn: "1 / -1" } : undefined}>
+                    <div key={field.label}>
                       <p style={{ fontSize: "11px", fontWeight: 600, color: "#65676b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>{field.label}</p>
                       {field.badge ? (
                         <Badge variant="outline" style={{ borderColor: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)", background: "rgba(255,255,255,0.06)" }}>{field.value}</Badge>
