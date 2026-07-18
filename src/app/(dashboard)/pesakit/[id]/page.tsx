@@ -18,7 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import { Breadcrumb, getNavSource } from "@/components/ui/breadcrumb";
-import { ArrowLeft, Plus, Edit, XCircle, Package, Merge, Trash2, ChevronDown, ChevronUp, ClipboardList, Activity, Search, ShieldAlert, User, Phone, MapPin, Calendar, FileText, Save, ArrowUpDown, Sparkles, IdCard, Hospital, Pill, BarChart3, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Plus, Edit, XCircle, Package, Merge, Trash2, ChevronDown, ChevronUp, Activity, Search, ShieldAlert, Calendar, Sparkles, Pill, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { MergeDialog } from "@/components/pesakit/merge-dialog";
 import type { Patient, PatientItemAssignment, Item, ItemBatch, ItemForm } from "@/types";
 
