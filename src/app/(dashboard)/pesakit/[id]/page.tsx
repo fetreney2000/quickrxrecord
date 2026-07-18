@@ -595,10 +595,14 @@ export default function PatientDetailPage() {
           </CardHeader>
 
           <CardContent className="pt-6">
+            <AnimatePresence mode="wait">
             {editMode ? (
               <motion.div
+                key="edit"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
                 className="space-y-5"
               >
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -650,8 +654,11 @@ export default function PatientDetailPage() {
               </motion.div>
             ) : (
               <motion.div
+                key="info"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
                 className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"
               >
                 <InfoRow icon={IdCard} label="No. KP" value={patient.nombor_kad_pengenalan || "-"} />
@@ -664,6 +671,7 @@ export default function PatientDetailPage() {
                 )}
               </motion.div>
             )}
+            </AnimatePresence>
           </CardContent>
         </Card>
       </motion.div>
