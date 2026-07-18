@@ -34,8 +34,7 @@ export function MobileNav() {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          gap: 3px;
-          padding: 6px 0;
+          padding: 8px 0;
           border-radius: 10px;
           text-decoration: none;
           transition: all 0.2s ease;
@@ -44,22 +43,13 @@ export function MobileNav() {
           min-width: 0;
         }
         .mobile-nav-icon {
-          width: 32px;
-          height: 26px;
-          border-radius: 8px;
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
           transition: all 0.2s ease;
-        }
-        .mobile-nav-label {
-          font-size: 10px;
-          line-height: 1;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          max-width: 100%;
-          text-align: center;
         }
       `}</style>
       <nav className="mobile-nav-root" style={{
@@ -69,17 +59,18 @@ export function MobileNav() {
         left: 0,
         right: 0,
         zIndex: 50,
-        height: "64px",
-        borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+        height: "60px",
+        borderTop: "1px solid rgba(255, 255, 255, 0.1)",
         overflow: "hidden",
       }}>
         {/* Background */}
         <div style={{
           position: "absolute",
           inset: 0,
-          background: "linear-gradient(180deg, rgba(10, 14, 39, 0.97), rgba(8, 12, 30, 0.99))",
+          background: "linear-gradient(180deg, rgba(12, 16, 42, 0.98), rgba(10, 14, 35, 1))",
           WebkitBackdropFilter: "blur(24px)",
           backdropFilter: "blur(24px)",
+          boxShadow: "0 -4px 24px rgba(0, 0, 0, 0.3)",
         }} />
         {/* Nav items */}
         <div style={{
@@ -87,7 +78,7 @@ export function MobileNav() {
           display: "flex",
           alignItems: "center",
           width: "100%",
-          height: "64px",
+          height: "60px",
           padding: "0 4px",
         }}>
           {navItems.map((item) => {
@@ -102,15 +93,15 @@ export function MobileNav() {
                 href={item.href}
                 className="mobile-nav-item"
                 style={{
-                  color: isActive ? item.color : "rgba(255, 255, 255, 0.45)",
+                  color: isActive ? item.color : "rgba(255, 255, 255, 0.5)",
                 }}
               >
                 {isActive && <div style={{
                   position: "absolute",
-                  top: "0px",
+                  top: "2px",
                   left: "50%",
                   transform: "translateX(-50%)",
-                  width: "24px",
+                  width: "20px",
                   height: "2px",
                   borderRadius: "1px",
                   background: item.color,
@@ -118,21 +109,12 @@ export function MobileNav() {
                 <div
                   className="mobile-nav-icon"
                   style={isActive ? {
-                    background: item.color + "18",
-                    boxShadow: "0 2px 8px " + item.color + "25",
+                    background: item.color + "20",
+                    boxShadow: "0 2px 10px " + item.color + "30",
                   } : {}}
                 >
-                  <item.icon size={20} color={isActive ? item.color : "rgba(255, 255, 255, 0.45)"} />
+                  <item.icon size={20} strokeWidth={isActive ? 2.2 : 1.8} color={isActive ? item.color : "rgba(255, 255, 255, 0.5)"} />
                 </div>
-                <span
-                  className="mobile-nav-label"
-                  style={{
-                    color: isActive ? item.color : "rgba(255, 255, 255, 0.4)",
-                    fontWeight: isActive ? 600 : 500,
-                  }}
-                >
-                  {item.label}
-                </span>
               </Link>
             );
           })}

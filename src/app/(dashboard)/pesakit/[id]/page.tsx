@@ -547,6 +547,73 @@ export default function PatientDetailPage() {
       </Dialog>
 
       {patient && <MergeDialog open={openMerge} onOpenChange={setOpenMerge} primaryPatient={patient} />}
+
+      <style>{`
+        @media (max-width: 768px) {
+          /* Page root */
+          main { padding-bottom: 24px !important; }
+          /* Back button + title row - stack vertically */
+          main > div:first-child + div + div[style*="flex"] {
+            gap: 8px !important;
+          }
+          /* Stat cards - 2 cols on mobile, 1 col on very small */
+          main .grid.gap-3.grid-cols-2 {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+          main .grid.gap-3.grid-cols-2 > div {
+            padding: 10px !important;
+          }
+          main .grid.gap-3.grid-cols-2 > div > div:first-child {
+            width: 36px !important;
+            height: 36px !important;
+          }
+          main .grid.gap-3.grid-cols-2 > div > div:first-child > svg {
+            width: 16px !important;
+            height: 16px !important;
+          }
+          main .grid.gap-3.grid-cols-2 > div > div:last-child > p.text-lg {
+            font-size: 16px !important;
+          }
+          /* Action buttons - wrap on mobile */
+          main .flex.gap-2.mb-3 {
+            flex-wrap: wrap !important;
+          }
+          main .flex.gap-2.mb-3 > button {
+            flex-shrink: 0;
+          }
+          /* Detail grids - 2 cols */
+          main .grid.grid-cols-2.gap-3.text-sm {
+            grid-template-columns: 1fr 1fr !important;
+            gap: 8px !important;
+          }
+          main .grid.grid-cols-2.gap-3.text-sm > div {
+            padding: 4px 0 !important;
+          }
+          /* Dialogs - responsive width */
+          [role="dialog"] {
+            max-width: calc(100vw - 32px) !important;
+            max-height: calc(100vh - 80px) !important;
+            overflow-y: auto !important;
+          }
+          /* Foldable card header buttons - wrap */
+          .card-header .flex.items-center.gap-2 {
+            flex-wrap: wrap !important;
+          }
+          .card-header .flex.items-center.gap-2 > button {
+            flex-shrink: 0;
+          }
+          /* Patient info grid - single column */
+          main .grid.grid-cols-2.gap-4.text-sm {
+            grid-template-columns: 1fr !important;
+          }
+        }
+        @media (max-width: 480px) {
+          main .grid.gap-3.grid-cols-2 {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }
