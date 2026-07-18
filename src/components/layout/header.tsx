@@ -43,6 +43,12 @@ export function Header() {
     <header style={styles.header}>
       {/* Subtle background gradient */}
       <div style={styles.headerBg} />
+      {/* Animated orbs */}
+      <div style={styles.orbContainer}>
+        <div style={{ ...styles.headerOrb, width: "200px", height: "200px", top: "-60px", left: "10%", background: "radial-gradient(circle, rgba(24,119,242,0.06) 0%, transparent 70%)", animation: "headerOrbFloat1 12s ease-in-out infinite" }} />
+        <div style={{ ...styles.headerOrb, width: "160px", height: "160px", top: "-40px", right: "20%", background: "radial-gradient(circle, rgba(124,58,237,0.05) 0%, transparent 70%)", animation: "headerOrbFloat2 15s ease-in-out infinite" }} />
+        <div style={{ ...styles.headerOrb, width: "120px", height: "120px", top: "-30px", left: "50%", background: "radial-gradient(circle, rgba(6,182,212,0.04) 0%, transparent 70%)", animation: "headerOrbFloat3 18s ease-in-out infinite" }} />
+      </div>
 
       <div style={styles.headerInner}>
         {/* Left spacer */}
@@ -117,6 +123,30 @@ export function Header() {
       </div>
 
       <style>{`
+        @-webkit-keyframes headerOrbFloat1 {
+          0%, 100% { -webkit-transform: translateX(0) translateY(0); transform: translateX(0) translateY(0); }
+          50% { -webkit-transform: translateX(30px) translateY(10px); transform: translateX(30px) translateY(10px); }
+        }
+        @keyframes headerOrbFloat1 {
+          0%, 100% { transform: translateX(0) translateY(0); }
+          50% { transform: translateX(30px) translateY(10px); }
+        }
+        @-webkit-keyframes headerOrbFloat2 {
+          0%, 100% { -webkit-transform: translateX(0) translateY(0); transform: translateX(0) translateY(0); }
+          50% { -webkit-transform: translateX(-20px) translateY(8px); transform: translateX(-20px) translateY(8px); }
+        }
+        @keyframes headerOrbFloat2 {
+          0%, 100% { transform: translateX(0) translateY(0); }
+          50% { transform: translateX(-20px) translateY(8px); }
+        }
+        @-webkit-keyframes headerOrbFloat3 {
+          0%, 100% { -webkit-transform: translateX(0) translateY(0); transform: translateX(0) translateY(0); }
+          50% { -webkit-transform: translateX(15px) translateY(-5px); transform: translateX(15px) translateY(-5px); }
+        }
+        @keyframes headerOrbFloat3 {
+          0%, 100% { transform: translateX(0) translateY(0); }
+          50% { transform: translateX(15px) translateY(-5px); }
+        }
         @-webkit-keyframes spin {
           from { -webkit-transform: rotate(0deg); transform: rotate(0deg); }
           to { -webkit-transform: rotate(360deg); transform: rotate(360deg); }
@@ -158,6 +188,17 @@ const styles: Record<string, React.CSSProperties> = {
     inset: 0,
     background: "linear-gradient(90deg, rgba(24, 119, 242, 0.03) 0%, rgba(124, 58, 237, 0.02) 50%, rgba(6, 182, 212, 0.02) 100%)",
     pointerEvents: "none",
+  },
+  orbContainer: {
+    position: "absolute",
+    inset: 0,
+    overflow: "hidden",
+    pointerEvents: "none",
+  },
+  headerOrb: {
+    position: "absolute",
+    borderRadius: "50%",
+    filter: "blur(30px)",
   },
   headerInner: {
     display: "flex",

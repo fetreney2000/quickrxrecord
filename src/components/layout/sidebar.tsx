@@ -31,11 +31,23 @@ export function Sidebar() {
   return (
     <>
       <style>{`
+        @-webkit-keyframes sidebarOrbFloat1 { 0%, 100% { -webkit-transform: translate(0, 0); transform: translate(0, 0); } 50% { -webkit-transform: translate(20px, -15px); transform: translate(20px, -15px); } }
+        @keyframes sidebarOrbFloat1 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(20px, -15px); } }
+        @-webkit-keyframes sidebarOrbFloat2 { 0%, 100% { -webkit-transform: translate(0, 0); transform: translate(0, 0); } 50% { -webkit-transform: translate(-15px, 20px); transform: translate(-15px, 20px); } }
+        @keyframes sidebarOrbFloat2 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-15px, 20px); } }
+        @-webkit-keyframes sidebarOrbFloat3 { 0%, 100% { -webkit-transform: translate(0, 0); transform: translate(0, 0); } 50% { -webkit-transform: translate(10px, -10px); transform: translate(10px, -10px); } }
+        @keyframes sidebarOrbFloat3 { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(10px, -10px); } }
         @media (max-width: 768px) {
           .app-sidebar { display: none !important; }
         }
       `}</style>
       <aside className="app-sidebar" style={styles.sidebar}>
+        {/* Animated sidebar orbs */}
+        <div style={styles.orbContainer}>
+          <div style={{ ...styles.sidebarOrb, width: "300px", height: "300px", top: "10%", left: "-30%", background: "radial-gradient(circle, rgba(24,119,242,0.08) 0%, transparent 70%)", animation: "sidebarOrbFloat1 20s ease-in-out infinite" }} />
+          <div style={{ ...styles.sidebarOrb, width: "250px", height: "250px", top: "60%", right: "-20%", background: "radial-gradient(circle, rgba(124,58,237,0.06) 0%, transparent 70%)", animation: "sidebarOrbFloat2 25s ease-in-out infinite" }} />
+          <div style={{ ...styles.sidebarOrb, width: "200px", height: "200px", bottom: "5%", left: "10%", background: "radial-gradient(circle, rgba(6,182,212,0.05) 0%, transparent 70%)", animation: "sidebarOrbFloat3 18s ease-in-out infinite" }} />
+        </div>
         <div style={styles.sidebarInner}>
           {/* Logo */}
           <div style={styles.logoSection}>
@@ -272,6 +284,18 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap" as const,
+  },
+  orbContainer: {
+    position: "absolute",
+    inset: 0,
+    overflow: "hidden",
+    pointerEvents: "none",
+    zIndex: 0,
+  },
+  sidebarOrb: {
+    position: "absolute",
+    borderRadius: "50%",
+    filter: "blur(40px)",
   },
   logoutButton: {
     background: "transparent",

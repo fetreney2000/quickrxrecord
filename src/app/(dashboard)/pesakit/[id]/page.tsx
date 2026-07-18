@@ -115,7 +115,11 @@ export default function PatientDetailPage() {
 
   const sortData = (data: any[], sort: { key: string; dir: SortDir } | null) => { if (!sort) return data; return [...data].sort((a, b) => { const cmp = (a[sort.key] || "").toString().localeCompare((b[sort.key] || "").toString(), "ms"); return sort.dir === "asc" ? cmp : -cmp; }); };
   const toggleSort = (sort: any, setSort: any, key: string) => { setSort(sort?.key === key ? { key, dir: sort.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }); };
-  const sortedAssignments = useMemo(() => sortData(assignments || [], assignmentSort), [assignments, assignmentSort]);
+  const sortedAssignments = useMemo(() => {
+    const sorted = sortData(assignments || [], assignmentSort);
+    // Always put aktif items at top, ditamatkan at bottom
+    return [...sorted].sort((a: any, b: any) => (a.aktif === b.aktif ? 0 : a.aktif ? -1 : 1));
+  }, [assignments, assignmentSort]);
   const pagedAssignments = useMemo(() => sortedAssignments.slice(assignmentPage * PAGE_SIZE, (assignmentPage + 1) * PAGE_SIZE), [sortedAssignments, assignmentPage]);
   const totalPages = Math.ceil((sortedAssignments.length || 0) / PAGE_SIZE);
   const sortedDoseHistory = useMemo(() => sortData(doseHistory || [], doseSort), [doseHistory, doseSort]);
