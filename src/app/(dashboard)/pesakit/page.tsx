@@ -234,7 +234,7 @@ export default function PesakitPage() {
                 </div>
 
                 {/* Rows */}
-                {data.patients.map((patient, idx) => (
+                {(data?.patients || []).map((patient, idx) => (
                   <motion.div key={patient.id} initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.015, duration: 0.2 }}>
                     {/* Desktop */}
                     <div className="pesakit-desktop-row" onClick={() => router.push(`/pesakit/${patient.id}`)}
