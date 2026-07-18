@@ -165,14 +165,28 @@ export default function PengurusanPage() {
   });
 
   if (!isAdmin) {
-    return <div className="flex items-center justify-center py-12"><p className="text-muted-foreground">Anda tidak mempunyai akses ke halaman ini.</p></div>;
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "50vh" }}>
+        <p style={{ fontSize: "14px", color: "#65676b" }}>Anda tidak mempunyai akses ke halaman ini.</p>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
+    <div style={{ position: "relative" }}>
+      <div style={{ position: "absolute", top: "-60px", right: "-60px", width: "300px", height: "300px", borderRadius: "50%", background: "radial-gradient(circle, rgba(6, 182, 212, 0.03) 0%, transparent 70%)", filter: "blur(30px)", pointerEvents: "none" }} />
       <Breadcrumb items={[{ label: "Papan Pemuka", href: "/" }, { label: "Pengurusan Pengguna" }]} />
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Pengurusan Pengguna</h1>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px", flexWrap: "wrap" as const, gap: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+          <div style={{ width: "48px", height: "48px", borderRadius: "14px", background: "linear-gradient(135deg, #06b6d4, #0891b2)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(6, 182, 212, 0.3)", flexShrink: 0 }}>
+            <Users size={22} color="white" />
+          </div>
+          <div>
+            <h1 style={{ fontSize: "22px", fontWeight: 700, color: "#1c1e21" }}>Pengurusan Pengguna</h1>
+            <p style={{ fontSize: "13px", color: "#65676b" }}>Urus pengguna dan permintaan sistem</p>
+          </div>
+        </div>
         <Dialog open={openAdd} onOpenChange={setOpenAdd}>
           <DialogTrigger asChild><Button><UserPlus className="mr-2 h-4 w-4" />Tambah Pengguna</Button></DialogTrigger>
           <DialogContent>
@@ -369,6 +383,14 @@ export default function PengurusanPage() {
           <LookupManager type="supply_durations" />
         </TabsContent>
       </Tabs>
+      {/* Style overrides for glassmorphism */}
+      <style>{`
+        @-webkit-keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @media (max-width: 768px) {
+          .pengurusan-content > div:first-child > div { flex-direction: column; align-items: flex-start !important; }
+        }
+      `}</style>
     </div>
   );
 }
