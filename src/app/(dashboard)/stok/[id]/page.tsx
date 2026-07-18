@@ -198,7 +198,7 @@ export default function ItemDetailPage() {
 
       return (assignments as any[]).map((a: any) => ({
         ...a,
-        last_supply: psl.get(a.patient_id) || null,
+        last_supply: psl.get(a2p.get(a.id) || "") || null,
       }));
     },
   });
