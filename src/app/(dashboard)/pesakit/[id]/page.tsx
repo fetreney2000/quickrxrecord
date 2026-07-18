@@ -35,6 +35,7 @@ import {
   RefreshCw, Printer, Download, Info, Sparkles,
 } from "lucide-react";
 import { MergeDialog } from "@/components/pesakit/merge-dialog";
+import { getNavSource } from "@/components/ui/breadcrumb";
 import type { Patient, PatientItemAssignment, Item, ItemBatch, ItemForm } from "@/types";
 
 type SortDir = "asc" | "desc";
@@ -498,11 +499,19 @@ export default function PatientDetailPage() {
         transition={{ duration: 0.3 }}
       >
         <Breadcrumb
-          items={[
-            { label: "Papan Pemuka", href: "/" },
-            { label: "Pesakit", href: "/pesakit" },
-            { label: patient.nama || "Butiran Pesakit" },
-          ]}
+          items={(() => {
+            const source = getNavSource();
+            if (source === "stok") {
+              return [
+                { label: "Stok & Item", href: "/stok" },
+                { label: patient.nama || "Butiran Pesakit" },
+              ];
+            }
+            return [
+              { label: "Pesakit", href: "/pesakit" },
+              { label: patient.nama || "Butiran Pesakit" },
+            ];
+          })()}
         />
       </motion.div>
 

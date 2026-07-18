@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import { setNavSource } from "@/components/ui/breadcrumb";
 import type { Patient } from "@/types";
 
 type SortDir = "asc" | "desc";
@@ -237,7 +238,7 @@ export default function PesakitPage() {
                 {(data?.patients || []).map((patient, idx) => (
                   <motion.div key={patient.id} initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.015, duration: 0.2 }}>
                     {/* Desktop */}
-                    <div className="pesakit-desktop-row" onClick={() => router.push(`/pesakit/${patient.id}`)}
+                      <div className="pesakit-desktop-row" onClick={() => { setNavSource("pesakit"); router.push(`/pesakit/${patient.id}`); }}
                       style={{ display: "none", gridTemplateColumns: "3fr 3fr 3fr 2fr 1fr", gap: "12px", padding: "14px 24px", borderBottom: "1px solid rgba(221, 223, 226, 0.3)", cursor: "pointer", transition: "background 0.15s ease" }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(24, 119, 242, 0.03)"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}>
@@ -256,7 +257,7 @@ export default function PesakitPage() {
                     </div>
 
                     {/* Mobile */}
-                    <div className="pesakit-mobile-row" onClick={() => router.push(`/pesakit/${patient.id}`)}
+                    <div className="pesakit-mobile-row" onClick={() => { setNavSource("pesakit"); router.push(`/pesakit/${patient.id}`); }}
                       style={{ padding: "14px 20px", borderBottom: "1px solid rgba(221, 223, 226, 0.3)", cursor: "pointer", display: "flex", alignItems: "center", gap: "12px" }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = "rgba(24, 119, 242, 0.03)"; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}>
