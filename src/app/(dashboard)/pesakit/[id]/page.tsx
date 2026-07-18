@@ -95,7 +95,7 @@ export default function PatientDetailPage() {
   const [supplySort, setSupplySort] = useState<{ key: string; dir: SortDir } | null>(null);
 
   const { data: patient, isLoading: patientLoading } = useQuery({ queryKey: ["patient", id], queryFn: async () => { const { data, error } = await supabase.from("patients").select("*").eq("id", id).single(); if (error) throw error; return data as Patient; } });
-  const { data: assignments, isLoading: assignmentsLoading } = useQuery({ queryKey: ["assignments", id], queryFn: async () => { const { data, error } = await supabase.from("patient_item_assignments").select("*, item:items(*)").eq("patient_id", id).order("created_at", { ascending: false }); if (error) throw error; return data as (PatientItemAssignment & { item: Item })[]; } });
+  const { data: assignments, isLoading: assignmentsLoading } = useQuery({ queryKey: ["assignments", id], queryFn: async () => { const { data, error } = await supabase.from("patient_item_assignments").select("*, item:items(*), dimulakan:profiles!dimulakan_oleh(nama), ditamatkan:profiles!ditamatkan_oleh(nama), perekod:profiles!kakitangan_farmasi_perekod(nama)").eq("patient_id", id).order("created_at", { ascending: false }); if (error) throw error; return data as any[]; } });
   const { data: forms } = useQuery({ queryKey: ["item_forms"], queryFn: async () => { const { data } = await supabase.from("item_forms").select("id, nama"); return (data || []) as Pick<ItemForm, "id" | "nama">[]; }, staleTime: 60000 });
   const formsMap = useMemo(() => { const map = new Map<string, string>(); forms?.forEach(f => map.set(f.id, f.nama)); return map; }, [forms]);
   const { data: items } = useQuery({ queryKey: ["items-with-stats"], queryFn: async () => { const { data, error } = await supabase.from("items").select("id, kod_item, nama_item, kekuatan, id_bentuk, kuota").eq("aktif", true).order("nama_item"); if (error) throw error; const itemsList = data as any[]; const { data: counts } = await supabase.from("patient_item_assignments").select("item_id").eq("aktif", true); const m: Record<string, number> = {}; for (const c of (counts || [])) m[c.item_id] = (m[c.item_id] || 0) + 1; return itemsList.map(item => ({ ...item, patient_count: m[item.id] || 0, baki_kuota: item.kuota != null ? Math.max(0, item.kuota - (m[item.id] || 0)) : null })); } });
@@ -311,6 +311,16 @@ export default function PatientDetailPage() {
                     {expandedAssignment === a.id && (
                       <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
                         <div className="px-3 pb-3 pt-1 border-t bg-muted/30">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-3 p-3 bg-white rounded-lg border">
+                            <div><span className="text-muted-foreground text-xs">Dos:</span> <p className="font-medium">{a.dos || "-"}</p></div>
+                            <div><span className="text-muted-foreground text-xs">Mula Guna:</span> <p className="font-medium">{formatDate(a.tarikh_mula_guna) || "-"}</p></div>
+                            <div><span className="text-muted-foreground text-xs">Tamat Guna:</span> <p className="font-medium">{a.tarikh_tamat_guna ? formatDate(a.tarikh_tamat_guna) : "-"}</p></div>
+                            <div><span className="text-muted-foreground text-xs">Sebab Tamat:</span> <p className="font-medium">{a.sebab_tamat || "-"}</p></div>
+                            <div><span className="text-muted-foreground text-xs">Dimulakan Oleh:</span> <p className="font-medium">{a.dimulakan?.nama || "-"}</p></div>
+                            <div><span className="text-muted-foreground text-xs">Ditamatkan Oleh:</span> <p className="font-medium">{a.ditamatkan?.nama || "-"}</p></div>
+                            <div><span className="text-muted-foreground text-xs">Direkod Oleh:</span> <p className="font-medium">{a.perekod?.nama || "-"}</p></div>
+                            <div><span className="text-muted-foreground text-xs">Tarikh Didaftar:</span> <p className="font-medium">{formatDate(a.created_at)}</p></div>
+                          </div>
                           <div className="flex gap-2 mb-3">
                             {a.aktif && <Button size="sm" onClick={() => setOpenSupply(a.id)}><Package className="mr-1 h-3.5 w-3.5" /> Bekal</Button>}
                             {a.aktif && <Button size="sm" variant="outline" onClick={() => { setOpenUpdateDose(a.id); setDoseUpdate({ dos: a.dos || "", catatan: "" }); }}><Edit className="mr-1 h-3.5 w-3.5" /> Kemaskini Dos</Button>}
