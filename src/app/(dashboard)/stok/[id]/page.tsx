@@ -690,7 +690,7 @@ export default function ItemDetailPage() {
                   const monthsSince = lastDate ? Math.floor((Date.now() - lastDate.getTime()) / (30 * 24 * 60 * 60 * 1000)) : null;
                   const isDefaulter = monthsSince !== null && monthsSince >= 3;
                   return (
-                    <TableRow key={a.patient?.id} className="cursor-pointer" onClick={() => { setNavSource("stok:" + itemDisplayName); router.push(`/pesakit/${a.patient?.id}`); }}>
+                    <TableRow key={a.patient?.id} className="cursor-pointer" onClick={() => { setNavSource("stok:" + itemDisplayName + ":" + item.id); router.push(`/pesakit/${a.patient?.id}`); }}>
                       <TableCell>{a.patient?.nama}</TableCell>
                       <TableCell>{a.patient?.nombor_kad_pengenalan || "-"}</TableCell>
                       <TableCell className="text-xs">{a.dos || "-"}</TableCell>

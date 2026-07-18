@@ -166,7 +166,7 @@ export default function PatientDetailPage() {
       <div style={{ position: "absolute", top: "-60px", right: "-60px", width: "300px", height: "300px", borderRadius: "50%", background: "radial-gradient(circle, rgba(24, 119, 242, 0.03) 0%, transparent 70%)", filter: "blur(30px)", pointerEvents: "none" }} />
 
       <div className="flex items-center justify-between">
-        <Breadcrumb items={(() => { const source = getNavSource(); if (source?.startsWith("stok:")) { const n = source.replace("stok:", ""); return [{ label: "Inventori", href: "/stok" }, ...(n ? [{ label: n }] : []), { label: patient.nama }]; } return [{ label: "Pesakit", href: "/pesakit" }, { label: patient.nama }]; })()} />
+        <Breadcrumb items={(() => { const source = getNavSource(); if (source?.startsWith("stok:")) { const rest = source.replace("stok:", ""); const lastColon = rest.lastIndexOf(":"); const itemName = lastColon >= 0 ? rest.substring(0, lastColon) : rest; const itemId = lastColon >= 0 ? rest.substring(lastColon + 1) : ""; return [{ label: "Inventori", href: "/stok" }, { label: itemName, href: itemId ? `/stok/${itemId}` : undefined }, { label: patient.nama }]; } return [{ label: "Pesakit", href: "/pesakit" }, { label: patient.nama }]; })()} />
       </div>
 
       <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} style={{ display: "flex", alignItems: "center", gap: isMobile ? "8px" : "14px" }}>
