@@ -124,7 +124,7 @@ export function MergeDialog({ open, onOpenChange, primaryPatient }: MergeDialogP
           </DialogTitle>
           <DialogDescription>
             Gabungkan rekod pesakit pendua ke dalam <strong>{primaryPatient.nama}</strong>. 
-            Semua penugasan dan rekod bekalan akan dipindahkan ke pesakit utama.
+            Semua item dan rekod bekalan akan dipindahkan ke pesakit utama.
           </DialogDescription>
         </DialogHeader>
 
@@ -163,7 +163,7 @@ export function MergeDialog({ open, onOpenChange, primaryPatient }: MergeDialogP
                     <TableHead className="w-[40px]"></TableHead>
                     <TableHead>Nama</TableHead>
                     <TableHead>No. KP</TableHead>
-                    <TableHead>No. Hospital</TableHead>
+                    <TableHead>No. Pendaftaran Hospital</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -210,7 +210,7 @@ export function MergeDialog({ open, onOpenChange, primaryPatient }: MergeDialogP
               <div className="text-sm">
                 <p className="font-medium text-yellow-800 dark:text-yellow-200">Pengesahan Diperlukan</p>
                 <p className="text-yellow-700 dark:text-yellow-300 mt-1">
-                  Tindakan ini tidak boleh dibatalkan. Semua penugasan dan rekod bekalan dari pesakit pendua 
+                  Tindakan ini tidak boleh dibatalkan. Semua item dan rekod bekalan dari pesakit pendua 
                   akan dipindahkan kepada <strong>{primaryPatient.nama}</strong>.
                 </p>
               </div>

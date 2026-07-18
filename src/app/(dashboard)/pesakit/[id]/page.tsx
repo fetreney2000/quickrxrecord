@@ -122,7 +122,14 @@ export default function PatientDetailPage() {
   const deleteSupplyMutation = useMutation({ mutationFn: async (sid: string) => { await supabase.from("supply_records").delete().eq("id", sid); }, onSuccess: () => { toast.success("Rekod dipadam."); setOpenDeleteSupply(null); queryClient.invalidateQueries({ queryKey: ["supply-history", expandedAssignment] }); } });
   const saveEditSupplyMutation = useMutation({ mutationFn: async ({ supplyId, updates }: { supplyId: string; updates: any }) => { await supabase.from("supply_records").update({ dos: updates.dos, tempoh_dibekal: updates.tempoh_dibekal, kuantiti: parseInt(updates.kuantiti), catatan_bekalan: updates.catatan_bekalan || null }).eq("id", supplyId); }, onSuccess: () => { toast.success("Dikemaskini."); setEditSupplyRecord(null); queryClient.invalidateQueries({ queryKey: ["supply-history", expandedAssignment] }); } });
 
-  const sortData = (data: any[], sort: { key: string; dir: SortDir } | null) => { if (!sort) return data; return [...data].sort((a, b) => { const cmp = (a[sort.key] || "").toString().localeCompare((b[sort.key] || "").toString(), "ms"); return sort.dir === "asc" ? cmp : -cmp; }); };
+  const sortData = (data: any[], sort: { key: string; dir: SortDir } | null) => {
+    if (!sort) return data;
+    return [...data].sort((a, b) => {
+      const getVal = (obj: any, key: string) => key.split(".").reduce((o, k) => (o || {})[k], obj);
+      const cmp = (getVal(a, sort.key) || "").toString().localeCompare((getVal(b, sort.key) || "").toString(), "ms");
+      return sort.dir === "asc" ? cmp : -cmp;
+    });
+  };
   const toggleSort = (sort: any, setSort: any, key: string) => { setSort(sort?.key === key ? { key, dir: sort.dir === "asc" ? "desc" : "asc" } : { key, dir: "asc" }); };
   const sortedAssignments = useMemo(() => {
     const sorted = sortData(assignments || [], assignmentSort);
@@ -203,7 +210,7 @@ export default function PatientDetailPage() {
             <>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: isMobile ? "8px" : "16px", fontSize: "14px", marginBottom: "16px" }}>
                 <div><span className="text-muted-foreground">No. KP:</span> {patient.nombor_kad_pengenalan || "-"}</div>
-                <div><span className="text-muted-foreground">No. Hospital:</span> {patient.nombor_pendaftaran_hospital || "-"}</div>
+                <div><span className="text-muted-foreground">No. Pendaftaran Hospital:</span> {patient.nombor_pendaftaran_hospital || "-"}</div>
                 <div><span className="text-muted-foreground">No. Telefon:</span> {patient.nombor_telefon || "-"}</div>
                 <div><span className="text-muted-foreground">Tarikh Daftar:</span> {formatDate(patient.created_at)}</div>
                 <div style={{ gridColumn: isMobile ? "1" : "span 2" }}><span className="text-muted-foreground">Alamat:</span> {patient.alamat || "-"}</div>
@@ -354,8 +361,8 @@ export default function PatientDetailPage() {
                                   <TableRow>
                                     <SortableHeader label="Tarikh" sortKey="tarikh" currentSort={doseSort} onSort={k => toggleSort(doseSort, setDoseSort, k)} />
                                     <SortableHeader label="Dos" sortKey="dos" currentSort={doseSort} onSort={k => toggleSort(doseSort, setDoseSort, k)} />
-                                    <TableHead>Dikemaskini Oleh</TableHead>
-                                    <TableHead>Catatan</TableHead>
+                                    <SortableHeader label="Dikemaskini Oleh" sortKey="staff.nama" currentSort={doseSort} onSort={k => toggleSort(doseSort, setDoseSort, k)} />
+                                    <SortableHeader label="Catatan" sortKey="catatan" currentSort={doseSort} onSort={k => toggleSort(doseSort, setDoseSort, k)} />
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -387,8 +394,8 @@ export default function PatientDetailPage() {
                                     <SortableHeader label="Kuantiti" sortKey="kuantiti" currentSort={supplySort} onSort={k => toggleSort(supplySort, setSupplySort, k)} />
                                     <SortableHeader label="Dos" sortKey="dos" currentSort={supplySort} onSort={k => toggleSort(supplySort, setSupplySort, k)} />
                                     <SortableHeader label="Tempoh" sortKey="tempoh_dibekal" currentSort={supplySort} onSort={k => toggleSort(supplySort, setSupplySort, k)} />
-                                    <TableHead>Kakitangan</TableHead>
-                                    <TableHead>Catatan</TableHead>
+                                    <SortableHeader label="Kakitangan" sortKey="staff.nama" currentSort={supplySort} onSort={k => toggleSort(supplySort, setSupplySort, k)} />
+                                    <SortableHeader label="Catatan" sortKey="catatan_bekalan" currentSort={supplySort} onSort={k => toggleSort(supplySort, setSupplySort, k)} />
                                     <TableHead>Tindakan</TableHead>
                                   </TableRow>
                                 </TableHeader>

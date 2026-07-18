@@ -129,13 +129,13 @@ export default function PesakitPage() {
           <Dialog open={openAdd} onOpenChange={setOpenAdd}>
             <DialogTrigger asChild>
               <button style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", borderRadius: "12px", border: "none", background: "linear-gradient(135deg, #1877f2, #0d5bd4)", color: "#ffffff", fontSize: "13px", fontWeight: 600, fontFamily: "inherit", cursor: "pointer", boxShadow: "0 4px 12px rgba(24, 119, 242, 0.25)", transition: "all 0.2s ease" }}>
-                <Plus size={16} /> Tambah Pesakit
+                <Plus size={16} /> Daftar Pesakit
               </button>
             </DialogTrigger>
             <DialogContent style={{ maxWidth: "500px", borderRadius: "16px", border: "1px solid rgba(24, 119, 242, 0.1)", boxShadow: "0 25px 50px rgba(0,0,0,0.15)" }}>
               <DialogHeader>
                 <DialogTitle style={{ fontSize: "16px", fontWeight: 700, display: "flex", alignItems: "center", gap: "8px" }}>
-                  <Activity size={18} color="#1877f2" /> Tambah Pesakit Baharu
+                  <Activity size={18} color="#1877f2" /> Daftar Pesakit Baharu
                 </DialogTitle>
                 <DialogDescription style={{ fontSize: "13px" }}>Isi maklumat pesakit di bawah.</DialogDescription>
               </DialogHeader>
@@ -150,7 +150,7 @@ export default function PesakitPage() {
                     <Input value={newPatient.nombor_kad_pengenalan} onChange={(e) => setNewPatient({ ...newPatient, nombor_kad_pengenalan: e.target.value })} style={inputStyle} placeholder="000101-01-0001" />
                   </div>
                   <div>
-                    <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><Activity size={12} /> No. Hospital</Label>
+                    <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><Activity size={12} /> No. Pendaftaran Hospital</Label>
                     <Input value={newPatient.nombor_pendaftaran_hospital} onChange={(e) => setNewPatient({ ...newPatient, nombor_pendaftaran_hospital: e.target.value })} style={inputStyle} />
                   </div>
                 </div>
@@ -221,7 +221,7 @@ export default function PesakitPage() {
                   {search ? <Search size={22} color="#9ca3af" /> : <Users size={22} color="#9ca3af" />}
                 </div>
                 <p style={{ fontSize: "14px", fontWeight: 500, color: "#65676b" }}>{search ? "Tiada pesakit dijumpai." : "Tiada pesakit berdaftar."}</p>
-                <p style={{ fontSize: "12px", color: "#9ca3af", marginTop: "4px" }}>{search ? "Cuba tukar kata kunci carian anda." : 'Klik "Tambah Pesakit" untuk mendaftarkan pesakit baru.'}</p>
+                <p style={{ fontSize: "12px", color: "#9ca3af", marginTop: "4px" }}>{search ? "Cuba tukar kata kunci carian anda." : 'Klik "Daftar Pesakit" untuk mendaftarkan pesakit baru.'}</p>
               </div>
             ) : (
               <>
@@ -229,7 +229,7 @@ export default function PesakitPage() {
                 <div style={{ display: "none", gridTemplateColumns: "3fr 3fr 3fr 2fr 1fr", gap: "12px", padding: "10px 24px", borderBottom: "1px solid rgba(221, 223, 226, 0.5)", background: "linear-gradient(90deg, rgba(240, 242, 245, 0.6), rgba(240, 242, 245, 0.2))", fontSize: "11px", fontWeight: 600, color: "#65676b", textTransform: "uppercase", letterSpacing: "0.05em" }} className="pesakit-table-header">
                   <div onClick={() => toggleSort("nama")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}><User size={12} /> Nama <SortIcon columnKey="nama" /></div>
                   <div onClick={() => toggleSort("nombor_kad_pengenalan")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}><IdCard size={12} /> No. KP <SortIcon columnKey="nombor_kad_pengenalan" /></div>
-                  <div onClick={() => toggleSort("nombor_pendaftaran_hospital")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}><Activity size={12} /> No. Hospital <SortIcon columnKey="nombor_pendaftaran_hospital" /></div>
+                  <div onClick={() => toggleSort("nombor_pendaftaran_hospital")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}><Activity size={12} /> No. Pendaftaran Hospital <SortIcon columnKey="nombor_pendaftaran_hospital" /></div>
                   <div onClick={() => toggleSort("nombor_telefon")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}><Phone size={12} /> No. Telefon <SortIcon columnKey="nombor_telefon" /></div>
                   <div style={{ textAlign: "center" }}>Tindakan</div>
                 </div>
