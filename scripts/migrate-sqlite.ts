@@ -223,7 +223,7 @@ async function migrate() {
     item_id: intToUuid("items", item.ID),
     nombor_kelompok: "LEGACY-001",
     tarikh_luput: "2030-12-31",
-    kuantiti: item.Kuota || 0,
+    kuantiti: 10000,
   }));
 
   await batchInsert("item_batches", batchRows);
