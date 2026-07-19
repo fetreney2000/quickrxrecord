@@ -195,17 +195,66 @@ async function migrate() {
   await batchInsert("patients", patientRows);
   console.log();
 
-  // ── 3. Staff: tblKakitangan → profiles ──────────────────────────
+  // ── 3. Staff: tblKakitangan → profiles + auth users ─────────────
   console.log("[3] Migrasi kakitangan (tblKakitangan → profiles)...");
   const staff = db.prepare("SELECT * FROM tblKakitangan").all() as any[];
-  const profileRows = staff.map((s: any) => ({
-    id: intToUuid("profiles", s.ID),
-    nama: s.Nama,
-    jawatan: null,
-    peranan: "Kakitangan Farmasi",
-    nama_pengguna: `staff_${s.ID}`,
-    aktif: s.Aktif === 1,
-  }));
+
+  // Map old staff ID → Supabase auth user ID
+  const staffAuthMap = new Map<number, string>();
+
+  // First pass: create auth users
+  console.log("  Mencipta pengguna auth...");
+  for (const s of staff) {
+    const namaPengguna = (s.Nama || "").trim().replace(/\s+/g, "_");
+    const email = `${namaPengguna.toLowerCase()}@hospital.gov.my`;
+    try {
+      const { data: createdUser, error } = await supabase.auth.admin.createUser({
+        email,
+        password: "password123",
+        email_confirm: true,
+        user_metadata: { nama: s.Nama },
+      });
+      if (error) {
+        // Try fetching existing user by email
+        if (error.message.includes("already been registered")) {
+          const { data: users } = await supabase.auth.admin.listUsers();
+          const existing = users?.users?.find((u: any) => u.email === email);
+          if (existing) {
+            staffAuthMap.set(s.ID, existing.id);
+            process.stdout.write(".");
+          } else {
+            console.error(`\n    ✗ Tidak jumpa auth user: ${email}`);
+            totalErrors++;
+          }
+        } else {
+          console.error(`\n    ✗ Auth user ${email}: ${error.message}`);
+          totalErrors++;
+        }
+      } else if (createdUser?.user) {
+        staffAuthMap.set(s.ID, createdUser.user.id);
+        process.stdout.write(".");
+      }
+    } catch (e: any) {
+      console.error(`\n    ✗ Auth user ${email}: ${e.message}`);
+      totalErrors++;
+    }
+  }
+  console.log(`\n  ✓ ${staffAuthMap.size} pengguna auth dicipta.`);
+
+  // Second pass: insert profiles using auth UUIDs
+  const profileRows = staff
+    .filter((s: any) => staffAuthMap.has(s.ID))
+    .map((s: any) => {
+      const namaPengguna = (s.Nama || "").trim().replace(/\s+/g, "_");
+      return {
+        id: intToUuid("profiles", s.ID),
+        nama: s.Nama,
+        jawatan: null,
+        peranan: "Kakitangan Farmasi",
+        nama_pengguna: namaPengguna,
+        aktif: s.Aktif === 1,
+      };
+    });
 
   await batchInsert("profiles", profileRows);
 
