@@ -5,6 +5,10 @@
  * Clears all existing data from Supabase tables before migrating fresh data
  * from the legacy SQLite database.
  *
+ * Uses custom auth (kata_laluan_hash in profiles table).
+ * All users get password "password123" hashed with PBKDF2-SHA512.
+ * Username = staff name with underscores replacing spaces.
+ *
  * Prerequisites:
  *   - Run 007_schema_gaps.sql migration on your Supabase project first
  *   - .env.local must have SUPABASE_SERVICE_ROLE_KEY and NEXT_PUBLIC_SUPABASE_URL set
@@ -15,6 +19,7 @@
 
 import Database from "better-sqlite3";
 import { createClient } from "@supabase/supabase-js";
+import crypto from "crypto";
 import path from "path";
 import fs from "fs";
 
@@ -58,14 +63,23 @@ if (!fs.existsSync(dbPath)) {
 
 const db = new Database(dbPath, { readonly: true });
 
+// ── Password Hashing (matching app's PBKDF2-SHA512) ───────────────────
+function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const iterations = 100000;
+  const key = crypto.pbkdf2Sync(password, salt, iterations, 32, "sha512");
+  return `pbkdf2:${iterations}:${salt}:${key.toString("hex")}`;
+}
+
 // ── UUID Mapping ──────────────────────────────────────────────────────
 const UUID_NAMESPACES: Record<string, string> = {
-  items:           "a0000000-0000-0000-0000-",
-  patients:        "b0000000-0000-0000-0000-",
-  assignments:     "d0000000-0000-0000-0000-",
-  supply:          "e0000000-0000-0000-0000-",
-  dose:            "f0000000-0000-0000-0000-",
-  batch:           "a1000000-0000-0000-0000-",
+  items:       "a0000000-0000-0000-0000-",
+  patients:    "b0000000-0000-0000-0000-",
+  profiles:    "c0000000-0000-0000-0000-",
+  assignments: "d0000000-0000-0000-0000-",
+  supply:      "e0000000-0000-0000-0000-",
+  dose:        "f0000000-0000-0000-0000-",
+  batch:       "a1000000-0000-0000-0000-",
 };
 
 function intToUuid(table: string, id: number): string {
@@ -73,13 +87,9 @@ function intToUuid(table: string, id: number): string {
   return `${UUID_NAMESPACES[table] || "00000000-0000-0000-0000-"}${hex}`;
 }
 
-// ── Globals ───────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────
 let totalErrors = 0;
 
-// Map old staff ID → Supabase auth user UUID (set during staff migration)
-const staffAuthMap = new Map<number, string>();
-
-// ── Helpers ───────────────────────────────────────────────────────────
 async function clearTable(table: string) {
   const { error } = await supabase.from(table).delete().neq("id", "00000000-0000-0000-0000-000000000000");
   if (error) {
@@ -190,71 +200,31 @@ async function migrate() {
   await batchInsert("patients", patientRows);
   console.log();
 
-  // ── 3. Staff: tblKakitangan → auth users + profiles ─────────────
-  console.log("[3] Migrasi kakitangan (tblKakitangan → profiles + auth)...");
+  // ── 3. Staff: tblKakitangan → profiles ──────────────────────────
+  console.log("[3] Migrasi kakitangan (tblKakitangan → profiles)...");
   const staff = db.prepare("SELECT * FROM tblKakitangan").all() as any[];
 
-  // Create auth users first
-  console.log("  Mencipta pengguna auth...");
-  for (const s of staff) {
+  const profileRows = staff.map((s: any) => {
     const namaPengguna = (s.Nama || "").trim().replace(/\s+/g, "_");
-    const email = `${namaPengguna.toLowerCase()}@hospital.gov.my`;
-    try {
-      const { data: createdUser, error } = await supabase.auth.admin.createUser({
-        email,
-        password: "password123",
-        email_confirm: true,
-        user_metadata: { nama: s.Nama },
-      });
-      if (error) {
-        if (error.message.includes("already been registered")) {
-          const { data: users } = await supabase.auth.admin.listUsers();
-          const existing = users?.users?.find((u: any) => u.email === email);
-          if (existing) {
-            staffAuthMap.set(s.ID, existing.id);
-          } else {
-            console.error(`\n    ✗ Tidak jumpa: ${email}`);
-            totalErrors++;
-          }
-        } else {
-          console.error(`\n    ✗ ${email}: ${error.message}`);
-          totalErrors++;
-        }
-      } else if (createdUser?.user) {
-        staffAuthMap.set(s.ID, createdUser.user.id);
-      }
-    } catch (e: any) {
-      console.error(`\n    ✗ ${email}: ${e.message}`);
-      totalErrors++;
-    }
-  }
-  console.log(`  ✓ ${staffAuthMap.size} pengguna auth dicipta.`);
-
-  // Insert profiles using auth user UUIDs
-  const profileRows = staff
-    .filter((s: any) => staffAuthMap.has(s.ID))
-    .map((s: any) => {
-      const namaPengguna = (s.Nama || "").trim().replace(/\s+/g, "_");
-      return {
-        id: staffAuthMap.get(s.ID),
-        nama: s.Nama,
-        jawatan: null,
-        peranan: "Kakitangan Farmasi",
-        nama_pengguna: namaPengguna,
-        aktif: s.Aktif === 1,
-      };
-    });
+    return {
+      id: intToUuid("profiles", s.ID),
+      nama: s.Nama,
+      jawatan: null,
+      peranan: "Kakitangan Farmasi",
+      nama_pengguna: namaPengguna,
+      kata_laluan_hash: hashPassword("password123"),
+      aktif: s.Aktif === 1,
+    };
+  });
 
   await batchInsert("profiles", profileRows);
 
-  const staffLookupRows = staff
-    .filter((s: any) => staffAuthMap.has(s.ID))
-    .map((s: any) => ({
-      old_id: s.ID,
-      profile_id: staffAuthMap.get(s.ID),
-    }));
+  const staffLookupRows = staff.map((s: any) => ({
+    old_id: s.ID,
+    profile_id: intToUuid("profiles", s.ID),
+  }));
   await batchInsert("staff_migration_lookup", staffLookupRows, 500, "old_id");
-  console.log();
+  console.log(`  ✓ Password lalai: "password123" untuk semua pengguna.\n`);
 
   // ── 4. Synthetic batches per item ────────────────────────────────
   console.log("[4] Cipta kelompok sintetik (item_batches)...");
@@ -294,7 +264,7 @@ async function migrate() {
     sebab_tamat: a.Sebab_Tamat || null,
     catatan_penggunaan: a.Catatan_Penggunaan || null,
     ditamatkan_oleh: a.ID_Kakitangan_Henti
-      ? (staffAuthMap.get(a.ID_Kakitangan_Henti) || null)
+      ? intToUuid("profiles", a.ID_Kakitangan_Henti)
       : null,
   }));
 
@@ -312,7 +282,7 @@ async function migrate() {
     tempoh_dibekal: s.Durasi_Bekalan || null,
     kuantiti: s.Kuantiti,
     batch_id: null,
-    kakitangan_pembekal: staffAuthMap.get(s.ID_Kakitangan) || null,
+    kakitangan_pembekal: intToUuid("profiles", s.ID_Kakitangan),
     catatan_bekalan: s.Catatan_Bekalan || null,
   }));
 
