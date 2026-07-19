@@ -158,7 +158,7 @@ export default function ItemDetailPage() {
   const { data: assignedPatients } = useQuery({
     queryKey: ["item-patients", id],
     queryFn: async () => {
-      // Get active assignments WITHOUT join to keep clean patient_id
+      // Get active assignments
       const { data: activeAssigns, error: assgnErr } = await supabase
         .from("patient_item_assignments")
         .select("id, patient_id, dos")
@@ -182,34 +182,37 @@ export default function ItemDetailPage() {
         .select("id, patient_id")
         .eq("item_id", id);
       const allAssignIds = (allAssigns || []).map((a: any) => a.id);
-      const a2p = new Map<string, string>();
-      for (const a of allAssigns || []) a2p.set(a.id, a.patient_id);
 
-      // Get supply records for all assignments
-      let supplies: any[] = [];
+      // Get latest supply date per patient
+      const psl = new Map<string, string>();
       if (allAssignIds.length > 0) {
-        const { data } = await supabase
+        const { data: supplies } = await supabase
           .from("supply_records")
           .select("assignment_id, tarikh_dibekal")
           .in("assignment_id", allAssignIds)
           .order("tarikh_dibekal", { ascending: false });
-        supplies = data || [];
+        const a2p = new Map<string, string>();
+        for (const a of allAssigns || []) a2p.set(a.id, a.patient_id);
+        for (const s of supplies || []) {
+          const pid = a2p.get(s.assignment_id);
+          if (pid && !psl.has(pid)) psl.set(pid, s.tarikh_dibekal);
+        }
       }
 
-      // Build per-patient latest supply date
-      const psl = new Map<string, string>();
-      for (const s of supplies) {
-        const pid = a2p.get(s.assignment_id);
-        if (pid && !psl.has(pid)) psl.set(pid, s.tarikh_dibekal);
-      }
-
-      // Combine: active assignments + patient details + supply dates
-      // Use a2p map as primary lookup since patient_id may be undefined in some contexts
-      return activeAssigns.map((a: any) => ({
-        ...a,
-        patient: { id: a.patient_id, nama: patientMap.get(a.patient_id)?.nama || "-", nombor_kad_pengenalan: patientMap.get(a.patient_id)?.nombor_kad_pengenalan || "-" },
-        last_supply: psl.get(a2p.get(a.id) || a.patient_id) || null,
-      }));
+      return activeAssigns.map((a: any) => {
+        const p = patientMap.get(a.patient_id);
+        return {
+          id: a.id,
+          patient_id: a.patient_id,
+          dos: a.dos,
+          patient: {
+            id: a.patient_id,
+            nama: (p && p.nama) ? p.nama : "-",
+            nombor_kad_pengenalan: (p && p.nombor_kad_pengenalan) ? p.nombor_kad_pengenalan : "-"
+          },
+          last_supply: psl.get(a.patient_id) || null,
+        };
+      });
     },
   });
 
