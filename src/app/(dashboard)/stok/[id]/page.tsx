@@ -207,7 +207,7 @@ export default function ItemDetailPage() {
       // Use a2p map as primary lookup since patient_id may be undefined in some contexts
       return activeAssigns.map((a: any) => ({
         ...a,
-        patient: patientMap.get(a.patient_id) || { id: a.patient_id, nama: "-", nombor_kad_pengenalan: "-" },
+        patient: { id: a.patient_id, nama: patientMap.get(a.patient_id)?.nama || "-", nombor_kad_pengenalan: patientMap.get(a.patient_id)?.nombor_kad_pengenalan || "-" },
         last_supply: psl.get(a2p.get(a.id) || a.patient_id) || null,
       }));
     },
