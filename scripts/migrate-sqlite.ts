@@ -60,10 +60,6 @@ const db = new Database(dbPath, { readonly: true });
 
 // ── UUID Mapping ──────────────────────────────────────────────────────
 const UUID_NAMESPACES: Record<string, string> = {
-  item_categories: "a0000000-0000-0000-0000-",
-  item_forms:      "b0000000-0000-0000-0000-",
-  supply_durations:"c0000000-0000-0000-0000-",
-  profiles:        "c0000000-0000-0000-0000-",
   items:           "a0000000-0000-0000-0000-",
   patients:        "b0000000-0000-0000-0000-",
   assignments:     "d0000000-0000-0000-0000-",
@@ -77,20 +73,19 @@ function intToUuid(table: string, id: number): string {
   return `${UUID_NAMESPACES[table] || "00000000-0000-0000-0000-"}${hex}`;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────
+// ── Globals ───────────────────────────────────────────────────────────
 let totalErrors = 0;
 
+// Map old staff ID → Supabase auth user UUID (set during staff migration)
+const staffAuthMap = new Map<number, string>();
+
+// ── Helpers ───────────────────────────────────────────────────────────
 async function clearTable(table: string) {
-  console.log(`  Mengosongkan ${table}...`);
   const { error } = await supabase.from(table).delete().neq("id", "00000000-0000-0000-0000-000000000000");
   if (error) {
-    // Some tables might have RLS that prevents delete with service key
-    // Try truncate-like approach
-    const { error: e2 } = await supabase.rpc("clear_table", { table_name: table });
-    if (e2) {
-      console.error(`  ✗ Gagal mengosongkan ${table}: ${error.message}`);
-      totalErrors++;
-    }
+    console.error(`  ✗ Gagal mengosongkan ${table}: ${error.message}`);
+    totalErrors++;
+    return;
   }
   console.log(`  ✓ ${table} dikosongkan.`);
 }
@@ -195,14 +190,11 @@ async function migrate() {
   await batchInsert("patients", patientRows);
   console.log();
 
-  // ── 3. Staff: tblKakitangan → profiles + auth users ─────────────
-  console.log("[3] Migrasi kakitangan (tblKakitangan → profiles)...");
+  // ── 3. Staff: tblKakitangan → auth users + profiles ─────────────
+  console.log("[3] Migrasi kakitangan (tblKakitangan → profiles + auth)...");
   const staff = db.prepare("SELECT * FROM tblKakitangan").all() as any[];
 
-  // Map old staff ID → Supabase auth user ID
-  const staffAuthMap = new Map<number, string>();
-
-  // First pass: create auth users
+  // Create auth users first
   console.log("  Mencipta pengguna auth...");
   for (const s of staff) {
     const namaPengguna = (s.Nama || "").trim().replace(/\s+/g, "_");
@@ -215,39 +207,36 @@ async function migrate() {
         user_metadata: { nama: s.Nama },
       });
       if (error) {
-        // Try fetching existing user by email
         if (error.message.includes("already been registered")) {
           const { data: users } = await supabase.auth.admin.listUsers();
           const existing = users?.users?.find((u: any) => u.email === email);
           if (existing) {
             staffAuthMap.set(s.ID, existing.id);
-            process.stdout.write(".");
           } else {
-            console.error(`\n    ✗ Tidak jumpa auth user: ${email}`);
+            console.error(`\n    ✗ Tidak jumpa: ${email}`);
             totalErrors++;
           }
         } else {
-          console.error(`\n    ✗ Auth user ${email}: ${error.message}`);
+          console.error(`\n    ✗ ${email}: ${error.message}`);
           totalErrors++;
         }
       } else if (createdUser?.user) {
         staffAuthMap.set(s.ID, createdUser.user.id);
-        process.stdout.write(".");
       }
     } catch (e: any) {
-      console.error(`\n    ✗ Auth user ${email}: ${e.message}`);
+      console.error(`\n    ✗ ${email}: ${e.message}`);
       totalErrors++;
     }
   }
-  console.log(`\n  ✓ ${staffAuthMap.size} pengguna auth dicipta.`);
+  console.log(`  ✓ ${staffAuthMap.size} pengguna auth dicipta.`);
 
-  // Second pass: insert profiles using auth UUIDs
+  // Insert profiles using auth user UUIDs
   const profileRows = staff
     .filter((s: any) => staffAuthMap.has(s.ID))
     .map((s: any) => {
       const namaPengguna = (s.Nama || "").trim().replace(/\s+/g, "_");
       return {
-        id: intToUuid("profiles", s.ID),
+        id: staffAuthMap.get(s.ID),
         nama: s.Nama,
         jawatan: null,
         peranan: "Kakitangan Farmasi",
@@ -258,10 +247,12 @@ async function migrate() {
 
   await batchInsert("profiles", profileRows);
 
-  const staffLookupRows = staff.map((s: any) => ({
-    old_id: s.ID,
-    profile_id: intToUuid("profiles", s.ID),
-  }));
+  const staffLookupRows = staff
+    .filter((s: any) => staffAuthMap.has(s.ID))
+    .map((s: any) => ({
+      old_id: s.ID,
+      profile_id: staffAuthMap.get(s.ID),
+    }));
   await batchInsert("staff_migration_lookup", staffLookupRows, 500, "old_id");
   console.log();
 
@@ -303,7 +294,7 @@ async function migrate() {
     sebab_tamat: a.Sebab_Tamat || null,
     catatan_penggunaan: a.Catatan_Penggunaan || null,
     ditamatkan_oleh: a.ID_Kakitangan_Henti
-      ? intToUuid("profiles", a.ID_Kakitangan_Henti)
+      ? (staffAuthMap.get(a.ID_Kakitangan_Henti) || null)
       : null,
   }));
 
@@ -321,7 +312,7 @@ async function migrate() {
     tempoh_dibekal: s.Durasi_Bekalan || null,
     kuantiti: s.Kuantiti,
     batch_id: null,
-    kakitangan_pembekal: intToUuid("profiles", s.ID_Kakitangan),
+    kakitangan_pembekal: staffAuthMap.get(s.ID_Kakitangan) || null,
     catatan_bekalan: s.Catatan_Bekalan || null,
   }));
 
