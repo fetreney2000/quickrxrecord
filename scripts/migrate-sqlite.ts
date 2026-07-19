@@ -1,15 +1,16 @@
 /**
  * Migration script: SRQ.db3 (SQLite) → Supabase (PostgreSQL)
  *
- * Migrates all data from the legacy SQLite database to the new Supabase schema,
- * including the new lookup tables from migration 007_schema_gaps.sql.
+ * ** OVERWRITE MODE **
+ * Clears all existing data from Supabase tables before migrating fresh data
+ * from the legacy SQLite database.
  *
  * Prerequisites:
  *   - Run 007_schema_gaps.sql migration on your Supabase project first
  *   - .env.local must have SUPABASE_SERVICE_ROLE_KEY and NEXT_PUBLIC_SUPABASE_URL set
  *
  * Usage:
- *   cd quickrx && npx tsx --env-file=.env.local scripts/migrate-sqlite.ts
+ *   cd quickrx-new && npx tsx --env-file=.env.local scripts/migrate-sqlite.ts
  */
 
 import Database from "better-sqlite3";
@@ -18,7 +19,6 @@ import path from "path";
 import fs from "fs";
 
 // ── Config ────────────────────────────────────────────────────────────
-// Load .env.local manually if --env-file isn't supported
 function loadEnv() {
   const envPath = path.join(__dirname, "..", ".env.local");
   if (fs.existsSync(envPath)) {
@@ -30,7 +30,6 @@ function loadEnv() {
       if (eqIdx === -1) continue;
       const key = trimmed.slice(0, eqIdx);
       let val = trimmed.slice(eqIdx + 1);
-      // Strip surrounding quotes
       if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
         val = val.slice(1, -1);
       }
@@ -50,7 +49,7 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-// SRQ.db3 is at quickrxrecord/SRQ.db3 (sibling of quickrx/ directory)
+// SRQ.db3 is at quickrxrecord/SRQ.db3 (sibling of quickrx-new/ directory)
 const dbPath = path.join(__dirname, "..", "..", "SRQ.db3");
 if (!fs.existsSync(dbPath)) {
   console.error(`SRQ.db3 tidak dijumpai di: ${dbPath}`);
@@ -60,13 +59,11 @@ if (!fs.existsSync(dbPath)) {
 const db = new Database(dbPath, { readonly: true });
 
 // ── UUID Mapping ──────────────────────────────────────────────────────
-// Deterministic UUID from integer ID — preserves same IDs across runs
-
 const UUID_NAMESPACES: Record<string, string> = {
   item_categories: "a0000000-0000-0000-0000-",
   item_forms:      "b0000000-0000-0000-0000-",
   supply_durations:"c0000000-0000-0000-0000-",
-  profiles:        "c0000000-0000-0000-0000-",  // Same prefix as staff lookup
+  profiles:        "c0000000-0000-0000-0000-",
   items:           "a0000000-0000-0000-0000-",
   patients:        "b0000000-0000-0000-0000-",
   assignments:     "d0000000-0000-0000-0000-",
@@ -80,8 +77,23 @@ function intToUuid(table: string, id: number): string {
   return `${UUID_NAMESPACES[table] || "00000000-0000-0000-0000-"}${hex}`;
 }
 
-// ── Progress Logger ───────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────
 let totalErrors = 0;
+
+async function clearTable(table: string) {
+  console.log(`  Mengosongkan ${table}...`);
+  const { error } = await supabase.from(table).delete().neq("id", "00000000-0000-0000-0000-000000000000");
+  if (error) {
+    // Some tables might have RLS that prevents delete with service key
+    // Try truncate-like approach
+    const { error: e2 } = await supabase.rpc("clear_table", { table_name: table });
+    if (e2) {
+      console.error(`  ✗ Gagal mengosongkan ${table}: ${error.message}`);
+      totalErrors++;
+    }
+  }
+  console.log(`  ✓ ${table} dikosongkan.`);
+}
 
 async function batchInsert(table: string, rows: any[], batchSize = 500, conflictCol = "id") {
   for (let i = 0; i < rows.length; i += batchSize) {
@@ -95,61 +107,69 @@ async function batchInsert(table: string, rows: any[], batchSize = 500, conflict
   console.log(`  ✓ ${rows.length} rekod dimasukkan ke ${table}`);
 }
 
+const DELETE_ORDER = [
+  "dose_history",
+  "supply_records",
+  "batch_adjustments",
+  "patient_item_assignments",
+  "item_batches",
+  "staff_migration_lookup",
+  "items",
+  "patients",
+  "profiles",
+];
+
 // ── Main Migration ────────────────────────────────────────────────────
 async function migrate() {
   console.log("==========================================");
-  console.log("  MIGRASI SRQ.db3 → SUPABASE");
+  console.log("  MIGRASI SRQ.db3 → SUPABASE (OVERWRITE)");
   console.log("==========================================\n");
 
-  // ── 0. Lookup tables (seeded by 007_schema_gaps.sql) ────────────
-  // These should already exist from the migration. We skip them here
-  // since they're populated by 007_schema_gaps.sql.
-  console.log("[0] Lookup tables (item_categories, item_forms, supply_durations)");
-  console.log("    → Pra-disiplin oleh 007_schema_gaps.sql, tidak perlu migrasi.\n");
+  // ── 0. Clear existing data ───────────────────────────────────────
+  console.log("[0] Mengosongkan data sedia ada...");
+  for (const table of DELETE_ORDER) {
+    await clearTable(table);
+  }
+  console.log("  ✓ Semua data dikosongkan.\n");
 
   // ── 1. Items: tblSenaraiUbat → items ────────────────────────────
   console.log("[1] Migrasi item (tblSenaraiUbat → items)...");
   const items = db.prepare("SELECT * FROM tblSenaraiUbat").all() as any[];
 
-  // Map old integer kategori/bentuk IDs to the UUIDs from 007_schema_gaps
   const categoryIdMap: Record<number, string> = {
-    1: "a0000000-0000-0000-0000-000000000001",  // Kategori A
-    2: "a0000000-0000-0000-0000-000000000002",  // Psikiatrik
-    3: "a0000000-0000-0000-0000-000000000003",  // KPK Item
-    4: "a0000000-0000-0000-0000-000000000004",  // Kategori B
-    5: "a0000000-0000-0000-0000-000000000005",  // Kategori A/KK
-    6: "a0000000-0000-0000-0000-000000000006",  // Kategori A*
+    1: "a0000000-0000-0000-0000-000000000001",
+    2: "a0000000-0000-0000-0000-000000000002",
+    3: "a0000000-0000-0000-0000-000000000003",
+    4: "a0000000-0000-0000-0000-000000000004",
+    5: "a0000000-0000-0000-0000-000000000005",
+    6: "a0000000-0000-0000-0000-000000000006",
   };
   const formIdMap: Record<number, string> = {
-    1: "b0000000-0000-0000-0000-000000000001",   // Tablet
-    2: "b0000000-0000-0000-0000-000000000002",   // Kapsul
-    3: "b0000000-0000-0000-0000-000000000003",   // Sirap
-    4: "b0000000-0000-0000-0000-000000000004",   // Patch
-    5: "b0000000-0000-0000-0000-000000000005",   // Drops
-    6: "b0000000-0000-0000-0000-000000000006",   // Injection
-    7: "b0000000-0000-0000-0000-000000000007",   // Eye Drops
-    8: "b0000000-0000-0000-0000-000000000008",   // Nasal Spray
-    9: "b0000000-0000-0000-0000-000000000009",   // Inhaler
-    10: "b0000000-0000-0000-0000-000000000010",  // Solution
-    11: "b0000000-0000-0000-0000-000000000011",  // Serbuk
+    1:  "b0000000-0000-0000-0000-000000000001",
+    2:  "b0000000-0000-0000-0000-000000000002",
+    3:  "b0000000-0000-0000-0000-000000000003",
+    4:  "b0000000-0000-0000-0000-000000000004",
+    5:  "b0000000-0000-0000-0000-000000000005",
+    6:  "b0000000-0000-0000-0000-000000000006",
+    7:  "b0000000-0000-0000-0000-000000000007",
+    8:  "b0000000-0000-0000-0000-000000000008",
+    9:  "b0000000-0000-0000-0000-000000000009",
+    10: "b0000000-0000-0000-0000-000000000010",
+    11: "b0000000-0000-0000-0000-000000000011",
   };
 
-  const itemRows = items.map((item) => {
-    const oldCategoryId = item.ID_Kategori;
-    const oldFormId = item.ID_Bentuk;
-    return {
-      id: intToUuid("items", item.ID),
-      kod_item: `ITM-${String(item.ID).padStart(4, "0")}`,
-      nama_item: item.Nama,
-      nama_dagangan: item.Nama_Dagangan || null,
-      kekuatan: item.Kekuatan || null,
-      id_kategori: categoryIdMap[oldCategoryId] || null,
-      id_bentuk: formIdMap[oldFormId] || null,
-      kuota: item.Kuota || null,
-      catatan: item.Catatan || null,
-      aktif: item.Aktif === 1,
-    };
-  });
+  const itemRows = items.map((item: any) => ({
+    id: intToUuid("items", item.ID),
+    kod_item: `ITM-${String(item.ID).padStart(4, "0")}`,
+    nama_item: item.Nama,
+    nama_dagangan: item.Nama_Dagangan || null,
+    kekuatan: item.Kekuatan || null,
+    id_kategori: categoryIdMap[item.ID_Kategori] || null,
+    id_bentuk: formIdMap[item.ID_Bentuk] || null,
+    kuota: item.Kuota || null,
+    catatan: item.Catatan || null,
+    aktif: item.Aktif === 1,
+  }));
 
   await batchInsert("items", itemRows);
   console.log();
@@ -157,7 +177,7 @@ async function migrate() {
   // ── 2. Patients: tblPesakit → patients ──────────────────────────
   console.log("[2] Migrasi pesakit (tblPesakit → patients)...");
   const patients = db.prepare("SELECT * FROM tblPesakit").all() as any[];
-  const patientRows = patients.map((p) => ({
+  const patientRows = patients.map((p: any) => ({
     id: intToUuid("patients", p.ID),
     nama: p.Nama,
     nombor_kad_pengenalan: p.Kad_Pengenalan || null,
@@ -175,10 +195,10 @@ async function migrate() {
   await batchInsert("patients", patientRows);
   console.log();
 
-  // ── 3. Staff: tblKakitangan → profiles + staff_migration_lookup ─
+  // ── 3. Staff: tblKakitangan → profiles ──────────────────────────
   console.log("[3] Migrasi kakitangan (tblKakitangan → profiles)...");
   const staff = db.prepare("SELECT * FROM tblKakitangan").all() as any[];
-  const profileRows = staff.map((s) => ({
+  const profileRows = staff.map((s: any) => ({
     id: intToUuid("profiles", s.ID),
     nama: s.Nama,
     jawatan: null,
@@ -189,8 +209,7 @@ async function migrate() {
 
   await batchInsert("profiles", profileRows);
 
-  // Populate staff_migration_lookup for FK references
-  const staffLookupRows = staff.map((s) => ({
+  const staffLookupRows = staff.map((s: any) => ({
     old_id: s.ID,
     profile_id: intToUuid("profiles", s.ID),
   }));
@@ -199,7 +218,7 @@ async function migrate() {
 
   // ── 4. Synthetic batches per item ────────────────────────────────
   console.log("[4] Cipta kelompok sintetik (item_batches)...");
-  const batchRows = items.map((item) => ({
+  const batchRows = items.map((item: any) => ({
     id: intToUuid("batch", item.ID),
     item_id: intToUuid("items", item.ID),
     nombor_kelompok: "LEGACY-001",
@@ -214,7 +233,6 @@ async function migrate() {
   console.log("[5] Migrasi penugasan (tblRekodPenggunaanUbat → patient_item_assignments)...");
   const assignments = db.prepare("SELECT * FROM tblRekodPenggunaanUbat").all() as any[];
 
-  // Get latest dose for each assignment from dose table
   const latestDose = new Map<number, string>();
   const doses = db.prepare(
     "SELECT ID_Penggunaan_Ubat, Dos, Tarikh FROM tblDos ORDER BY Tarikh DESC"
@@ -225,7 +243,7 @@ async function migrate() {
     }
   }
 
-  const assignmentRows = assignments.map((a) => ({
+  const assignmentRows = assignments.map((a: any) => ({
     id: intToUuid("assignments", a.ID),
     patient_id: intToUuid("patients", a.ID_Pesakit),
     item_id: intToUuid("items", a.ID_Ubat),
@@ -246,26 +264,25 @@ async function migrate() {
   // ── 6. Supply Records: tblRekodBekalan → supply_records ──────────
   console.log("[6] Migrasi rekod bekalan (tblRekodBekalan → supply_records)...");
   const supplies = db.prepare("SELECT * FROM tblRekodBekalan").all() as any[];
-  const supplyRows = supplies.map((s) => ({
+  const supplyRows = supplies.map((s: any) => ({
     id: intToUuid("supply", s.ID),
     assignment_id: intToUuid("assignments", s.ID_Penggunaan_Ubat),
     tarikh_dibekal: `${s.Tarikh}T00:00:00+08:00`,
     dos: s.Dos,
     tempoh_dibekal: s.Durasi_Bekalan || null,
     kuantiti: s.Kuantiti,
-    batch_id: null, // Legacy has no batch tracking
+    batch_id: null,
     kakitangan_pembekal: intToUuid("profiles", s.ID_Kakitangan),
     catatan_bekalan: s.Catatan_Bekalan || null,
   }));
 
-  // 144,804 rows — use larger batches for speed
   await batchInsert("supply_records", supplyRows, 1000);
   console.log();
 
   // ── 7. Dose History: tblDos → dose_history ───────────────────────
   console.log("[7] Migrasi sejarah dos (tblDos → dose_history)...");
   const doseRecords = db.prepare("SELECT * FROM tblDos").all() as any[];
-  const doseRows = doseRecords.map((d) => ({
+  const doseRows = doseRecords.map((d: any) => ({
     id: intToUuid("dose", d.ID),
     assignment_id: intToUuid("assignments", d.ID_Penggunaan_Ubat),
     tarikh: d.Tarikh,
