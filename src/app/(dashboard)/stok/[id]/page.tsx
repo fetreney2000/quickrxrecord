@@ -167,14 +167,18 @@ export default function ItemDetailPage() {
       if (assgnErr) throw assgnErr;
       if (!activeAssigns?.length) return [];
 
-      // Get patient details separately
-      const patientIds = [...new Set(activeAssigns.map((a: any) => a.patient_id))];
-      const { data: patients } = await supabase
-        .from("patients")
-        .select("id, nama, nombor_kad_pengenalan")
-        .in("id", patientIds);
+      // Get patient details separately, batching to avoid .in() limit
+      const uniquePatientIds = [...new Set(activeAssigns.map((a: any) => a.patient_id))];
+      const BATCH_SIZE = 200;
       const patientMap = new Map<string, any>();
-      for (const p of patients || []) patientMap.set(p.id, p);
+      for (let i = 0; i < uniquePatientIds.length; i += BATCH_SIZE) {
+        const batch = uniquePatientIds.slice(i, i + BATCH_SIZE);
+        const { data: patients } = await supabase
+          .from("patients")
+          .select("id, nama, nombor_kad_pengenalan")
+          .in("id", batch);
+        for (const p of patients || []) patientMap.set(p.id, p);
+      }
 
       // Get ALL assignments for this item (for supply history lookup)
       const { data: allAssigns } = await supabase
@@ -183,19 +187,22 @@ export default function ItemDetailPage() {
         .eq("item_id", id);
       const allAssignIds = (allAssigns || []).map((a: any) => a.id);
 
-      // Get latest supply date per patient
+      // Get latest supply date per patient, batched
       const psl = new Map<string, string>();
       if (allAssignIds.length > 0) {
-        const { data: supplies } = await supabase
-          .from("supply_records")
-          .select("assignment_id, tarikh_dibekal")
-          .in("assignment_id", allAssignIds)
-          .order("tarikh_dibekal", { ascending: false });
         const a2p = new Map<string, string>();
         for (const a of allAssigns || []) a2p.set(a.id, a.patient_id);
-        for (const s of supplies || []) {
-          const pid = a2p.get(s.assignment_id);
-          if (pid && !psl.has(pid)) psl.set(pid, s.tarikh_dibekal);
+        for (let i = 0; i < allAssignIds.length; i += BATCH_SIZE) {
+          const batch = allAssignIds.slice(i, i + BATCH_SIZE);
+          const { data: supplies } = await supabase
+            .from("supply_records")
+            .select("assignment_id, tarikh_dibekal")
+            .in("assignment_id", batch)
+            .order("tarikh_dibekal", { ascending: false });
+          for (const s of supplies || []) {
+            const pid = a2p.get(s.assignment_id);
+            if (pid && !psl.has(pid)) psl.set(pid, s.tarikh_dibekal);
+          }
         }
       }
 
