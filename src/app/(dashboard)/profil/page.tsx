@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { motion } from "framer-motion";
 import { ArrowLeft, User, Lock, KeyRound, Shield, Save, Activity, RefreshCw } from "lucide-react";
+import { toTitleCase } from "@/lib/utils";
 
 export default function ProfilePage() {
   const { profile, refreshProfile } = useAuth();
@@ -56,8 +57,8 @@ export default function ProfilePage() {
 
   const inputStyle: React.CSSProperties = {
     width: "100%", height: "42px", padding: "0 14px", borderRadius: "10px",
-    border: "1.5px solid rgba(255, 255, 255, 0.1)", background: "rgba(255, 255, 255, 0.06)",
-    color: "#ffffff", fontSize: "13px", fontFamily: "inherit", outline: "none",
+    border: "1.5px solid rgba(24, 119, 242, 0.12)", background: "rgba(24, 119, 242, 0.03)",
+    color: "#1c1e21", fontSize: "13px", fontWeight: 500, fontFamily: "inherit", outline: "none",
     transition: "all 0.2s ease", boxSizing: "border-box" as const,
   };
 
@@ -110,7 +111,7 @@ export default function ProfilePage() {
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                     <div>
                       <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "block" }}>Nama</Label>
-                      <Input value={editData.nama} onChange={e => setEditData({ ...editData, nama: e.target.value })} style={inputStyle} />
+                      <Input value={editData.nama} onChange={e => setEditData({ ...editData, nama: e.target.value })} onBlur={e => setEditData({ ...editData, nama: toTitleCase(e.target.value.trim()) })} style={inputStyle} />
                     </div>
                     <div>
                       <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "block" }}>Nama Pengguna</Label>
@@ -119,10 +120,10 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "block" }}>Jawatan</Label>
-                    <Input value={editData.jawatan} onChange={e => setEditData({ ...editData, jawatan: e.target.value })} style={inputStyle} />
+                    <Input value={editData.jawatan} onChange={e => setEditData({ ...editData, jawatan: e.target.value })} onBlur={e => setEditData({ ...editData, jawatan: toTitleCase(e.target.value.trim()) })} style={inputStyle} />
                   </div>
                   <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
-                    <button onClick={() => updateProfileMutation.mutate(editData)} disabled={updateProfileMutation.isPending}
+                    <button onClick={() => updateProfileMutation.mutate({ ...editData, nama: toTitleCase(editData.nama.trim()), jawatan: editData.jawatan ? toTitleCase(editData.jawatan.trim()) : "" })} disabled={updateProfileMutation.isPending}
                       style={{ display: "flex", alignItems: "center", gap: "6px", padding: "9px 18px", borderRadius: "10px", border: "none", background: "linear-gradient(135deg, #22c55e, #16a34a)", color: "#fff", fontSize: "13px", fontWeight: 600, fontFamily: "inherit", cursor: "pointer", opacity: updateProfileMutation.isPending ? 0.7 : 1, boxShadow: "0 4px 12px rgba(34, 197, 94, 0.25)" }}>
                       {updateProfileMutation.isPending ? <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><RefreshCw size={14} style={{ animation: "spin 1s linear infinite" }} /> Menyimpan...</span> : <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><Save size={14} /> Simpan</span>}
                     </button>
