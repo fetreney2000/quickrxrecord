@@ -227,7 +227,7 @@ export default function ItemDetailPage() {
     if (!filterDateFrom) {
       const klDate = getKLDate();
       const kl = new Date(klDate);
-      const start = new Date(kl.getFullYear(), kl.getMonth(), 1).toISOString().split("T")[0];
+      const start = `${kl.getFullYear()}-${String(kl.getMonth() + 1).padStart(2, "0")}-01`;
       setFilterDateFrom(start);
       setFilterDateTo(klDate);
     }
@@ -839,7 +839,7 @@ export default function ItemDetailPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button variant="ghost" size="sm" className="h-8" onClick={() => { const klDate = getKLDate(); const kl = new Date(klDate); const start = new Date(kl.getFullYear(), kl.getMonth(), 1).toISOString().split("T")[0]; setFilterDateFrom(start); setFilterDateTo(klDate); setFilterPatient(""); setFilterStaff(""); }}>
+            <Button variant="ghost" size="sm" className="h-8" onClick={() => { const klDate = getKLDate(); const kl = new Date(klDate); const start = `${kl.getFullYear()}-${String(kl.getMonth() + 1).padStart(2, "0")}-01`; setFilterDateFrom(start); setFilterDateTo(klDate); setFilterPatient(""); setFilterStaff(""); }}>
               <X className="h-3 w-3 mr-1" /> Reset
             </Button>
           </div>

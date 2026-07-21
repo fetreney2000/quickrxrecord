@@ -32,8 +32,8 @@ export function toKLTimestamp(date?: Date): string {
 
 export function getKLDate(): string {
   const now = new Date();
-  const kl = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kuala_Lumpur" }));
-  return kl.toISOString().split("T")[0];
+  const fmt = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kuala_Lumpur", year: "numeric", month: "2-digit", day: "2-digit" });
+  return fmt.format(now);
 }
 
 export function toTitleCase(str: string): string {
