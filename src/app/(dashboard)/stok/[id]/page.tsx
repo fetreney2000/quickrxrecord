@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getKLDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { ArrowLeft, Plus, Edit, Trash2, History, Download, FileSpreadsheet, FileText, Search, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Package, Users, Activity, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 import { setNavSource } from "@/components/ui/breadcrumb";
@@ -225,11 +225,11 @@ export default function ItemDetailPage() {
 
   useEffect(() => {
     if (!filterDateFrom) {
-      const d = new Date();
-      const start = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split("T")[0];
-      const today = d.toISOString().split("T")[0];
+      const klDate = getKLDate();
+      const kl = new Date(klDate);
+      const start = new Date(kl.getFullYear(), kl.getMonth(), 1).toISOString().split("T")[0];
       setFilterDateFrom(start);
-      setFilterDateTo(today);
+      setFilterDateTo(klDate);
     }
   }, [filterDateFrom]);
 
@@ -839,7 +839,7 @@ export default function ItemDetailPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button variant="ghost" size="sm" className="h-8" onClick={() => { const d = new Date(); d.setDate(1); const start = d.toISOString().split("T")[0]; const today = new Date().toISOString().split("T")[0]; setFilterDateFrom(start); setFilterDateTo(today); setFilterPatient(""); setFilterStaff(""); }}>
+            <Button variant="ghost" size="sm" className="h-8" onClick={() => { const klDate = getKLDate(); const kl = new Date(klDate); const start = new Date(kl.getFullYear(), kl.getMonth(), 1).toISOString().split("T")[0]; setFilterDateFrom(start); setFilterDateTo(klDate); setFilterPatient(""); setFilterStaff(""); }}>
               <X className="h-3 w-3 mr-1" /> Reset
             </Button>
           </div>
