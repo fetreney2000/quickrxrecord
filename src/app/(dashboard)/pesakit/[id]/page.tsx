@@ -314,12 +314,12 @@ export default function PatientDetailPage() {
                         </div>
                       ))}
                     </div>
-                    <div className="space-y-2"><Label>Dos</Label><Input value={newAssignment.dos} onChange={e => setNewAssignment({ ...newAssignment, dos: e.target.value })} /></div>
-                    <div className="space-y-2"><Label>Catatan</Label><Input value={newAssignment.catatan_penggunaan} onChange={e => setNewAssignment({ ...newAssignment, catatan_penggunaan: e.target.value })} /></div>
+                    <div className="space-y-2"><Label>Dos</Label><Input value={newAssignment.dos} onChange={e => setNewAssignment({ ...newAssignment, dos: e.target.value })} onBlur={e => setNewAssignment({ ...newAssignment, dos: e.target.value.trim().toUpperCase() })} /></div>
+                    <div className="space-y-2"><Label>Catatan</Label><Input value={newAssignment.catatan_penggunaan} onChange={e => setNewAssignment({ ...newAssignment, catatan_penggunaan: e.target.value })} onBlur={e => setNewAssignment({ ...newAssignment, catatan_penggunaan: e.target.value.trim() })} /></div>
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setOpenAddAssignment(false)}>Batal</Button>
-                    <Button onClick={() => { if (selectedItemId) addAssignmentMutation.mutate({ ...newAssignment, item_id: selectedItemId }); }} disabled={!selectedItemId || addAssignmentMutation.isPending}>
+                    <Button onClick={() => { if (selectedItemId) addAssignmentMutation.mutate({ ...newAssignment, dos: newAssignment.dos.trim().toUpperCase(), catatan_penggunaan: newAssignment.catatan_penggunaan.trim(), item_id: selectedItemId }); }} disabled={!selectedItemId || addAssignmentMutation.isPending}>
                       {addAssignmentMutation.isPending ? "Menambah..." : "Simpan"}
                     </Button>
                   </DialogFooter>
