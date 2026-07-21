@@ -170,7 +170,14 @@ export default function PesakitPage() {
               <DialogFooter style={{ gap: "8px", marginTop: "8px" }}>
                 <button onClick={() => setOpenAdd(false)} style={{ padding: "8px 16px", borderRadius: "10px", border: "1.5px solid #dddfe2", background: "#ffffff", color: "#1c1e21", fontSize: "13px", fontWeight: 500, fontFamily: "inherit", cursor: "pointer" }}>Batal</button>
                 <button onClick={() => {
-                  const trimmed = Object.fromEntries(Object.entries(newPatient).map(([k, v]) => [k, typeof v === "string" ? v.trim() : v]));
+                  const trimmed = {
+                    nama: newPatient.nama.trim(),
+                    nombor_kad_pengenalan: newPatient.nombor_kad_pengenalan.trim(),
+                    nombor_pendaftaran_hospital: newPatient.nombor_pendaftaran_hospital.trim(),
+                    nombor_telefon: newPatient.nombor_telefon.trim(),
+                    alamat: newPatient.alamat.trim(),
+                    catatan: newPatient.catatan.trim(),
+                  };
                   addPatientMutation.mutate({
                     nama: toTitleCase(trimmed.nama),
                     nombor_kad_pengenalan: formatMyKad(trimmed.nombor_kad_pengenalan),
