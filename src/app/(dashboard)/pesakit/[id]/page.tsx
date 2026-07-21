@@ -382,7 +382,7 @@ export default function PatientDetailPage() {
                           </div>
 
                           {/* Dose History */}
-                          <FoldableCard title={`Sejarah Dos (${doseHistory?.length || 0})`} defaultOpen={false}>
+                          <FoldableCard title={<span className="flex items-center gap-2">Sejarah Dos <Badge variant="secondary" className="text-[10px]">{doseHistory?.length || 0}</Badge></span>} defaultOpen={false}>
                             {sortedDoseHistory.length > 0 ? (
                               <div style={{ overflowX: "auto" }}>
                                 <Table>
@@ -413,7 +413,7 @@ export default function PatientDetailPage() {
 
                           {/* Supply History */}
                           <div style={{ marginTop: "8px" }}>
-                            <FoldableCard title={`Sejarah Bekalan (${supplyHistory?.length || 0})`} defaultOpen={false}>
+                            <FoldableCard title={<span className="flex items-center gap-2">Sejarah Bekalan <Badge variant="secondary" className="text-[10px]">{supplyHistory?.length || 0}</Badge></span>} defaultOpen={false}>
                               {sortedSupplyHistory.length > 0 ? (
                                 <div style={{ overflowX: "auto" }}>
                                 <Table>
