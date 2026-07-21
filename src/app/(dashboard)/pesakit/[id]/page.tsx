@@ -483,11 +483,11 @@ export default function PatientDetailPage() {
           </DialogHeader>
           <div className="space-y-2 py-2">
             <Label>Sebab Tamat</Label>
-            <Input value={stopReason} onChange={e => setStopReason(e.target.value)} />
+            <Input value={stopReason} onChange={e => setStopReason(e.target.value)} onBlur={e => setStopReason(e.target.value.trim())} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenStopAssign(null)}>Batal</Button>
-            <Button variant="destructive" onClick={() => { if (openStopAssign && stopReason) stopAssignmentMutation.mutate({ assignmentId: openStopAssign, sebab: stopReason }); }} disabled={!stopReason || stopAssignmentMutation.isPending}>
+            <Button variant="destructive" onClick={() => { if (openStopAssign && stopReason.trim()) stopAssignmentMutation.mutate({ assignmentId: openStopAssign, sebab: stopReason.trim() }); }} disabled={!stopReason?.trim() || stopAssignmentMutation.isPending}>
               {stopAssignmentMutation.isPending ? "Menamatkan..." : "Ya, Tamatkan"}
             </Button>
           </DialogFooter>
@@ -548,12 +548,12 @@ export default function PatientDetailPage() {
             <DialogDescription>Masukkan dos baharu untuk pesakit ini.</DialogDescription>
           </DialogHeader>
             <div className="space-y-4 py-2">
-            <div className="space-y-2"><Label>Dos Baru</Label><Input value={doseUpdate.dos} onChange={e => setDoseUpdate({ ...doseUpdate, dos: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Catatan</Label><Input value={doseUpdate.catatan} onChange={e => setDoseUpdate({ ...doseUpdate, catatan: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Dos Baru</Label><Input value={doseUpdate.dos} onChange={e => setDoseUpdate({ ...doseUpdate, dos: e.target.value })} onBlur={e => setDoseUpdate({ ...doseUpdate, dos: e.target.value.trim().toUpperCase() })} /></div>
+            <div className="space-y-2"><Label>Catatan</Label><Input value={doseUpdate.catatan} onChange={e => setDoseUpdate({ ...doseUpdate, catatan: e.target.value })} onBlur={e => setDoseUpdate({ ...doseUpdate, catatan: e.target.value.trim() })} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenUpdateDose(null)}>Batal</Button>
-            <Button onClick={() => { if (openUpdateDose) updateDoseMutation.mutate({ assignmentId: openUpdateDose, dos: doseUpdate.dos }); }} disabled={updateDoseMutation.isPending}>
+            <Button onClick={() => { if (openUpdateDose) updateDoseMutation.mutate({ assignmentId: openUpdateDose, dos: doseUpdate.dos.trim().toUpperCase() }); }} disabled={updateDoseMutation.isPending}>
               {updateDoseMutation.isPending ? "Menyimpan..." : "Simpan"}
             </Button>
           </DialogFooter>
@@ -568,7 +568,7 @@ export default function PatientDetailPage() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2"><Label>Dos Semasa</Label><Input value={currentAssignment?.dos || "-"} readOnly className="opacity-60" /></div>
-            <div className="space-y-2"><Label>Kuantiti</Label><Input type="number" value={supplyData.kuantiti} onChange={e => setSupplyData({ ...supplyData, kuantiti: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Kuantiti</Label><Input type="number" value={supplyData.kuantiti} onChange={e => setSupplyData({ ...supplyData, kuantiti: e.target.value })} onBlur={e => setSupplyData({ ...supplyData, kuantiti: e.target.value.trim() })} /></div>
             <div className="space-y-2"><Label>Tempoh Dibekal</Label>
               <div className="flex gap-2">
                 <Input type="number" value={supplyData.tempoh_nilai} onChange={e => setSupplyData({ ...supplyData, tempoh_nilai: e.target.value })} className="w-24" />
@@ -582,11 +582,11 @@ export default function PatientDetailPage() {
                 </Select>
               </div>
             </div>
-            <div className="space-y-2"><Label>Catatan Bekalan</Label><Input value={supplyData.catatan_bekalan} onChange={e => setSupplyData({ ...supplyData, catatan_bekalan: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Catatan Bekalan</Label><Input value={supplyData.catatan_bekalan} onChange={e => setSupplyData({ ...supplyData, catatan_bekalan: e.target.value })} onBlur={e => setSupplyData({ ...supplyData, catatan_bekalan: e.target.value.trim() })} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenSupply(null)}>Batal</Button>
-            <Button onClick={() => { if (openSupply && currentAssignment) supplyMutation.mutate({ ...supplyData, assignment_id: openSupply, dos: currentAssignment.dos || "" }); }} disabled={supplyMutation.isPending}>
+            <Button onClick={() => { if (openSupply && currentAssignment) supplyMutation.mutate({ ...supplyData, kuantiti: supplyData.kuantiti.trim(), catatan_bekalan: supplyData.catatan_bekalan.trim(), assignment_id: openSupply, dos: currentAssignment.dos || "" }); }} disabled={supplyMutation.isPending}>
               {supplyMutation.isPending ? "Membekal..." : "Bekal"}
             </Button>
           </DialogFooter>
