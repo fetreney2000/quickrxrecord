@@ -108,6 +108,7 @@ export default function PatientDetailPage() {
   const formsMap = useMemo(() => { const map = new Map<string, string>(); forms?.forEach(f => map.set(f.id, f.nama)); return map; }, [forms]);
   const { data: items } = useQuery({ queryKey: ["items-with-stats"], queryFn: async () => { const { data, error } = await supabase.from("items").select("id, kod_item, nama_item, kekuatan, id_bentuk, kuota").eq("aktif", true).order("nama_item"); if (error) throw error; const itemsList = data as any[]; const { data: counts } = await supabase.from("patient_item_assignments").select("item_id").eq("aktif", true); const m: Record<string, number> = {}; for (const c of (counts || [])) m[c.item_id] = (m[c.item_id] || 0) + 1; return itemsList.map(item => ({ ...item, patient_count: m[item.id] || 0, baki_kuota: item.kuota != null ? Math.max(0, item.kuota - (m[item.id] || 0)) : null })); } });
   const getItemDisplayName = useCallback((item: any) => { if (!item) return ""; const f = formsMap.get(item.id_bentuk) || ""; return [item.nama_item, item.kekuatan, f].filter(Boolean).join(" "); }, [formsMap]);
+  const activeItemIds = useMemo(() => new Set((assignments || []).filter((a: any) => a.aktif).map((a: any) => a.item_id)), [assignments]);
   const { data: doseHistory } = useQuery({ queryKey: ["dose-history", expandedAssignment], queryFn: async () => { if (!expandedAssignment) return []; const { data: d } = await supabase.from("dose_history").select("*, staff:profiles!dikemaskini_oleh(nama)").eq("assignment_id", expandedAssignment).order("tarikh", { ascending: false }); return d || []; }, enabled: !!expandedAssignment });
   const { data: supplyHistory } = useQuery({ queryKey: ["supply-history", expandedAssignment], queryFn: async () => { if (!expandedAssignment) return []; const { data, error } = await supabase.from("supply_records").select("*, batch:item_batches(nombor_kelompok), staff:profiles!kakitangan_pembekal(nama)").eq("assignment_id", expandedAssignment).order("created_at", { ascending: false }); if (error) throw error; return data as any[]; }, enabled: !!expandedAssignment });
   const { data: durations } = useQuery({ queryKey: ["supply_durations"], queryFn: async () => { const { data } = await supabase.from("supply_durations").select("*").order("nama"); return (data || []) as { nama: string }[]; }, staleTime: 300000 });
@@ -307,19 +308,24 @@ export default function PatientDetailPage() {
                       <Input type="search" value={itemSearch} onChange={e => setItemSearch(e.target.value)} className="pl-8" />
                     </div>
                     <div className="max-h-[240px] overflow-auto rounded-lg border">
-                      {(items || []).filter((i: any) => !itemSearch || i.nama_item.toLowerCase().includes(itemSearch.toLowerCase())).map((item: any) => (
-                        <div key={item.id} onClick={() => setSelectedItemId(selectedItemId === item.id ? null : item.id)} className="p-3 border-b last:border-b-0 cursor-pointer transition-colors" style={{ background: selectedItemId === item.id ? "rgba(24, 119, 242, 0.06)" : "transparent" }}>
+                      {(items || []).filter((i: any) => !itemSearch || i.nama_item.toLowerCase().includes(itemSearch.toLowerCase())).map((item: any) => {
+                        const alreadyActive = activeItemIds.has(item.id);
+                        return (
+                        <div key={item.id} onClick={() => { if (!alreadyActive) setSelectedItemId(selectedItemId === item.id ? null : item.id); }} className="p-3 border-b last:border-b-0 cursor-pointer transition-colors" style={{ background: selectedItemId === item.id ? "rgba(24, 119, 242, 0.06)" : "transparent", opacity: alreadyActive ? 0.5 : 1 }}>
                           <div className="font-medium text-sm">{item.nama_item} {item.kekuatan}</div>
-                          <div className="text-xs text-muted-foreground">{item.kod_item} | Baki: {item.baki_kuota ?? "-"}</div>
+                          <div className="text-xs text-muted-foreground">{item.kod_item} | Baki: {item.baki_kuota ?? "-"}{alreadyActive ? " | Sedang Aktif" : ""}</div>
                         </div>
-                      ))}
+                      );})}
                     </div>
+                    {selectedItemId && activeItemIds.has(selectedItemId) && (
+                      <p className="text-xs text-destructive">Item ini sudah didaftarkan dan sedang aktif untuk pesakit ini. Tamatkan tugasan sedia ada sebelum menambah semula.</p>
+                    )}
                     <div className="space-y-2"><Label>Dos</Label><Input value={newAssignment.dos} onChange={e => setNewAssignment({ ...newAssignment, dos: e.target.value })} onBlur={e => setNewAssignment({ ...newAssignment, dos: e.target.value.trim().toUpperCase() })} /></div>
                     <div className="space-y-2"><Label>Catatan</Label><Input value={newAssignment.catatan_penggunaan} onChange={e => setNewAssignment({ ...newAssignment, catatan_penggunaan: e.target.value })} onBlur={e => setNewAssignment({ ...newAssignment, catatan_penggunaan: e.target.value.trim() })} /></div>
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setOpenAddAssignment(false)}>Batal</Button>
-                    <Button onClick={() => { if (selectedItemId) addAssignmentMutation.mutate({ ...newAssignment, dos: newAssignment.dos.trim().toUpperCase(), catatan_penggunaan: newAssignment.catatan_penggunaan.trim(), item_id: selectedItemId }); }} disabled={!selectedItemId || addAssignmentMutation.isPending}>
+                    <Button onClick={() => { if (selectedItemId) addAssignmentMutation.mutate({ ...newAssignment, dos: newAssignment.dos.trim().toUpperCase(), catatan_penggunaan: newAssignment.catatan_penggunaan.trim(), item_id: selectedItemId }); }} disabled={!selectedItemId || addAssignmentMutation.isPending || (selectedItemId ? activeItemIds.has(selectedItemId) : false)}>
                       {addAssignmentMutation.isPending ? "Menambah..." : "Simpan"}
                     </Button>
                   </DialogFooter>
