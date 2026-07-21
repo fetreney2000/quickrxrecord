@@ -37,14 +37,13 @@ function SortableHeader({ label, sortKey, currentSort, onSort }: { label: string
   );
 }
 
-function FoldableCard({ title, count, defaultOpen = true, children, headerExtra }: { title: string; count?: number; defaultOpen?: boolean; children: React.ReactNode; headerExtra?: React.ReactNode }) {
+function FoldableCard({ title, defaultOpen = true, children, headerExtra }: { title: React.ReactNode; defaultOpen?: boolean; children: React.ReactNode; headerExtra?: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between cursor-pointer" onClick={() => setOpen(!open)}>
         <CardTitle className="flex items-center gap-2 text-base">
           {title}
-          {count !== undefined && <Badge variant="secondary" className="text-[10px]">{count}</Badge>}
         </CardTitle>
         <div className="flex items-center gap-2">
           {headerExtra}
@@ -148,6 +147,7 @@ export default function PatientDetailPage() {
   const filteredItems = (items || []).filter((item: any) => !itemSearch || item.nama_item.toLowerCase().includes(itemSearch.toLowerCase()));
   const totalCount = assignments?.length || 0;
   const activeCount = useMemo(() => (assignments || []).filter(a => a.aktif).length, [assignments]);
+  const inactiveCount = totalCount - activeCount;
 
   if (patientLoading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "50vh" }}>
@@ -296,7 +296,7 @@ export default function PatientDetailPage() {
       {/* 2. Item Assignments Card */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}>
         <FoldableCard
-          title={`Item Didaftarkan (${activeCount} aktif / ${totalCount} jumlah)`}
+          title={<span className="flex items-center gap-2">Item Didaftarkan <Badge variant="success" className="text-[10px]">{activeCount} Aktif</Badge><span className="text-muted-foreground">|</span><Badge variant="secondary" className="text-[10px]">{inactiveCount} Tidak Aktif</Badge></span>}
           defaultOpen={true}
           headerExtra={
             patient.aktif && canEdit ? (
@@ -382,7 +382,7 @@ export default function PatientDetailPage() {
                           </div>
 
                           {/* Dose History */}
-                          <FoldableCard title="Sejarah Dos" count={doseHistory?.length || 0} defaultOpen={false}>
+                          <FoldableCard title={`Sejarah Dos (${doseHistory?.length || 0})`} defaultOpen={false}>
                             {sortedDoseHistory.length > 0 ? (
                               <div style={{ overflowX: "auto" }}>
                                 <Table>
@@ -413,7 +413,7 @@ export default function PatientDetailPage() {
 
                           {/* Supply History */}
                           <div style={{ marginTop: "8px" }}>
-                            <FoldableCard title="Sejarah Bekalan" count={supplyHistory?.length || 0} defaultOpen={false}>
+                            <FoldableCard title={`Sejarah Bekalan (${supplyHistory?.length || 0})`} defaultOpen={false}>
                               {sortedSupplyHistory.length > 0 ? (
                                 <div style={{ overflowX: "auto" }}>
                                 <Table>
