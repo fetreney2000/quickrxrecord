@@ -21,7 +21,7 @@ import {
   IdCard, Phone, RefreshCw, Users, ArrowRight,
   Activity, Calendar,
 } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { formatDate, toTitleCase, formatMyKad, formatPhone } from "@/lib/utils";
 import { toast } from "sonner";
 import { setNavSource } from "@/components/ui/breadcrumb";
 import type { Patient } from "@/types";
@@ -142,34 +142,45 @@ export default function PesakitPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginTop: "8px" }}>
                 <div>
                   <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><User size={12} /> Nama *</Label>
-                  <Input value={newPatient.nama} onChange={(e) => setNewPatient({ ...newPatient, nama: e.target.value })} style={inputStyle} placeholder="Nama penuh pesakit" />
+                  <Input value={newPatient.nama} onChange={(e) => setNewPatient({ ...newPatient, nama: e.target.value })} onBlur={(e) => setNewPatient({ ...newPatient, nama: toTitleCase(e.target.value.trim()) })} style={inputStyle} placeholder="Nama penuh pesakit" />
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                   <div>
                     <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><IdCard size={12} /> No. KP</Label>
-                    <Input value={newPatient.nombor_kad_pengenalan} onChange={(e) => setNewPatient({ ...newPatient, nombor_kad_pengenalan: e.target.value })} style={inputStyle} placeholder="000101-01-0001" />
+                    <Input value={newPatient.nombor_kad_pengenalan} onChange={(e) => setNewPatient({ ...newPatient, nombor_kad_pengenalan: e.target.value })} onBlur={(e) => setNewPatient({ ...newPatient, nombor_kad_pengenalan: formatMyKad(e.target.value.trim()) })} style={inputStyle} placeholder="000101-01-0001" />
                   </div>
                   <div>
                     <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><Activity size={12} /> No. Pendaftaran Hospital</Label>
-                    <Input value={newPatient.nombor_pendaftaran_hospital} onChange={(e) => setNewPatient({ ...newPatient, nombor_pendaftaran_hospital: e.target.value })} style={inputStyle} />
+                    <Input value={newPatient.nombor_pendaftaran_hospital} onChange={(e) => setNewPatient({ ...newPatient, nombor_pendaftaran_hospital: e.target.value })} onBlur={(e) => setNewPatient({ ...newPatient, nombor_pendaftaran_hospital: e.target.value.trim().toUpperCase() })} style={inputStyle} />
                   </div>
                 </div>
                 <div>
                   <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><Phone size={12} /> No. Telefon</Label>
-                  <Input value={newPatient.nombor_telefon} onChange={(e) => setNewPatient({ ...newPatient, nombor_telefon: e.target.value })} style={inputStyle} placeholder="012-3456789" />
+                  <Input value={newPatient.nombor_telefon} onChange={(e) => setNewPatient({ ...newPatient, nombor_telefon: e.target.value })} onBlur={(e) => setNewPatient({ ...newPatient, nombor_telefon: formatPhone(e.target.value.trim()) })} style={inputStyle} placeholder="012-3456789" />
                 </div>
                 <div>
                   <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px" }}>Alamat</Label>
-                  <Textarea value={newPatient.alamat} onChange={(e) => setNewPatient({ ...newPatient, alamat: e.target.value })} style={{ ...inputStyle, height: "72px", padding: "10px 14px", resize: "vertical" as const }} />
+                  <Textarea value={newPatient.alamat} onChange={(e) => setNewPatient({ ...newPatient, alamat: e.target.value })} onBlur={(e) => setNewPatient({ ...newPatient, alamat: toTitleCase(e.target.value.trim()) })} style={{ ...inputStyle, height: "72px", padding: "10px 14px", resize: "vertical" as const }} />
                 </div>
                 <div>
                   <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px" }}>Catatan</Label>
-                  <Textarea value={newPatient.catatan} onChange={(e) => setNewPatient({ ...newPatient, catatan: e.target.value })} style={{ ...inputStyle, height: "72px", padding: "10px 14px", resize: "vertical" as const }} />
+                  <Textarea value={newPatient.catatan} onChange={(e) => setNewPatient({ ...newPatient, catatan: e.target.value })} onBlur={(e) => setNewPatient({ ...newPatient, catatan: e.target.value.trim() })} style={{ ...inputStyle, height: "72px", padding: "10px 14px", resize: "vertical" as const }} />
                 </div>
               </div>
               <DialogFooter style={{ gap: "8px", marginTop: "8px" }}>
                 <button onClick={() => setOpenAdd(false)} style={{ padding: "8px 16px", borderRadius: "10px", border: "1.5px solid #dddfe2", background: "#ffffff", color: "#1c1e21", fontSize: "13px", fontWeight: 500, fontFamily: "inherit", cursor: "pointer" }}>Batal</button>
-                <button onClick={() => addPatientMutation.mutate(newPatient)} disabled={!newPatient.nama || addPatientMutation.isPending}
+                <button onClick={() => {
+                  const trimmed = Object.fromEntries(Object.entries(newPatient).map(([k, v]) => [k, typeof v === "string" ? v.trim() : v]));
+                  addPatientMutation.mutate({
+                    nama: toTitleCase(trimmed.nama),
+                    nombor_kad_pengenalan: formatMyKad(trimmed.nombor_kad_pengenalan),
+                    nombor_pendaftaran_hospital: trimmed.nombor_pendaftaran_hospital.toUpperCase(),
+                    nombor_telefon: formatPhone(trimmed.nombor_telefon),
+                    alamat: toTitleCase(trimmed.alamat),
+                    catatan: trimmed.catatan,
+                  });
+                  setNewPatient(trimmed);
+                }} disabled={!newPatient.nama || addPatientMutation.isPending}
                   style={{ padding: "8px 16px", borderRadius: "10px", border: "none", background: "linear-gradient(135deg, #1877f2, #0d5bd4)", color: "#ffffff", fontSize: "13px", fontWeight: 600, fontFamily: "inherit", cursor: "pointer", opacity: (!newPatient.nama || addPatientMutation.isPending) ? 0.6 : 1 }}>
                   {addPatientMutation.isPending ? <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><RefreshCw size={14} style={{ animation: "spin 1s linear infinite" }} /> Menyimpan...</span> : "Simpan"}
                 </button>
