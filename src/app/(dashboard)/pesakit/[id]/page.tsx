@@ -296,8 +296,7 @@ export default function PatientDetailPage() {
       {/* 2. Item Assignments Card */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}>
         <FoldableCard
-          title="Item Didaftarkan"
-          count={totalCount}
+          title={`Item Didaftarkan (${activeCount} aktif / ${totalCount} jumlah)`}
           defaultOpen={true}
           headerExtra={
             patient.aktif && canEdit ? (
