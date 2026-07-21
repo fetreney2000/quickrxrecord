@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { toTitleCase } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Edit, Trash2, UserPlus, KeyRound, ChevronDown, ChevronUp, ShieldAlert, UserCheck, UserX, Lock, AlertTriangle, BellRing, CheckCircle2, XCircle, History, RefreshCw, Users, MailQuestion, BookOpen } from "lucide-react";
@@ -199,10 +200,10 @@ export default function PengurusanPage() {
           <DialogContent>
             <DialogHeader><DialogTitle>Tambah Pengguna Baharu</DialogTitle><DialogDescription>Cipta akaun pengguna baharu untuk sistem.</DialogDescription></DialogHeader>
             <div className="space-y-4">
-              <div className="space-y-2"><Label>Nama *</Label><Input value={newUser.nama} onChange={e => setNewUser({ ...newUser, nama: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Nama *</Label><Input value={newUser.nama} onChange={e => setNewUser({ ...newUser, nama: e.target.value })} onBlur={e => setNewUser({ ...newUser, nama: toTitleCase(e.target.value.trim()) })} /></div>
               <div className="space-y-2"><Label>Nama Pengguna *</Label><Input value={newUser.nama_pengguna} onChange={e => setNewUser({ ...newUser, nama_pengguna: e.target.value })} /></div>
               <div className="space-y-2"><Label>Kata Laluan *</Label><Input type="password" value={newUser.kata_laluan} onChange={e => setNewUser({ ...newUser, kata_laluan: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Jawatan</Label><Input value={newUser.jawatan} onChange={e => setNewUser({ ...newUser, jawatan: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Jawatan</Label><Input value={newUser.jawatan} onChange={e => setNewUser({ ...newUser, jawatan: e.target.value })} onBlur={e => setNewUser({ ...newUser, jawatan: toTitleCase(e.target.value.trim()) })} /></div>
               <div className="space-y-2"><Label>Peranan *</Label>
                 <Select value={newUser.peranan} onValueChange={v => setNewUser({ ...newUser, peranan: v as Peranan })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -212,7 +213,7 @@ export default function PengurusanPage() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpenAdd(false)}>Batal</Button>
-              <Button onClick={() => addUserMutation.mutate(newUser)} disabled={!newUser.nama || !newUser.nama_pengguna || !newUser.kata_laluan || addUserMutation.isPending}>
+              <Button onClick={() => addUserMutation.mutate({ ...newUser, nama: toTitleCase(newUser.nama.trim()), jawatan: newUser.jawatan ? toTitleCase(newUser.jawatan.trim()) : "" })} disabled={!newUser.nama?.trim() || !newUser.nama_pengguna?.trim() || !newUser.kata_laluan || addUserMutation.isPending}>
                 {addUserMutation.isPending ? "Menyimpan..." : "Simpan"}
               </Button>
             </DialogFooter>
@@ -293,12 +294,12 @@ export default function PengurusanPage() {
                                     <motion.div key="edit" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.15 }} className="space-y-4 border rounded-lg p-4 bg-white">
                                       <p className="text-sm font-semibold mb-2">✏️ Kemaskini Maklumat Pengguna</p>
                                       <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2"><Label className="text-xs">Nama</Label><Input value={editData.nama || ""} onChange={e => setEditData({ ...editData, nama: e.target.value })} className="h-8 text-sm" /></div>
+                                        <div className="space-y-2"><Label className="text-xs">Nama</Label><Input value={editData.nama || ""} onChange={e => setEditData({ ...editData, nama: e.target.value })} onBlur={e => setEditData({ ...editData, nama: toTitleCase(e.target.value.trim()) })} className="h-8 text-sm" /></div>
                                         <div className="space-y-2"><Label className="text-xs">Nama Pengguna</Label><Input value={editData.nama_pengguna || ""} onChange={e => setEditData({ ...editData, nama_pengguna: e.target.value })} className="h-8 text-sm" /></div>
-                                        <div className="space-y-2"><Label className="text-xs">Jawatan</Label><Input value={editData.jawatan || ""} onChange={e => setEditData({ ...editData, jawatan: e.target.value })} className="h-8 text-sm" /></div>
+                                        <div className="space-y-2"><Label className="text-xs">Jawatan</Label><Input value={editData.jawatan || ""} onChange={e => setEditData({ ...editData, jawatan: e.target.value })} onBlur={e => setEditData({ ...editData, jawatan: toTitleCase(e.target.value.trim()) })} className="h-8 text-sm" /></div>
                                         <div className="space-y-2"><Label className="text-xs">Peranan</Label><Select value={editData.peranan || user.peranan} onValueChange={v => setEditData({ ...editData, peranan: v as Peranan })}><SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger><SelectContent>{ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent></Select></div>
                                       </div>
-                                      <div className="flex gap-2 justify-end"><Button size="sm" variant="outline" onClick={() => setEditId(null)}>Batal</Button><Button size="sm" onClick={() => updateUserMutation.mutate({ id: user.id, updates: editData, oldNamaPengguna: user.nama_pengguna })} disabled={updateUserMutation.isPending}>{updateUserMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}</Button></div>
+                                      <div className="flex gap-2 justify-end"><Button size="sm" variant="outline" onClick={() => setEditId(null)}>Batal</Button><Button size="sm" onClick={() => updateUserMutation.mutate({ id: user.id, updates: { ...editData, nama: editData.nama ? toTitleCase(editData.nama.trim()) : undefined, jawatan: editData.jawatan != null ? toTitleCase(editData.jawatan.trim()) : undefined }, oldNamaPengguna: user.nama_pengguna })} disabled={updateUserMutation.isPending}>{updateUserMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}</Button></div>
                                     </motion.div>
                                   ) : (
                                     <motion.div key="actions" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.15 }} className="flex flex-wrap gap-2 items-center">

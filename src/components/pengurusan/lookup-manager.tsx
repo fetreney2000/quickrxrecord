@@ -14,6 +14,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { toTitleCase } from "@/lib/utils";
 import { Plus, Edit, Trash2, Package, Pill, CalendarDays } from "lucide-react";
 import type { ItemCategory, ItemForm, SupplyDuration } from "@/types";
 
@@ -141,14 +142,15 @@ export function LookupManager({ type }: LookupManagerProps) {
                 <Input
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
+                  onBlur={e => setNewName(toTitleCase(e.target.value.trim()))}
                   placeholder={`Masukkan nama ${config.label.toLowerCase()}`}
-                  onKeyDown={e => { if (e.key === "Enter" && newName.trim()) addMutation.mutate(newName.trim()); }}
+                  onKeyDown={e => { if (e.key === "Enter" && newName.trim()) addMutation.mutate(toTitleCase(newName.trim())); }}
                 />
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpenAdd(false)}>Batal</Button>
-              <Button onClick={() => addMutation.mutate(newName.trim())} disabled={!newName.trim() || addMutation.isPending}>
+              <Button onClick={() => addMutation.mutate(toTitleCase(newName.trim()))} disabled={!newName.trim() || addMutation.isPending}>
                 {addMutation.isPending ? "Menyimpan..." : "Simpan"}
               </Button>
             </DialogFooter>
@@ -179,10 +181,11 @@ export function LookupManager({ type }: LookupManagerProps) {
                         <Input
                           value={editName}
                           onChange={e => setEditName(e.target.value)}
+                          onBlur={e => setEditName(toTitleCase(e.target.value.trim()))}
                           className="h-8 max-w-xs"
                           onKeyDown={e => {
                             if (e.key === "Enter" && editName.trim()) {
-                              updateMutation.mutate({ id: record.id, nama: editName.trim() });
+                              updateMutation.mutate({ id: record.id, nama: toTitleCase(editName.trim()) });
                             }
                             if (e.key === "Escape") {
                               setEditId(null);
@@ -191,7 +194,7 @@ export function LookupManager({ type }: LookupManagerProps) {
                           }}
                           autoFocus
                         />
-                        <Button size="sm" variant="default" onClick={() => updateMutation.mutate({ id: record.id, nama: editName.trim() })} disabled={!editName.trim() || updateMutation.isPending}>
+                        <Button size="sm" variant="default" onClick={() => updateMutation.mutate({ id: record.id, nama: toTitleCase(editName.trim()) })} disabled={!editName.trim() || updateMutation.isPending}>
                           {updateMutation.isPending ? "..." : "Simpan"}
                         </Button>
                         <Button size="sm" variant="ghost" onClick={() => { setEditId(null); setEditName(""); }}>Batal</Button>
