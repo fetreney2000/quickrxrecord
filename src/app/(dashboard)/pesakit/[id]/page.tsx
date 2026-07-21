@@ -119,6 +119,11 @@ export default function PatientDetailPage() {
   const stopAssignmentMutation = useMutation({ mutationFn: async ({ assignmentId, sebab }: { assignmentId: string; sebab: string }) => { const { error } = await supabase.from("patient_item_assignments").update({ tarikh_tamat_guna: new Date().toISOString().split("T")[0], ditamatkan_oleh: profile?.id, sebab_tamat: sebab, aktif: false }).eq("id", assignmentId); if (error) throw error; }, onSuccess: () => { toast.success("Item ditamatkan."); setOpenStopAssign(null); queryClient.invalidateQueries({ queryKey: ["assignments", id] }); } });
   const updateDoseMutation = useMutation({ mutationFn: async ({ assignmentId, dos }: { assignmentId: string; dos: string }) => { await supabase.from("patient_item_assignments").update({ dos }).eq("id", assignmentId); await supabase.from("dose_history").insert({ assignment_id: assignmentId, tarikh: new Date().toISOString().split("T")[0], dos, aktif: true, dikemaskini_oleh: profile?.id }); }, onSuccess: () => { toast.success("Dos dikemaskini."); setOpenUpdateDose(null); queryClient.invalidateQueries({ queryKey: ["assignments", id] }); queryClient.invalidateQueries({ queryKey: ["dose-history", expandedAssignment] }); } });
   const { data: availableBatches } = useQuery({ queryKey: ["batches", openSupply], queryFn: async () => { if (!openSupply) return []; const a = assignments?.find(x => x.id === openSupply); if (!a) return []; const { data, error } = await supabase.from("item_batches").select("*").eq("item_id", a.item_id).gt("kuantiti", 0).gte("tarikh_luput", new Date().toISOString().split("T")[0]).order("tarikh_luput"); if (error) throw error; return data as ItemBatch[]; }, enabled: !!openSupply });
+  useEffect(() => {
+    if (availableBatches && availableBatches.length > 0 && !supplyData.batch_id) {
+      setSupplyData(prev => ({ ...prev, batch_id: availableBatches[0].id }));
+    }
+  }, [availableBatches]);
   const supplyMutation = useMutation({ mutationFn: async (data: typeof supplyData & { assignment_id: string; dos: string }) => { const res = await fetch("/api/supply", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...data, dos: data.dos, tempoh_dibekal: `${data.tempoh_nilai} ${data.tempoh_unit}`, kakitangan_pembekal: profile?.id }) }); if (!res.ok) { const r = await res.json(); throw new Error(r.error); } }, onSuccess: () => { toast.success("Bekalan direkodkan."); setOpenSupply(null); queryClient.invalidateQueries({ queryKey: ["assignments", id] }); queryClient.invalidateQueries({ queryKey: ["supply-history", expandedAssignment] }); } });
   const deleteSupplyMutation = useMutation({ mutationFn: async (sid: string) => { await supabase.from("supply_records").delete().eq("id", sid); }, onSuccess: () => { toast.success("Rekod dipadam."); setOpenDeleteSupply(null); queryClient.invalidateQueries({ queryKey: ["supply-history", expandedAssignment] }); } });
   const saveEditSupplyMutation = useMutation({ mutationFn: async ({ supplyId, updates }: { supplyId: string; updates: any }) => { await supabase.from("supply_records").update({ dos: updates.dos, tempoh_dibekal: updates.tempoh_dibekal, kuantiti: parseInt(updates.kuantiti), catatan_bekalan: updates.catatan_bekalan || null }).eq("id", supplyId); }, onSuccess: () => { toast.success("Dikemaskini."); setEditSupplyRecord(null); queryClient.invalidateQueries({ queryKey: ["supply-history", expandedAssignment] }); } });
@@ -582,11 +587,30 @@ export default function PatientDetailPage() {
                 </Select>
               </div>
             </div>
+            <div className="space-y-2"><Label>Pilih Kelompok (FEFO)</Label>
+              <div className="max-h-[160px] overflow-auto rounded-lg border">
+                {(!availableBatches || availableBatches.length === 0) ? (
+                  <p className="text-xs text-muted-foreground p-3">Tiada kelompok tersedia.</p>
+                ) : availableBatches.map((b: ItemBatch) => (
+                  <div key={b.id} onClick={() => setSupplyData(prev => ({ ...prev, batch_id: b.id }))}
+                    className="p-2.5 border-b last:border-b-0 cursor-pointer transition-colors flex items-center gap-3"
+                    style={{ background: supplyData.batch_id === b.id ? "rgba(24, 119, 242, 0.06)" : "transparent" }}>
+                    <div style={{ width: 16, height: 16, borderRadius: "50%", border: "2px solid", borderColor: supplyData.batch_id === b.id ? "#1877f2" : "#d1d5db", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      {supplyData.batch_id === b.id && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#1877f2" }} />}
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div className="text-xs font-medium">{b.nombor_kelompok}</div>
+                      <div className="text-[11px] text-muted-foreground">Luput: {formatDate(b.tarikh_luput)} | Stok: {b.kuantiti}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
             <div className="space-y-2"><Label>Catatan Bekalan</Label><Input value={supplyData.catatan_bekalan} onChange={e => setSupplyData({ ...supplyData, catatan_bekalan: e.target.value })} onBlur={e => setSupplyData({ ...supplyData, catatan_bekalan: e.target.value.trim() })} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenSupply(null)}>Batal</Button>
-            <Button onClick={() => { if (openSupply && currentAssignment) supplyMutation.mutate({ ...supplyData, kuantiti: supplyData.kuantiti.trim(), catatan_bekalan: supplyData.catatan_bekalan.trim(), assignment_id: openSupply, dos: currentAssignment.dos || "" }); }} disabled={supplyMutation.isPending}>
+            <Button onClick={() => { if (openSupply && currentAssignment) supplyMutation.mutate({ ...supplyData, kuantiti: supplyData.kuantiti.trim(), catatan_bekalan: supplyData.catatan_bekalan.trim(), assignment_id: openSupply, dos: currentAssignment.dos || "" }); }} disabled={!supplyData.batch_id || supplyMutation.isPending}>
               {supplyMutation.isPending ? "Membekal..." : "Bekal"}
             </Button>
           </DialogFooter>

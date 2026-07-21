@@ -138,6 +138,18 @@ export interface AssignmentWithDetails extends PatientItemAssignment {
   dose_history?: DoseHistory[];
 }
 
+export interface InventoryTransaction {
+  id: string;
+  item_id: string;
+  batch_id: string | null;
+  jenis: "masuk" | "keluar";
+  kuantiti: number;
+  rujukan_id: string | null;
+  rujukan_type: string | null;
+  catatan: string | null;
+  created_at: string;
+}
+
 export interface ItemWithBatches extends Item {
   item_batches?: ItemBatch[];
   kategori?: KategoriUbat;
