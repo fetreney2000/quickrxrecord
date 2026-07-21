@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     const { assignment_id, dos, tempoh_dibekal, kuantiti, batch_id, kakitangan_pembekal, catatan_bekalan } = body;
 
     // Server-side validation
-    if (!assignment_id || !dos || !kuantiti || !kakitangan_pembekal) {
+    if (!assignment_id || !kuantiti || !kakitangan_pembekal) {
       return NextResponse.json(
         { error: "Medan yang diperlukan tidak lengkap." },
         { status: 400 }

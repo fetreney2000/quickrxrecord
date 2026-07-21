@@ -124,7 +124,7 @@ export default function PatientDetailPage() {
       setSupplyData(prev => ({ ...prev, batch_id: availableBatches[0].id }));
     }
   }, [availableBatches]);
-  const supplyMutation = useMutation({ mutationFn: async (data: typeof supplyData & { assignment_id: string; dos: string }) => { const res = await fetch("/api/supply", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...data, dos: data.dos, tempoh_dibekal: `${data.tempoh_nilai} ${data.tempoh_unit}`, kakitangan_pembekal: profile?.id }) }); if (!res.ok) { const r = await res.json(); throw new Error(r.error); } }, onSuccess: () => { toast.success("Bekalan direkodkan."); setOpenSupply(null); queryClient.invalidateQueries({ queryKey: ["assignments", id] }); queryClient.invalidateQueries({ queryKey: ["supply-history", expandedAssignment] }); router.refresh(); } });
+  const supplyMutation = useMutation({ mutationFn: async (data: typeof supplyData & { assignment_id: string; dos: string }) => { const res = await fetch("/api/supply", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...data, dos: data.dos, tempoh_dibekal: `${data.tempoh_nilai} ${data.tempoh_unit}`, kakitangan_pembekal: profile?.id }) }); if (!res.ok) { const r = await res.json(); throw new Error(r.error); } }, onSuccess: () => { toast.success("Bekalan direkodkan."); setOpenSupply(null); queryClient.invalidateQueries({ queryKey: ["assignments", id] }); queryClient.invalidateQueries({ queryKey: ["supply-history", expandedAssignment] }); router.refresh(); }, onError: (e: any) => toast.error(e.message || "Gagal membekal.") });
   const deleteSupplyMutation = useMutation({ mutationFn: async (sid: string) => { await supabase.from("supply_records").delete().eq("id", sid); }, onSuccess: () => { toast.success("Rekod dipadam."); setOpenDeleteSupply(null); queryClient.invalidateQueries({ queryKey: ["supply-history", expandedAssignment] }); router.refresh(); } });
   const saveEditSupplyMutation = useMutation({ mutationFn: async ({ supplyId, updates }: { supplyId: string; updates: any }) => { await supabase.from("supply_records").update({ dos: updates.dos, tempoh_dibekal: updates.tempoh_dibekal, kuantiti: parseInt(updates.kuantiti), catatan_bekalan: updates.catatan_bekalan || null }).eq("id", supplyId); }, onSuccess: () => { toast.success("Dikemaskini."); setEditSupplyRecord(null); queryClient.invalidateQueries({ queryKey: ["supply-history", expandedAssignment] }); router.refresh(); } });
 
@@ -610,7 +610,7 @@ export default function PatientDetailPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenSupply(null)}>Batal</Button>
-            <Button onClick={() => { if (openSupply && currentAssignment) supplyMutation.mutate({ ...supplyData, kuantiti: supplyData.kuantiti.trim(), catatan_bekalan: supplyData.catatan_bekalan.trim(), assignment_id: openSupply, dos: currentAssignment.dos || "" }); }} disabled={!supplyData.batch_id || supplyMutation.isPending}>
+            <Button onClick={() => { if (openSupply && currentAssignment) supplyMutation.mutate({ ...supplyData, kuantiti: supplyData.kuantiti.trim(), catatan_bekalan: supplyData.catatan_bekalan.trim(), assignment_id: openSupply, dos: currentAssignment.dos || "" }); }} disabled={!supplyData.batch_id || !supplyData.kuantiti.trim() || supplyMutation.isPending}>
               {supplyMutation.isPending ? "Membekal..." : "Bekal"}
             </Button>
           </DialogFooter>
