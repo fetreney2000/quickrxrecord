@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { formatDate } from "@/lib/utils";
+import { formatDate, toTitleCase, formatMyKad, formatPhone } from "@/lib/utils";
 import { Breadcrumb, getNavSource } from "@/components/ui/breadcrumb";
 import { ArrowLeft, Plus, Edit, XCircle, Package, Merge, Trash2, ChevronDown, ChevronUp, Activity, Search, ShieldAlert, Calendar, Sparkles, Pill, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { MergeDialog } from "@/components/pesakit/merge-dialog";
@@ -193,14 +193,33 @@ export default function PatientDetailPage() {
           {editMode ? (
             <div className="space-y-4">
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px" }}>
-                <div className="space-y-2"><Label>Nama</Label><Input value={editData.nama || ""} onChange={e => setEditData({ ...editData, nama: e.target.value })} /></div>
-                <div className="space-y-2"><Label>No. KP</Label><Input value={editData.nombor_kad_pengenalan || ""} onChange={e => setEditData({ ...editData, nombor_kad_pengenalan: e.target.value })} /></div>
-                <div className="space-y-2"><Label>No. Telefon</Label><Input value={editData.nombor_telefon || ""} onChange={e => setEditData({ ...editData, nombor_telefon: e.target.value })} /></div>
-                <div className="space-y-2"><Label>No. Hospital</Label><Input value={editData.nombor_pendaftaran_hospital || ""} onChange={e => setEditData({ ...editData, nombor_pendaftaran_hospital: e.target.value })} /></div>
+                <div className="space-y-2"><Label>Nama</Label><Input value={editData.nama || ""} onChange={e => setEditData({ ...editData, nama: e.target.value })} onBlur={e => setEditData({ ...editData, nama: toTitleCase(e.target.value.trim()) })} /></div>
+                <div className="space-y-2"><Label>No. KP</Label><Input value={editData.nombor_kad_pengenalan || ""} onChange={e => setEditData({ ...editData, nombor_kad_pengenalan: e.target.value })} onBlur={e => setEditData({ ...editData, nombor_kad_pengenalan: formatMyKad(e.target.value.trim()) })} /></div>
+                <div className="space-y-2"><Label>No. Telefon</Label><Input value={editData.nombor_telefon || ""} onChange={e => setEditData({ ...editData, nombor_telefon: e.target.value })} onBlur={e => setEditData({ ...editData, nombor_telefon: formatPhone(e.target.value.trim()) })} /></div>
+                <div className="space-y-2"><Label>No. Pendaftaran Hospital</Label><Input value={editData.nombor_pendaftaran_hospital || ""} onChange={e => setEditData({ ...editData, nombor_pendaftaran_hospital: e.target.value })} onBlur={e => setEditData({ ...editData, nombor_pendaftaran_hospital: e.target.value.trim().toUpperCase() })} /></div>
               </div>
-              <div className="space-y-2"><Label>Alamat</Label><Textarea value={editData.alamat || ""} onChange={e => setEditData({ ...editData, alamat: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Alamat</Label><Textarea value={editData.alamat || ""} onChange={e => setEditData({ ...editData, alamat: e.target.value })} onBlur={e => setEditData({ ...editData, alamat: toTitleCase(e.target.value.trim()) })} /></div>
+              <div className="space-y-2"><Label>Catatan</Label><Textarea value={editData.catatan || ""} onChange={e => setEditData({ ...editData, catatan: e.target.value })} onBlur={e => setEditData({ ...editData, catatan: e.target.value.trim() })} /></div>
               <div className="flex gap-2">
-                <Button onClick={() => updatePatientMutation.mutate(editData)} disabled={updatePatientMutation.isPending}>
+                <Button onClick={() => {
+                  const trimmed = {
+                    nama: (editData.nama || "").trim(),
+                    nombor_kad_pengenalan: (editData.nombor_kad_pengenalan || "").trim(),
+                    nombor_pendaftaran_hospital: (editData.nombor_pendaftaran_hospital || "").trim(),
+                    nombor_telefon: (editData.nombor_telefon || "").trim(),
+                    alamat: (editData.alamat || "").trim(),
+                    catatan: (editData.catatan || "").trim(),
+                  };
+                  updatePatientMutation.mutate({
+                    ...trimmed,
+                    nama: toTitleCase(trimmed.nama),
+                    nombor_kad_pengenalan: formatMyKad(trimmed.nombor_kad_pengenalan),
+                    nombor_pendaftaran_hospital: trimmed.nombor_pendaftaran_hospital.toUpperCase(),
+                    nombor_telefon: formatPhone(trimmed.nombor_telefon),
+                    alamat: toTitleCase(trimmed.alamat),
+                  });
+                  setEditData(trimmed);
+                }} disabled={updatePatientMutation.isPending}>
                   {updatePatientMutation.isPending ? "Menyimpan..." : "Simpan"}
                 </Button>
                 <Button variant="outline" onClick={() => setEditMode(false)}>Batal</Button>
