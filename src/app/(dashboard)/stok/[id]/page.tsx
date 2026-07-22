@@ -103,9 +103,10 @@ export default function ItemDetailPage() {
   const [newBatch, setNewBatch] = useState({ nombor_kelompok: "", tarikh_luput: "", kuantiti: "" });
   const [editBatchId, setEditBatchId] = useState<string | null>(null);
   const [editBatchData, setEditBatchData] = useState({ kuantiti: "" });
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const { data: item } = useQuery({
-    queryKey: ["item", id],
+    queryKey: ["item", id, refreshKey],
     queryFn: async () => {
       const { data, error } = await supabase.from("items").select("*").eq("id", id).single();
       if (error) throw error;
@@ -147,7 +148,7 @@ export default function ItemDetailPage() {
   }, [item, currentFormName]);
 
   const { data: batches } = useQuery({
-    queryKey: ["batches", id],
+    queryKey: ["batches", id, refreshKey],
     queryFn: async () => {
       const { data, error } = await supabase.from("item_batches").select("*").eq("item_id", id).order("tarikh_luput");
       if (error) throw error;
@@ -156,7 +157,7 @@ export default function ItemDetailPage() {
   });
 
   const { data: assignedPatients } = useQuery({
-    queryKey: ["item-patients", id],
+    queryKey: ["item-patients", id, refreshKey],
     queryFn: async () => {
       // Get active assignments
       const { data: activeAssigns, error: assgnErr } = await supabase
@@ -234,7 +235,7 @@ export default function ItemDetailPage() {
   }, [filterDateFrom]);
 
   const { data: transactionHistory } = useQuery({
-    queryKey: ["transaction-history", id],
+    queryKey: ["transaction-history", id, refreshKey],
     queryFn: async () => {
       const transactions: any[] = [];
       // Get all assignment IDs for this item
@@ -395,7 +396,7 @@ export default function ItemDetailPage() {
       const { error } = await supabase.from("items").update(updates).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Item dikemaskini."); setEditMode(false); queryClient.invalidateQueries({ queryKey: ["item", id], refetchType: "all" }); queryClient.invalidateQueries({ queryKey: ["items"], refetchType: "all" }); },
+    onSuccess: () => { toast.success("Item dikemaskini."); setEditMode(false); setRefreshKey(k => k + 1); },
     onError: (e: any) => toast.error(e.message || "Gagal mengemaskini item."),
   });
 
@@ -435,10 +436,7 @@ export default function ItemDetailPage() {
       toast.success("Kelompok berjaya ditambah.");
       setOpenAddBatch(false);
       setNewBatch({ nombor_kelompok: "", tarikh_luput: "", kuantiti: "" });
-      queryClient.invalidateQueries({ queryKey: ["batches", id], refetchType: "all" });
-      queryClient.invalidateQueries({ queryKey: ["items"], refetchType: "all" });
-      queryClient.invalidateQueries({ queryKey: ["item", id], refetchType: "all" });
-      queryClient.invalidateQueries({ queryKey: ["transaction-history", id], refetchType: "all" });
+      setRefreshKey(k => k + 1);
     },
     onError: (e: any) => toast.error(e.message || "Gagal menambah kelompok."),
   });
@@ -454,7 +452,7 @@ export default function ItemDetailPage() {
       const { error } = await supabase.from("item_batches").update({ kuantiti }).eq("id", batchId);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Kuantiti kelompok dikemaskini."); setEditBatchId(null); queryClient.invalidateQueries({ queryKey: ["batches", id], refetchType: "all" }); queryClient.invalidateQueries({ queryKey: ["transaction-history", id], refetchType: "all" }); },
+    onSuccess: () => { toast.success("Kuantiti kelompok dikemaskini."); setEditBatchId(null); setRefreshKey(k => k + 1); },
     onError: (e: any) => toast.error(e.message || "Gagal mengemaskini kuantiti."),
   });
 
@@ -470,7 +468,7 @@ export default function ItemDetailPage() {
       });
       if (adjError) throw adjError;
     },
-    onSuccess: () => { toast.success("Stok dilupuskan."); queryClient.invalidateQueries({ queryKey: ["batches", id], refetchType: "all" }); queryClient.invalidateQueries({ queryKey: ["transaction-history", id], refetchType: "all" }); },
+    onSuccess: () => { toast.success("Stok dilupuskan."); setRefreshKey(k => k + 1); },
     onError: (e: any) => toast.error(e.message || "Gagal melupuskan stok."),
   });
 
