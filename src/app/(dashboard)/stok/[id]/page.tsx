@@ -396,7 +396,7 @@ export default function ItemDetailPage() {
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Item dikemaskini."); setEditMode(false); setTimeout(() => { window.location.href = window.location.pathname + "?t=" + Date.now(); }, 300); },
-    onError: () => toast.error("Gagal mengemaskini item."),
+    onError: (e: any) => toast.error(e.message || "Gagal mengemaskini item."),
   });
 
   const addBatchMutation = useMutation({
@@ -442,7 +442,7 @@ export default function ItemDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["transaction-history", id] });
       setTimeout(() => { window.location.href = window.location.pathname + "?t=" + Date.now(); }, 300);
     },
-    onError: () => toast.error("Gagal menambah kelompok."),
+    onError: (e: any) => toast.error(e.message || "Gagal menambah kelompok."),
   });
 
   const updateBatchMutation = useMutation({
@@ -456,7 +456,7 @@ export default function ItemDetailPage() {
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Kuantiti kelompok dikemaskini."); setEditBatchId(null); setTimeout(() => { window.location.href = window.location.pathname + "?t=" + Date.now(); }, 300); },
-    onError: () => toast.error("Gagal mengemaskini kuantiti."),
+    onError: (e: any) => toast.error(e.message || "Gagal mengemaskini kuantiti."),
   });
 
   const deleteBatchMutation = useMutation({
@@ -471,7 +471,7 @@ export default function ItemDetailPage() {
       });
     },
     onSuccess: () => { toast.success("Stok dilupuskan."); setTimeout(() => { window.location.href = window.location.pathname + "?t=" + Date.now(); }, 300); },
-    onError: () => toast.error("Gagal melupuskan stok."),
+    onError: (e: any) => toast.error(e.message || "Gagal melupuskan stok."),
   });
 
   const exportToExcel = async () => {
