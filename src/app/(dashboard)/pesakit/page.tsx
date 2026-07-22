@@ -62,7 +62,7 @@ export default function PesakitPage() {
           .or(filters.join(","))
           .limit(1);
         if (matches && matches.length > 0) {
-          setDuplicateWarning({ type: kp ? "No. KP" : "No. Pendaftaran Hospital", patient: matches[0] as Patient });
+          setDuplicateWarning({ type: kp ? "No. Kad Pengenalan" : "No. Pendaftaran Hospital", patient: matches[0] as Patient });
         } else {
           setDuplicateWarning(null);
         }
@@ -173,7 +173,7 @@ export default function PesakitPage() {
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                   <div>
-                    <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><IdCard size={12} /> No. KP</Label>
+                    <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><IdCard size={12} /> No. Kad Pengenalan</Label>
                     <Input value={newPatient.nombor_kad_pengenalan} onChange={(e) => setNewPatient({ ...newPatient, nombor_kad_pengenalan: e.target.value })} onBlur={(e) => setNewPatient({ ...newPatient, nombor_kad_pengenalan: formatMyKad(e.target.value.trim()) })} style={inputStyle} />
                   </div>
                   <div>
@@ -288,7 +288,7 @@ export default function PesakitPage() {
                 {/* Desktop Header */}
                 <div style={{ display: "none", gridTemplateColumns: "3fr 3fr 3fr 2fr 1fr", gap: "12px", padding: "10px 24px", borderBottom: "1px solid rgba(221, 223, 226, 0.5)", background: "linear-gradient(90deg, rgba(240, 242, 245, 0.6), rgba(240, 242, 245, 0.2))", fontSize: "11px", fontWeight: 600, color: "#65676b", textTransform: "uppercase", letterSpacing: "0.05em" }} className="pesakit-table-header">
                   <div onClick={() => toggleSort("nama")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}><User size={12} /> Nama <SortIcon columnKey="nama" /></div>
-                  <div onClick={() => toggleSort("nombor_kad_pengenalan")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}><IdCard size={12} /> No. KP <SortIcon columnKey="nombor_kad_pengenalan" /></div>
+                  <div onClick={() => toggleSort("nombor_kad_pengenalan")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}><IdCard size={12} /> No. Kad Pengenalan <SortIcon columnKey="nombor_kad_pengenalan" /></div>
                   <div onClick={() => toggleSort("nombor_pendaftaran_hospital")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}><Activity size={12} /> No. Pendaftaran Hospital <SortIcon columnKey="nombor_pendaftaran_hospital" /></div>
                   <div onClick={() => toggleSort("nombor_telefon")} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "4px" }}><Phone size={12} /> No. Telefon <SortIcon columnKey="nombor_telefon" /></div>
                   <div style={{ textAlign: "center" }}>Tindakan</div>

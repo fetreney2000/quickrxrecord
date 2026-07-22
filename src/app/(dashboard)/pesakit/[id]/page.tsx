@@ -200,7 +200,7 @@ export default function PatientDetailPage() {
             <div className="space-y-4">
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px" }}>
                 <div className="space-y-2"><Label>Nama</Label><Input value={editData.nama || ""} onChange={e => setEditData({ ...editData, nama: e.target.value })} onBlur={e => setEditData({ ...editData, nama: toTitleCase(e.target.value.trim()) })} /></div>
-                <div className="space-y-2"><Label>No. KP</Label><Input value={editData.nombor_kad_pengenalan || ""} onChange={e => setEditData({ ...editData, nombor_kad_pengenalan: e.target.value })} onBlur={e => setEditData({ ...editData, nombor_kad_pengenalan: formatMyKad(e.target.value.trim()) })} /></div>
+                <div className="space-y-2"><Label>No. Kad Pengenalan</Label><Input value={editData.nombor_kad_pengenalan || ""} onChange={e => setEditData({ ...editData, nombor_kad_pengenalan: e.target.value })} onBlur={e => setEditData({ ...editData, nombor_kad_pengenalan: formatMyKad(e.target.value.trim()) })} /></div>
                 <div className="space-y-2"><Label>No. Telefon</Label><Input value={editData.nombor_telefon || ""} onChange={e => setEditData({ ...editData, nombor_telefon: e.target.value })} onBlur={e => setEditData({ ...editData, nombor_telefon: formatPhone(e.target.value.trim()) })} /></div>
                 <div className="space-y-2"><Label>No. Pendaftaran Hospital</Label><Input value={editData.nombor_pendaftaran_hospital || ""} onChange={e => setEditData({ ...editData, nombor_pendaftaran_hospital: e.target.value })} onBlur={e => setEditData({ ...editData, nombor_pendaftaran_hospital: e.target.value.trim().toUpperCase() })} /></div>
               </div>
@@ -234,7 +234,7 @@ export default function PatientDetailPage() {
           ) : (
             <>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: isMobile ? "8px" : "16px", fontSize: "14px", marginBottom: "16px" }}>
-                <div><span className="text-muted-foreground">No. KP:</span> {patient.nombor_kad_pengenalan || "-"}</div>
+                <div><span className="text-muted-foreground">No. Kad Pengenalan:</span> {patient.nombor_kad_pengenalan || "-"}</div>
                 <div><span className="text-muted-foreground">No. Pendaftaran Hospital:</span> {patient.nombor_pendaftaran_hospital || "-"}</div>
                 <div><span className="text-muted-foreground">No. Telefon:</span> {patient.nombor_telefon || "-"}</div>
                 <div><span className="text-muted-foreground">Tarikh Daftar:</span> {formatDate(patient.created_at)}</div>
