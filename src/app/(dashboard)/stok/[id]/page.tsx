@@ -234,7 +234,7 @@ export default function ItemDetailPage() {
   }, [filterDateFrom]);
 
   const { data: transactionHistory } = useQuery({
-    queryKey: ["transaction-history", id],
+    queryKey: ["transaction-history", id, batches?.length],
     queryFn: async () => {
       const transactions: any[] = [];
       // Get all assignment IDs for this item
@@ -261,7 +261,7 @@ export default function ItemDetailPage() {
       if (batchIds.length > 0) {
         const { data: adjustments } = await supabase
           .from("batch_adjustments")
-          .select("*, staff:profiles!adjusted_by(nama), batch:item_batches(nombor_kelompok)")
+          .select("*, staff:profiles!adjusted_by(nama), batch:item_batches!inner(nombor_kelompok)")
           .in("batch_id", batchIds).order("created_at", { ascending: false }).limit(200);
         for (const a of adjustments || []) {
           transactions.push({
@@ -389,21 +389,42 @@ export default function ItemDetailPage() {
       const { error } = await supabase.from("items").update(updates).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Item dikemaskini."); setEditMode(false); queryClient.invalidateQueries({ queryKey: ["item", id] }); queryClient.invalidateQueries({ queryKey: ["items"] }); },
+    onSuccess: () => { toast.success("Item dikemaskini."); setEditMode(false); queryClient.invalidateQueries({ queryKey: ["item", id] }); queryClient.invalidateQueries({ queryKey: ["items"] }); router.refresh(); },
     onError: () => toast.error("Gagal mengemaskini item."),
   });
 
   const addBatchMutation = useMutation({
     mutationFn: async (batch: typeof newBatch) => {
       const kuantiti = parseInt(batch.kuantiti);
-      const { data, error } = await supabase.from("item_batches").insert({
-        item_id: id, nombor_kelompok: batch.nombor_kelompok, tarikh_luput: batch.tarikh_luput, kuantiti,
-      }).select().single();
-      if (error) throw error;
-      await supabase.from("batch_adjustments").insert({
-        batch_id: data.id, previous_kuantiti: 0, new_kuantiti: kuantiti, change: kuantiti,
-        reason: "Stok awal kelompok baharu", adjusted_by: profile?.id,
-      });
+      // Check if batch number already exists for this item
+      const { data: existing } = await supabase
+        .from("item_batches")
+        .select("id, kuantiti")
+        .eq("item_id", id)
+        .eq("nombor_kelompok", batch.nombor_kelompok)
+        .maybeSingle();
+      if (existing) {
+        // Add to existing batch
+        const { error } = await supabase
+          .from("item_batches")
+          .update({ kuantiti: existing.kuantiti + kuantiti, tarikh_luput: batch.tarikh_luput })
+          .eq("id", existing.id);
+        if (error) throw error;
+        await supabase.from("batch_adjustments").insert({
+          batch_id: existing.id, previous_kuantiti: existing.kuantiti, new_kuantiti: existing.kuantiti + kuantiti,
+          change: kuantiti, reason: "Penambahan stok", adjusted_by: profile?.id,
+        });
+      } else {
+        // Create new batch
+        const { data, error } = await supabase.from("item_batches").insert({
+          item_id: id, nombor_kelompok: batch.nombor_kelompok, tarikh_luput: batch.tarikh_luput, kuantiti,
+        }).select().single();
+        if (error) throw error;
+        await supabase.from("batch_adjustments").insert({
+          batch_id: data.id, previous_kuantiti: 0, new_kuantiti: kuantiti, change: kuantiti,
+          reason: "Stok awal kelompok baharu", adjusted_by: profile?.id,
+        });
+      }
     },
     onSuccess: () => {
       toast.success("Kelompok berjaya ditambah.");
@@ -413,6 +434,7 @@ export default function ItemDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["items"] });
       queryClient.invalidateQueries({ queryKey: ["item", id] });
       queryClient.invalidateQueries({ queryKey: ["transaction-history", id] });
+      router.refresh();
     },
     onError: () => toast.error("Gagal menambah kelompok."),
   });
@@ -427,7 +449,7 @@ export default function ItemDetailPage() {
       const { error } = await supabase.from("item_batches").update({ kuantiti }).eq("id", batchId);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Kuantiti kelompok dikemaskini."); setEditBatchId(null); queryClient.invalidateQueries({ queryKey: ["batches", id] }); queryClient.invalidateQueries({ queryKey: ["transaction-history", id] }); },
+    onSuccess: () => { toast.success("Kuantiti kelompok dikemaskini."); setEditBatchId(null); queryClient.invalidateQueries({ queryKey: ["batches", id] }); queryClient.invalidateQueries({ queryKey: ["transaction-history", id] }); router.refresh(); },
     onError: () => toast.error("Gagal mengemaskini kuantiti."),
   });
 
@@ -436,7 +458,7 @@ export default function ItemDetailPage() {
       const { error } = await supabase.from("item_batches").delete().eq("id", batchId);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Kelompok dipadam."); queryClient.invalidateQueries({ queryKey: ["batches", id] }); queryClient.invalidateQueries({ queryKey: ["transaction-history", id] }); },
+    onSuccess: () => { toast.success("Kelompok dipadam."); queryClient.invalidateQueries({ queryKey: ["batches", id] }); queryClient.invalidateQueries({ queryKey: ["transaction-history", id] }); router.refresh(); },
     onError: () => toast.error("Gagal memadam kelompok."),
   });
 
@@ -729,7 +751,7 @@ export default function ItemDetailPage() {
 
       {/* 3. Batches */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }}>
-      <FoldableCard title="Kelompok" count={sortedBatches.length} defaultOpen={true} headerExtra={canManageBatches ? <Button size="sm" onClick={e => { e.stopPropagation(); setOpenAddBatch(true); }}><Plus className="mr-1 h-3.5 w-3.5" />Tambah</Button> : undefined}>
+      <FoldableCard title="Senarai Kelompok" count={sortedBatches.length} defaultOpen={true} headerExtra={canManageBatches ? <Button size="sm" onClick={e => { e.stopPropagation(); setOpenAddBatch(true); }}><Plus className="mr-1 h-3.5 w-3.5" />Tambah Stok</Button> : undefined}>
         <Table>
           <TableHeader>
             <TableRow>
