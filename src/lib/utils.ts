@@ -36,8 +36,14 @@ export function getKLDate(): string {
   return fmt.format(now);
 }
 
+const MED_ACRONYMS = new Set(["XR", "IR", "MR", "ER", "SR", "CR", "DR", "TR", "PR", "XRPD", "XL", "LA", "SA", "CD", "OD", "BD", "TDS", "QDS", "PRN", "STAT", "PO", "IV", "IM", "SC", "SL", "PR", "INH", "NEB"]);
+
 export function toTitleCase(str: string): string {
   return str.replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase());
+}
+
+export function toTitleCaseKeepAcronyms(str: string): string {
+  return str.replace(/\w\S*/g, (txt) => MED_ACRONYMS.has(txt.toUpperCase()) ? txt.toUpperCase() : txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase());
 }
 
 export function formatMyKad(value: string): string {

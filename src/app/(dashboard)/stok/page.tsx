@@ -16,6 +16,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { toTitleCase, toTitleCaseKeepAcronyms } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { motion } from "framer-motion";
 import {
@@ -147,20 +148,20 @@ export default function StokPage() {
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                   <div>
                     <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><Hash size={12} /> Kod Item *</Label>
-                    <Input value={newItem.kod_item} onChange={e => setNewItem({ ...newItem, kod_item: e.target.value })} style={inputStyle} placeholder="KOD-001" />
+                    <Input value={newItem.kod_item} onChange={e => setNewItem({ ...newItem, kod_item: e.target.value })} onBlur={e => setNewItem({ ...newItem, kod_item: e.target.value.trim().toUpperCase() })} style={inputStyle} />
                   </div>
                   <div>
                     <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><Activity size={12} /> Kekuatan</Label>
-                    <Input value={newItem.kekuatan} onChange={e => setNewItem({ ...newItem, kekuatan: e.target.value })} style={inputStyle} placeholder="cth: 500mg" />
+                    <Input value={newItem.kekuatan} onChange={e => setNewItem({ ...newItem, kekuatan: e.target.value })} onBlur={e => setNewItem({ ...newItem, kekuatan: e.target.value.trim().toUpperCase() })} style={inputStyle} />
                   </div>
                 </div>
                 <div>
                   <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><Pill size={12} /> Nama Item *</Label>
-                  <Input value={newItem.nama_item} onChange={e => setNewItem({ ...newItem, nama_item: e.target.value })} style={inputStyle} placeholder="Nama item ubat" />
+                  <Input value={newItem.nama_item} onChange={e => setNewItem({ ...newItem, nama_item: e.target.value })} onBlur={e => setNewItem({ ...newItem, nama_item: toTitleCaseKeepAcronyms(e.target.value.trim()) })} style={inputStyle} />
                 </div>
                 <div>
                   <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px" }}>Nama Dagangan</Label>
-                  <Input value={newItem.nama_dagangan} onChange={e => setNewItem({ ...newItem, nama_dagangan: e.target.value })} style={inputStyle} placeholder="Nama dagangan (pilihan)" />
+                  <Input value={newItem.nama_dagangan} onChange={e => setNewItem({ ...newItem, nama_dagangan: e.target.value })} onBlur={e => setNewItem({ ...newItem, nama_dagangan: toTitleCaseKeepAcronyms(e.target.value.trim()) })} style={inputStyle} />
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                   <div>
@@ -179,8 +180,8 @@ export default function StokPage() {
                   </div>
                 </div>
                 <div>
-                  <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><BarChart3 size={12} /> Kuota (bil. pesakit)</Label>
-                  <Input type="number" value={newItem.kuota} onChange={e => setNewItem({ ...newItem, kuota: e.target.value })} style={inputStyle} placeholder="0" />
+                  <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><BarChart3 size={12} /> Jumlah Kuota</Label>
+                  <Input type="number" value={newItem.kuota} onChange={e => setNewItem({ ...newItem, kuota: e.target.value })} style={inputStyle} />
                 </div>
                 <div>
                   <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px" }}>Catatan</Label>
@@ -189,7 +190,7 @@ export default function StokPage() {
               </div>
               <DialogFooter style={{ gap: "8px", marginTop: "8px" }}>
                 <button onClick={() => setOpenAdd(false)} style={{ padding: "8px 16px", borderRadius: "10px", border: "1.5px solid #dddfe2", background: "#ffffff", color: "#1c1e21", fontSize: "13px", fontWeight: 500, fontFamily: "inherit", cursor: "pointer" }}>Batal</button>
-                <button onClick={() => addItemMutation.mutate(newItem)} disabled={!newItem.kod_item || !newItem.nama_item || addItemMutation.isPending}
+                <button onClick={() => { addItemMutation.mutate({ ...newItem, kod_item: newItem.kod_item.trim().toUpperCase(), nama_item: toTitleCaseKeepAcronyms(newItem.nama_item.trim()), nama_dagangan: newItem.nama_dagangan ? toTitleCaseKeepAcronyms(newItem.nama_dagangan.trim()) : "", kekuatan: newItem.kekuatan ? newItem.kekuatan.trim().toUpperCase() : "", catatan: newItem.catatan.trim() }); }} disabled={!newItem.kod_item?.trim() || !newItem.nama_item?.trim() || addItemMutation.isPending}
                   style={{ padding: "8px 16px", borderRadius: "10px", border: "none", background: "linear-gradient(135deg, #7c3aed, #6d28d9)", color: "#ffffff", fontSize: "13px", fontWeight: 600, fontFamily: "inherit", cursor: "pointer", opacity: (!newItem.kod_item || !newItem.nama_item || addItemMutation.isPending) ? 0.6 : 1 }}>
                   {addItemMutation.isPending ? <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><RefreshCw size={14} style={{ animation: "spin 1s linear infinite" }} /> Menyimpan...</span> : "Simpan"}
                 </button>
