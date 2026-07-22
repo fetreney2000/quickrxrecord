@@ -355,8 +355,9 @@ export default function ItemDetailPage() {
   const pagedPatients = useMemo(() => sortedPatients.slice(patientPage * PAGE_SIZE, (patientPage + 1) * PAGE_SIZE), [sortedPatients, patientPage]);
   const patientTotalPages = Math.ceil((sortedPatients.length || 0) / PAGE_SIZE);
 
-  const pagedBatches = useMemo(() => sortedBatches.slice(batchPage * PAGE_SIZE, (batchPage + 1) * PAGE_SIZE), [sortedBatches, batchPage]);
-  const batchTotalPages = Math.ceil((sortedBatches.length || 0) / PAGE_SIZE);
+  const activeBatches = useMemo(() => sortedBatches.filter(b => b.kuantiti > 0), [sortedBatches]);
+  const pagedBatches = useMemo(() => activeBatches.slice(batchPage * PAGE_SIZE, (batchPage + 1) * PAGE_SIZE), [activeBatches, batchPage]);
+  const batchTotalPages = Math.ceil((activeBatches.length || 0) / PAGE_SIZE);
 
   const pagedTransactions = useMemo(() => filteredTransactions.slice(txPage * PAGE_SIZE, (txPage + 1) * PAGE_SIZE), [filteredTransactions, txPage]);
   const txTotalPages = Math.ceil((filteredTransactions.length || 0) / PAGE_SIZE);
@@ -757,7 +758,7 @@ export default function ItemDetailPage() {
 
       {/* 3. Batches */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }}>
-      <FoldableCard title="Senarai Kelompok" count={sortedBatches.length} defaultOpen={true} headerExtra={canManageBatches ? <Button size="sm" onClick={e => { e.stopPropagation(); setOpenAddBatch(true); }}><Plus className="mr-1 h-3.5 w-3.5" />Tambah Stok</Button> : undefined}>
+      <FoldableCard title="Senarai Kelompok" count={activeBatches.length} defaultOpen={true} headerExtra={canManageBatches ? <Button size="sm" onClick={e => { e.stopPropagation(); setOpenAddBatch(true); }}><Plus className="mr-1 h-3.5 w-3.5" />Tambah Stok</Button> : undefined}>
         <Table>
           <TableHeader>
             <TableRow>
@@ -769,7 +770,7 @@ export default function ItemDetailPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedBatches.length === 0 ? (
+            {activeBatches.length === 0 ? (
               <TableRow><TableCell colSpan={canManageBatches ? 5 : 4} className="text-center py-8 text-muted-foreground">Tiada kelompok.</TableCell></TableRow>
             ) : (
               pagedBatches.map(batch => {
