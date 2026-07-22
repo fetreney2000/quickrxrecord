@@ -103,6 +103,7 @@ export default function ItemDetailPage() {
   const [newBatch, setNewBatch] = useState({ nombor_kelompok: "", tarikh_luput: "", kuantiti: "" });
   const [editBatchId, setEditBatchId] = useState<string | null>(null);
   const [editBatchData, setEditBatchData] = useState({ kuantiti: "" });
+  const [pendingBatchAction, setPendingBatchAction] = useState<{ type: string; batch: ItemBatch; newKuantiti?: number } | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const { data: item } = useQuery({
@@ -786,7 +787,7 @@ export default function ItemDetailPage() {
                       {editBatchId === batch.id ? (
                         <div className="flex gap-1">
                           <Input type="number" className="w-24 h-7 text-sm" value={editBatchData.kuantiti} onChange={e => setEditBatchData({ kuantiti: e.target.value })} />
-                          <Button size="sm" onClick={() => updateBatchMutation.mutate({ batchId: batch.id, kuantiti: parseInt(editBatchData.kuantiti), previousKuantiti: batch.kuantiti })}>✓</Button>
+                          <Button size="sm" onClick={() => setPendingBatchAction({ type: "adjust", batch, newKuantiti: parseInt(editBatchData.kuantiti) })}>✓</Button>
                           <Button size="sm" variant="ghost" onClick={() => setEditBatchId(null)}>✕</Button>
                         </div>
                       ) : batch.kuantiti}
@@ -796,7 +797,7 @@ export default function ItemDetailPage() {
                       <TableCell>
                         <div className="flex gap-1">
                           <Button size="sm" variant="ghost" onClick={() => { setEditBatchId(batch.id); setEditBatchData({ kuantiti: String(batch.kuantiti) }); }}><Edit className="h-3 w-3" /></Button>
-                          <Button size="sm" variant="ghost" onClick={() => deleteBatchMutation.mutate(batch.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                          <Button size="sm" variant="ghost" onClick={() => setPendingBatchAction({ type: "dispose", batch })}><Trash2 className="h-3 w-3 text-destructive" /></Button>
                         </div>
                       </TableCell>
                     )}
@@ -817,6 +818,82 @@ export default function ItemDetailPage() {
         )}
       </FoldableCard>
       </motion.div>
+
+      {/* Confirm Batch Action Dialog */}
+      <Dialog open={!!pendingBatchAction} onOpenChange={(v) => { if (!v) setPendingBatchAction(null); }}>
+        <DialogContent style={{ maxWidth: "460px", borderRadius: "16px" }}>
+          <DialogHeader>
+            <DialogTitle style={{ fontSize: "15px", fontWeight: 700, display: "flex", alignItems: "center", gap: "8px" }}>
+              {pendingBatchAction?.type === "dispose" ? <Trash2 size={18} className="text-destructive" /> : <Edit size={18} className="text-amber-500" />}
+              {pendingBatchAction?.type === "dispose" ? "Pengesahan Pelupusan Stok" : "Pengesahan Pelarasan Stok"}
+            </DialogTitle>
+            <DialogDescription style={{ fontSize: "13px" }}>Sila semak maklumat di bawah sebelum meneruskan.</DialogDescription>
+          </DialogHeader>
+          {pendingBatchAction && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", fontSize: "13px" }}>
+              <div style={{ padding: "12px", borderRadius: "10px", background: "rgba(24, 119, 242, 0.04)", border: "1px solid rgba(24, 119, 242, 0.1)" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                  <div><span className="text-muted-foreground text-xs">Kelompok:</span><p className="font-semibold font-mono text-sm">{pendingBatchAction.batch.nombor_kelompok}</p></div>
+                  <div><span className="text-muted-foreground text-xs">Tarikh Luput:</span><p className="font-semibold text-sm">{formatDate(pendingBatchAction.batch.tarikh_luput)}</p></div>
+                  <div><span className="text-muted-foreground text-xs">Stok Semasa:</span><p className="font-semibold text-sm">{pendingBatchAction.batch.kuantiti} unit</p></div>
+                  {pendingBatchAction.type === "adjust" && (
+                    <div><span className="text-muted-foreground text-xs">Stok Baharu:</span><p className="font-semibold text-sm">{pendingBatchAction.newKuantiti} unit</p></div>
+                  )}
+                </div>
+              </div>
+
+              {pendingBatchAction.type === "dispose" && (
+                <div style={{ padding: "12px", borderRadius: "10px", background: "rgba(239, 68, 68, 0.06)", border: "1px solid rgba(239, 68, 68, 0.15)" }}>
+                  <p className="text-xs font-semibold text-destructive" style={{ marginBottom: "4px" }}>⚠️ Kesan Pelupusan:</p>
+                  <ul style={{ margin: 0, paddingLeft: "16px", fontSize: "11px", color: "#6b7280", display: "flex", flexDirection: "column", gap: "3px" }}>
+                    <li>Semua stok {pendingBatchAction.batch.kuantiti} unit akan dilupuskan (stok = 0).</li>
+                    <li>Rekod pelupusan akan direkodkan dalam Sejarah Transaksi Item.</li>
+                    <li>Tindakan ini boleh diterbalikkan dengan menambah stok semula.</li>
+                  </ul>
+                </div>
+              )}
+
+              {pendingBatchAction.type === "adjust" && (() => {
+                const diff = pendingBatchAction.newKuantiti! - pendingBatchAction.batch.kuantiti;
+                return (
+                  <div style={{ padding: "12px", borderRadius: "10px", background: diff > 0 ? "rgba(34, 197, 94, 0.06)" : "rgba(239, 68, 68, 0.06)", border: `1px solid ${diff > 0 ? "rgba(34, 197, 94, 0.2)" : "rgba(239, 68, 68, 0.15)"}` }}>
+                    <p className="text-xs font-semibold" style={{ color: diff > 0 ? "#16a34a" : "#dc2626", marginBottom: "4px" }}>
+                      ⚠️ Kesan Pelarasan ({diff > 0 ? `+${diff}` : diff} unit):
+                    </p>
+                    <ul style={{ margin: 0, paddingLeft: "16px", fontSize: "11px", color: "#6b7280", display: "flex", flexDirection: "column", gap: "3px" }}>
+                      {diff > 0 ? (
+                        <>
+                          <li>Stok bertambah daripada {pendingBatchAction.batch.kuantiti} kepada {pendingBatchAction.newKuantiti} unit.</li>
+                          <li>Rekod kemasukan stok ({diff} unit) akan direkodkan dalam Sejarah Transaksi Item.</li>
+                        </>
+                      ) : (
+                        <>
+                          <li>Stok berkurang daripada {pendingBatchAction.batch.kuantiti} kepada {pendingBatchAction.newKuantiti} unit.</li>
+                          <li>Rekod pengeluaran stok ({Math.abs(diff)} unit) akan direkodkan dalam Sejarah Transaksi Item.</li>
+                        </>
+                      )}
+                    </ul>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+          <DialogFooter style={{ gap: "8px", marginTop: "8px" }}>
+            <Button variant="outline" onClick={() => setPendingBatchAction(null)}>Batal</Button>
+            <Button variant={pendingBatchAction?.type === "dispose" ? "destructive" : "default"} disabled={updateBatchMutation.isPending || deleteBatchMutation.isPending} onClick={() => {
+              if (!pendingBatchAction) return;
+              if (pendingBatchAction.type === "dispose") {
+                deleteBatchMutation.mutate(pendingBatchAction.batch.id);
+              } else if (pendingBatchAction.type === "adjust") {
+                updateBatchMutation.mutate({ batchId: pendingBatchAction.batch.id, kuantiti: pendingBatchAction.newKuantiti!, previousKuantiti: pendingBatchAction.batch.kuantiti });
+              }
+              setPendingBatchAction(null);
+            }}>
+              {(updateBatchMutation.isPending || deleteBatchMutation.isPending) ? "Memproses..." : "Saya Faham, Teruskan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Batch Dialog */}
       <Dialog open={openAddBatch} onOpenChange={setOpenAddBatch}>
