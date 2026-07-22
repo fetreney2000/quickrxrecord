@@ -234,7 +234,7 @@ export default function ItemDetailPage() {
   }, [filterDateFrom]);
 
   const { data: transactionHistory } = useQuery({
-    queryKey: ["transaction-history", id, batches?.length],
+    queryKey: ["transaction-history", id],
     queryFn: async () => {
       const transactions: any[] = [];
       // Get all assignment IDs for this item
@@ -257,7 +257,12 @@ export default function ItemDetailPage() {
           kakitangan: s.staff?.nama || "-", pesakit: s.assignment?.patient?.nama || "-",
         });
       }
-      const batchIds = batches?.map(b => b.id) || [];
+      // Get all batch IDs for this item directly
+      const { data: allBatches } = await supabase
+        .from("item_batches")
+        .select("id")
+        .eq("item_id", id);
+      const batchIds = (allBatches || []).map(b => b.id);
       if (batchIds.length > 0) {
         const { data: adjustments } = await supabase
           .from("batch_adjustments")
