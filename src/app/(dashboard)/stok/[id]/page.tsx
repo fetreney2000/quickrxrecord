@@ -455,11 +455,17 @@ export default function ItemDetailPage() {
 
   const deleteBatchMutation = useMutation({
     mutationFn: async (batchId: string) => {
-      const { error } = await supabase.from("item_batches").delete().eq("id", batchId);
+      const { data: current } = await supabase.from("item_batches").select("kuantiti, nombor_kelompok").eq("id", batchId).single();
+      if (!current) throw new Error("Kelompok tidak dijumpai.");
+      const { error } = await supabase.from("item_batches").update({ kuantiti: 0 }).eq("id", batchId);
       if (error) throw error;
+      await supabase.from("batch_adjustments").insert({
+        batch_id: batchId, previous_kuantiti: current.kuantiti, new_kuantiti: 0,
+        change: -current.kuantiti, reason: "Pelupusan stok", adjusted_by: profile?.id,
+      });
     },
-    onSuccess: () => { toast.success("Kelompok dipadam."); queryClient.invalidateQueries({ queryKey: ["batches", id] }); queryClient.invalidateQueries({ queryKey: ["transaction-history", id] }); router.refresh(); },
-    onError: () => toast.error("Gagal memadam kelompok."),
+    onSuccess: () => { toast.success("Stok dilupuskan."); queryClient.invalidateQueries({ queryKey: ["batches", id] }); queryClient.invalidateQueries({ queryKey: ["transaction-history", id] }); router.refresh(); },
+    onError: () => toast.error("Gagal melupuskan stok."),
   });
 
   const exportToExcel = async () => {
