@@ -65,21 +65,23 @@ export default function PesakitPage() {
 
   const addPatientMutation = useMutation({
     mutationFn: async (patient: typeof newPatient) => {
-      const { error } = await supabase.from("patients").insert({
+      const { data: inserted, error } = await supabase.from("patients").insert({
         ...patient,
         nombor_kad_pengenalan: patient.nombor_kad_pengenalan || null,
         nombor_pendaftaran_hospital: patient.nombor_pendaftaran_hospital || null,
         nombor_telefon: patient.nombor_telefon || null,
         alamat: patient.alamat || null,
         catatan: patient.catatan || null,
-      });
+      }).select("id").single();
       if (error) throw error;
+      return inserted;
     },
-    onSuccess: () => {
+    onSuccess: (inserted) => {
       toast.success("Pesakit berjaya ditambah.");
       setOpenAdd(false);
       setNewPatient({ nama: "", nombor_kad_pengenalan: "", nombor_pendaftaran_hospital: "", nombor_telefon: "", alamat: "", catatan: "" });
       queryClient.invalidateQueries({ queryKey: ["patients"] });
+      router.push(`/pesakit/${inserted.id}`);
     },
     onError: () => { toast.error("Gagal menambah pesakit."); },
   });

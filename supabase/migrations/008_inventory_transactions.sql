@@ -83,10 +83,6 @@ BEGIN
   SET dos = p_dos, updated_at = now()
   WHERE id = p_assignment_id AND dos IS DISTINCT FROM p_dos;
 
-  -- Record dose history
-  INSERT INTO dose_history (assignment_id, tarikh, dos)
-  VALUES (p_assignment_id, CURRENT_DATE, p_dos);
-
   RETURN v_supply_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

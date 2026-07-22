@@ -75,18 +75,20 @@ export default function StokPage() {
 
   const addItemMutation = useMutation({
     mutationFn: async (item: typeof newItem) => {
-      const { error } = await supabase.from("items").insert({
+      const { data: inserted, error } = await supabase.from("items").insert({
         kod_item: item.kod_item, nama_item: item.nama_item, nama_dagangan: item.nama_dagangan || null,
         kekuatan: item.kekuatan || null, id_kategori: item.id_kategori || null, id_bentuk: item.id_bentuk || null,
         kuota: item.kuota ? parseInt(item.kuota) : null, catatan: item.catatan || null,
-      });
+      }).select("id").single();
       if (error) throw error;
+      return inserted;
     },
-    onSuccess: () => {
+    onSuccess: (inserted) => {
       toast.success("Item berjaya ditambah.");
       setOpenAdd(false);
       setNewItem({ kod_item: "", nama_item: "", nama_dagangan: "", kekuatan: "", id_kategori: "", id_bentuk: "", kuota: "", catatan: "" });
       queryClient.invalidateQueries({ queryKey: ["items"] });
+      router.push(`/stok/${inserted.id}`);
     },
     onError: () => toast.error("Gagal menambah item."),
   });
