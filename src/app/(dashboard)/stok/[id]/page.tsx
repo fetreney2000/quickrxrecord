@@ -57,14 +57,14 @@ function FoldableCard({ title, count, defaultOpen = true, children, headerExtra 
         </CardTitle>
         <div className="flex items-center gap-2">
           {headerExtra}
-          <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.1 }}>
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </motion.div>
         </div>
       </CardHeader>
       <AnimatePresence>
         {open && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.15 }} className="overflow-hidden">
             <CardContent className="pt-0">{children}</CardContent>
           </motion.div>
         )}
@@ -629,7 +629,7 @@ export default function ItemDetailPage() {
       </div>
 
       {/* 1. Item Info */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
+      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, delay: 0.02 }}>
       <FoldableCard title={itemDisplayName} defaultOpen={true} headerExtra={canEdit && !editMode ? <Button variant="outline" size="sm" onClick={e => { e.stopPropagation(); setEditMode(true); setEditData(item); }}><Edit className="mr-2 h-4 w-4" /> Edit</Button> : undefined}>
         {editMode ? (
           <div className="space-y-4">
@@ -695,7 +695,7 @@ export default function ItemDetailPage() {
       </motion.div>
 
       {/* 2. Pesakit Yang Menggunakan */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}>
+      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, delay: 0.01 }}>
       <FoldableCard title="Pesakit Yang Menggunakan" count={filteredPatients.length} defaultOpen={true}>
         {assignedPatients && assignedPatients.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-3">
@@ -762,7 +762,7 @@ export default function ItemDetailPage() {
       </motion.div>
 
       {/* 3. Batches */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }}>
+      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, delay: 0.08 }}>
       <FoldableCard title="Senarai Kelompok" count={activeBatches.length} defaultOpen={true} headerExtra={canManageBatches ? <Button size="sm" onClick={e => { e.stopPropagation(); setOpenAddBatch(true); }}><Plus className="mr-1 h-3.5 w-3.5" />Tambah Stok</Button> : undefined}>
         <Table>
           <TableHeader>
@@ -919,7 +919,7 @@ export default function ItemDetailPage() {
       </Dialog>
 
       {/* 4. Transaction History */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.4 }}>
+      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, delay: 0.4 }}>
       <FoldableCard
         title="Sejarah Transaksi Item"
         count={filteredTransactions.length}

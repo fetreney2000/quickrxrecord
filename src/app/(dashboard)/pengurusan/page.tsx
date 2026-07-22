@@ -273,7 +273,7 @@ export default function PengurusanPage() {
                             style={{ backgroundColor: expandedUser === user.id ? "#f0f0f0" : ["#ffffff", "#f8f8f8"][idx % 2] }}
                             onClick={() => toggleExpand(user.id)}
                           >
-                            <TableCell><motion.div animate={{ rotate: expandedUser === user.id ? 180 : 0 }} transition={{ duration: 0.2 }}><ChevronDown className="h-4 w-4 text-muted-foreground" /></motion.div></TableCell>
+                            <TableCell><motion.div animate={{ rotate: expandedUser === user.id ? 180 : 0 }} transition={{ duration: 0.1 }}><ChevronDown className="h-4 w-4 text-muted-foreground" /></motion.div></TableCell>
                             <TableCell className="font-medium">{user.nama}</TableCell>
                             <TableCell className="font-mono text-sm">{user.nama_pengguna}</TableCell>
                             <TableCell>{user.jawatan || "-"}</TableCell>
@@ -282,7 +282,7 @@ export default function PengurusanPage() {
                           </TableRow>
                           <AnimatePresence>
                             {expandedUser === user.id && (
-                              <motion.tr initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
+                              <motion.tr initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.15 }} className="overflow-hidden">
                                 <td colSpan={6} className="p-0"><div className="px-6 py-5 bg-accent/20 border-t border-border space-y-5">{/* Detail Info */}
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                   <div><span className="text-muted-foreground">Nama Pengguna:</span><p className="font-medium mt-0.5">{user.nama_pengguna}</p></div>
@@ -291,7 +291,7 @@ export default function PengurusanPage() {
                                 </div>
                                 <AnimatePresence mode="wait">
                                   {editId === user.id ? (
-                                    <motion.div key="edit" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.15 }} className="space-y-4 border rounded-lg p-4 bg-white">
+                                    <motion.div key="edit" initial={{ opacity: 0, y: -3 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -3 }} transition={{ duration: 0.15 }} className="space-y-4 border rounded-lg p-4 bg-white">
                                       <p className="text-sm font-semibold mb-2">✏️ Kemaskini Maklumat Pengguna</p>
                                       <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2"><Label className="text-xs">Nama</Label><Input value={editData.nama || ""} onChange={e => setEditData({ ...editData, nama: e.target.value })} onBlur={e => setEditData({ ...editData, nama: toTitleCase(e.target.value.trim()) })} className="h-8 text-sm" /></div>
@@ -302,7 +302,7 @@ export default function PengurusanPage() {
                                       <div className="flex gap-2 justify-end"><Button size="sm" variant="outline" onClick={() => setEditId(null)}>Batal</Button><Button size="sm" onClick={() => updateUserMutation.mutate({ id: user.id, updates: { ...editData, nama: editData.nama ? toTitleCase(editData.nama.trim()) : undefined, jawatan: editData.jawatan != null ? toTitleCase(editData.jawatan.trim()) : undefined }, oldNamaPengguna: user.nama_pengguna })} disabled={updateUserMutation.isPending}>{updateUserMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}</Button></div>
                                     </motion.div>
                                   ) : (
-                                    <motion.div key="actions" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.15 }} className="flex flex-wrap gap-2 items-center">
+                                    <motion.div key="actions" initial={{ opacity: 0, y: -3 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -3 }} transition={{ duration: 0.15 }} className="flex flex-wrap gap-2 items-center">
                                       <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setEditId(user.id); setEditData(user); }}><Edit className="mr-1.5 h-3.5 w-3.5" /> Edit</Button>
                                       <Button size="sm" variant={user.aktif ? "destructive" : "default"} onClick={(e) => { e.stopPropagation(); setConfirmToggle({ id: user.id, name: user.nama, newStatus: !user.aktif }); }}>{user.aktif ? <><UserX className="mr-1.5 h-3.5 w-3.5" /> Nyahaktif</> : <><UserCheck className="mr-1.5 h-3.5 w-3.5" /> Aktif</>}</Button>
                                       {user.peranan !== "Pentadbir" && <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setConfirmReset({ id: user.id, name: user.nama, nama_pengguna: user.nama_pengguna }); }} className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"><KeyRound className="mr-1.5 h-3.5 w-3.5" /> Reset</Button>}

@@ -118,7 +118,7 @@ export default function DashboardPage() {
       gradient: "linear-gradient(135deg, #059669, #10b981)",
       glowColor: "rgba(5, 150, 105, 0.3)",
       subtitle: "Item ubat didaftarkan",
-      delay: 0.15,
+      delay: 0.03,
     },
     {
       title: "Bekalan Hari Ini",
@@ -127,7 +127,7 @@ export default function DashboardPage() {
       gradient: "linear-gradient(135deg, #7c3aed, #8b5cf6)",
       glowColor: "rgba(124, 58, 237, 0.3)",
       subtitle: "Rekod bekalan hari ini",
-      delay: 0.3,
+      delay: 0.08,
     },
     {
       title: "Akan Luput (30 Hari)",
@@ -136,7 +136,7 @@ export default function DashboardPage() {
       gradient: "linear-gradient(135deg, #ea580c, #f97316)",
       glowColor: "rgba(234, 88, 12, 0.3)",
       subtitle: "Kelompok akan tamat tempoh",
-      delay: 0.45,
+      delay: 0.03,
     },
     {
       title: "Jumlah Stok",
@@ -176,7 +176,7 @@ export default function DashboardPage() {
             style={styles.headerIcon}
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", damping: 15, stiffness: 200, delay: 0.1 }}
+            transition={{ type: "spring", damping: 15, stiffness: 200, delay: 0.02 }}
           >
             <Activity size={20} color="white" />
           </motion.div>
@@ -185,7 +185,7 @@ export default function DashboardPage() {
               style={styles.headerTitle}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.15, duration: 0.4 }}
+              transition={{ delay: 0.03, duration: 0.4 }}
             >
               Selamat Datang, {profile?.nama}
             </motion.h1>
@@ -193,7 +193,7 @@ export default function DashboardPage() {
               style={styles.headerSubtitle}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.25, duration: 0.4 }}
+              transition={{ delay: 0.08, duration: 0.4 }}
             >
               Papan Pemuka QuickRxRecord v4
             </motion.p>
@@ -253,7 +253,7 @@ export default function DashboardPage() {
                     type: "spring",
                     damping: 15,
                     stiffness: 200,
-                    delay: 0.4 + card.delay,
+                    delay: 0.02 + card.delay,
                   }}
                 >
                   <card.icon size={24} color="white" />

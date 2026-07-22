@@ -47,14 +47,14 @@ function FoldableCard({ title, defaultOpen = true, children, headerExtra }: { ti
         </CardTitle>
         <div className="flex items-center gap-2">
           {headerExtra}
-          <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.1 }}>
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </motion.div>
         </div>
       </CardHeader>
       <AnimatePresence>
         {open && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.15 }} className="overflow-hidden">
             <CardContent className="pt-0">{children}</CardContent>
           </motion.div>
         )}
@@ -177,7 +177,7 @@ profile?.id, catatan: "Bekalan kali pertama" }); if (dhError) throw dhError; } }
         <Breadcrumb items={(() => { const source = getNavSource(); if (source?.startsWith("stok:")) { const rest = source.replace("stok:", ""); const lastColon = rest.lastIndexOf(":"); const itemName = lastColon >= 0 ? rest.substring(0, lastColon) : rest; const itemId = lastColon >= 0 ? rest.substring(lastColon + 1) : ""; return [{ label: "Inventori", href: "/stok" }, { label: itemName, href: itemId ? `/stok/${itemId}` : undefined }, { label: patient.nama }]; } return [{ label: "Pesakit", href: "/pesakit" }, { label: patient.nama }]; })()} />
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} style={{ display: "flex", alignItems: "center", gap: isMobile ? "8px" : "14px" }}>
+      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, delay: 0.01 }} style={{ display: "flex", alignItems: "center", gap: isMobile ? "8px" : "14px" }}>
         <button onClick={() => router.push("/pesakit")} style={{ width: "44px", height: "44px", borderRadius: "12px", border: "1.5px solid rgba(24, 119, 242, 0.15)", background: "rgba(24, 119, 242, 0.05)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s ease", flexShrink: 0 }}>
           <ArrowLeft size={20} color="#1877f2" />
         </button>
@@ -185,7 +185,7 @@ profile?.id, catatan: "Bekalan kali pertama" }); if (dhError) throw dhError; } }
       </motion.div>
 
       {/* 1. Patient Info Card */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
+      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, delay: 0.02 }}>
         <FoldableCard
           title={patient.nama}
           defaultOpen={true}
@@ -296,7 +296,7 @@ profile?.id, catatan: "Bekalan kali pertama" }); if (dhError) throw dhError; } }
       </Dialog>
 
       {/* 2. Item Assignments Card */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}>
+      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, delay: 0.01 }}>
         <FoldableCard
           title={<span className="flex items-center gap-2">Item Didaftarkan <Badge variant="success" className="text-[10px]">{activeCount} Aktif</Badge><span className="text-muted-foreground">|</span><Badge variant="secondary" className="text-[10px]">{inactiveCount} Tidak Aktif</Badge></span>}
           defaultOpen={true}
@@ -358,14 +358,14 @@ profile?.id, catatan: "Bekalan kali pertama" }); if (dhError) throw dhError; } }
                     </div>
                     <div className="flex items-center gap-2" style={{ flexShrink: 0 }}>
                       <Badge variant={a.aktif ? "success" : "secondary"} className="text-[10px]">{a.aktif ? "Aktif" : "Tamat"}</Badge>
-                      <motion.div animate={{ rotate: expandedAssignment === a.id ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                      <motion.div animate={{ rotate: expandedAssignment === a.id ? 180 : 0 }} transition={{ duration: 0.1 }}>
                         <ChevronDown className="h-4 w-4 text-muted-foreground" />
                       </motion.div>
                     </div>
                   </div>
                   <AnimatePresence>
                     {expandedAssignment === a.id && (
-                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.15 }} className="overflow-hidden">
                         <div className="px-3 pb-3 pt-1 border-t bg-muted/30">
                           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? "6px" : "12px", fontSize: "14px", marginBottom: "12px", padding: "12px", background: "#fff", borderRadius: "8px", border: "1px solid #e5e7eb" }}>
                             <div><span className="text-muted-foreground text-xs">Dos:</span> <p className="font-medium">{a.dos || "-"}</p></div>

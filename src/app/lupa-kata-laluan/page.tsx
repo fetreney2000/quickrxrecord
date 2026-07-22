@@ -83,7 +83,7 @@ function SuccessState({ mounted }: { mounted: boolean }) {
               <motion.div
                 initial={{ opacity: 0, scale: 0.5 }}
                 animate={mounted ? { opacity: 1, scale: 1 } : {}}
-                transition={{ delay: 0.2, duration: 0.5, type: "spring", stiffness: 200 }}
+                transition={{ delay: 0.01, duration: 0.5, type: "spring", stiffness: 200 }}
                 style={styles.successIconWrapper}
               >
                 <div style={styles.successIconGlow} />
@@ -93,16 +93,16 @@ function SuccessState({ mounted }: { mounted: boolean }) {
               </motion.div>
 
               <motion.h2
-                initial={{ opacity: 0, y: 15 }}
+                initial={{ opacity: 0, y: 5 }}
                 animate={mounted ? { opacity: 1, y: 0 } : {}}
-                transition={{ delay: 0.4, duration: 0.5 }}
+                transition={{ delay: 0.02, duration: 0.5 }}
                 style={styles.welcomeTitle}
               >
                 Permintaan Dihantar
               </motion.h2>
 
               <motion.p
-                initial={{ opacity: 0, y: 15 }}
+                initial={{ opacity: 0, y: 5 }}
                 animate={mounted ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: 0.5, duration: 0.5 }}
                 style={styles.welcomeSubtitle}
@@ -111,7 +111,7 @@ function SuccessState({ mounted }: { mounted: boolean }) {
               </motion.p>
 
               <motion.div
-                initial={{ opacity: 0, y: 15 }}
+                initial={{ opacity: 0, y: 5 }}
                 animate={mounted ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: 0.7, duration: 0.5 }}
                 style={{ marginTop: "28px" }}
@@ -258,7 +258,7 @@ export default function LupaKataLaluanPage() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={mounted ? { opacity: 1, scale: 1 } : {}}
-                transition={{ delay: 0.15, duration: 0.5, type: "spring" }}
+                transition={{ delay: 0.03, duration: 0.5, type: "spring" }}
                 style={styles.logoWrapper}
               >
                 <motion.div
@@ -273,9 +273,9 @@ export default function LupaKataLaluanPage() {
 
               {/* Welcome text */}
               <motion.div
-                initial={{ opacity: 0, y: 15 }}
+                initial={{ opacity: 0, y: 5 }}
                 animate={mounted ? { opacity: 1, y: 0 } : {}}
-                transition={{ delay: 0.3, duration: 0.5 }}
+                transition={{ delay: 0.08, duration: 0.5 }}
                 style={styles.welcomeSection}
               >
                 <h3 style={styles.welcomeTitle}>Lupa Kata Laluan?</h3>
@@ -287,9 +287,9 @@ export default function LupaKataLaluanPage() {
               {/* Form */}
               <form onSubmit={handleSubmit}>
                 <motion.div
-                  initial={{ opacity: 0, y: 15 }}
+                  initial={{ opacity: 0, y: 5 }}
                   animate={mounted ? { opacity: 1, y: 0 } : {}}
-                  transition={{ delay: 0.4, duration: 0.5 }}
+                  transition={{ delay: 0.02, duration: 0.5 }}
                   style={styles.fieldGroup}
                 >
                   <Label style={styles.fieldLabel}>
@@ -317,7 +317,7 @@ export default function LupaKataLaluanPage() {
                 </motion.div>
 
                 <motion.div
-                  initial={{ opacity: 0, y: 15 }}
+                  initial={{ opacity: 0, y: 5 }}
                   animate={mounted ? { opacity: 1, y: 0 } : {}}
                   transition={{ delay: 0.5, duration: 0.5 }}
                   style={{ marginTop: "28px" }}

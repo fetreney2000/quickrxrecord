@@ -259,9 +259,9 @@ export default function LoginPage() {
 
               {/* Welcome text */}
               <motion.div
-                initial={{ opacity: 0, y: 15 }}
+                initial={{ opacity: 0, y: 5 }}
                 animate={mounted ? { opacity: 1, y: 0 } : {}}
-                transition={{ delay: 0.3, duration: 0.5 }}
+                transition={{ delay: 0.08, duration: 0.5 }}
                 style={styles.welcomeSection}
               >
                 <h3 style={styles.welcomeTitle}>Selamat Datang</h3>
@@ -274,9 +274,9 @@ export default function LoginPage() {
               <form onSubmit={handleSubmit}>
                 {/* Username field */}
                 <motion.div
-                  initial={{ opacity: 0, y: 15 }}
+                  initial={{ opacity: 0, y: 5 }}
                   animate={mounted ? { opacity: 1, y: 0 } : {}}
-                  transition={{ delay: 0.4, duration: 0.5 }}
+                  transition={{ delay: 0.02, duration: 0.5 }}
                   style={styles.fieldGroup}
                 >
                   <Label
@@ -327,7 +327,7 @@ export default function LoginPage() {
 
                 {/* Password field */}
                 <motion.div
-                  initial={{ opacity: 0, y: 15 }}
+                  initial={{ opacity: 0, y: 5 }}
                   animate={mounted ? { opacity: 1, y: 0 } : {}}
                   transition={{ delay: 0.5, duration: 0.5 }}
                   style={styles.fieldGroup}
@@ -393,7 +393,7 @@ export default function LoginPage() {
 
                 {/* Submit button */}
                 <motion.div
-                  initial={{ opacity: 0, y: 15 }}
+                  initial={{ opacity: 0, y: 5 }}
                   animate={mounted ? { opacity: 1, y: 0 } : {}}
                   transition={{ delay: 0.6, duration: 0.5 }}
                   style={{ marginTop: "28px" }}

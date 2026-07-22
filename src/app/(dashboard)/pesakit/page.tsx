@@ -136,12 +136,12 @@ export default function PesakitPage() {
       <div style={{ position: "absolute", top: "-60px", right: "-60px", width: "300px", height: "300px", borderRadius: "50%", background: "radial-gradient(circle, rgba(24, 119, 242, 0.03) 0%, transparent 70%)", filter: "blur(30px)", pointerEvents: "none" }} />
 
       {/* Breadcrumb */}
-      <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} style={{ marginBottom: "20px" }}>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.12 }} style={{ marginBottom: "20px" }}>
         <Breadcrumb items={[{ label: "Senarai Pesakit" }]} />
       </motion.div>
 
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
+      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, delay: 0.02 }}
         style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
           <div style={{ width: "48px", height: "48px", borderRadius: "14px", background: "linear-gradient(135deg, #1877f2, #0d5bd4)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(24, 119, 242, 0.3)", flexShrink: 0 }}>
@@ -240,7 +240,7 @@ export default function PesakitPage() {
       </motion.div>
 
       {/* Main Card */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}>
+      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, delay: 0.01 }}>
         <div style={{ position: "relative", borderRadius: "16px", marginBottom: "16px" }}>
           {/* Gradient border */}
           <div style={{ position: "absolute", inset: 0, borderRadius: "16px", padding: "1px", background: "linear-gradient(135deg, rgba(24, 119, 242, 0.2), rgba(124, 58, 237, 0.15), rgba(6, 182, 212, 0.1))", WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)", WebkitMaskComposite: "xor", maskComposite: "exclude", pointerEvents: "none" }} />
@@ -296,7 +296,7 @@ export default function PesakitPage() {
 
                 {/* Rows */}
                 {(data?.patients || []).map((patient, idx) => (
-                  <motion.div key={patient.id} initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.015, duration: 0.2 }}>
+                  <motion.div key={patient.id} initial={{ opacity: 0, y: -3 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.008, duration: 0.1 }}>
                     {/* Desktop */}
                       <div className="pesakit-desktop-row" onClick={() => { setNavSource("pesakit"); router.push(`/pesakit/${patient.id}`); }}
                       style={{ display: "none", gridTemplateColumns: "3fr 3fr 3fr 2fr 1fr", gap: "12px", padding: "14px 24px", borderBottom: "1px solid rgba(221, 223, 226, 0.3)", cursor: "pointer", transition: "background 0.15s ease" }}

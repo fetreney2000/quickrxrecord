@@ -153,11 +153,11 @@ export default function LaporanPage() {
     <div style={{ position: "relative" }}>
       <div style={{ position: "absolute", top: "-60px", right: "-60px", width: "300px", height: "300px", borderRadius: "50%", background: "radial-gradient(circle, rgba(244, 63, 94, 0.03) 0%, transparent 70%)", filter: "blur(30px)", pointerEvents: "none" }} />
 
-      <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }} style={{ marginBottom: "20px" }}>
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.12 }} style={{ marginBottom: "20px" }}>
         <Breadcrumb items={[{ label: "Laporan" }]} />
       </motion.div>
 
-      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
+      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, delay: 0.02 }}
         style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "24px" }}>
         <div style={{ width: "48px", height: "48px", borderRadius: "14px", background: "linear-gradient(135deg, #f43f5e, #e11d48)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(244, 63, 94, 0.3)", flexShrink: 0 }}>
           <BarChart3 size={22} color="white" />
@@ -169,7 +169,7 @@ export default function LaporanPage() {
       </motion.div>
 
       {/* Tab switcher */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}
+      <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, delay: 0.01 }}
         style={{ display: "flex", gap: "4px", padding: "4px", borderRadius: "14px", background: "rgba(240, 242, 245, 0.8)", border: "1px solid rgba(221, 223, 226, 0.5)", marginBottom: "24px", width: "fit-content" }}>
         {[
           { key: "inventory" as const, label: "Inventori", icon: Package },
@@ -191,7 +191,7 @@ export default function LaporanPage() {
       </motion.div>
 
       {/* Content */}
-      <motion.div key={activeTab} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+      <motion.div key={activeTab} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.12 }}>
         {activeTab === "inventory" ? (
           <div style={{ position: "relative", borderRadius: "16px" }}>
             <div style={{ position: "absolute", inset: 0, borderRadius: "16px", padding: "1px", background: "linear-gradient(135deg, rgba(244, 63, 94, 0.15), rgba(24, 119, 242, 0.1), rgba(124, 58, 237, 0.08))", WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)", WebkitMaskComposite: "xor", maskComposite: "exclude", pointerEvents: "none" }} />
