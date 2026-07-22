@@ -395,14 +395,13 @@ export default function ItemDetailPage() {
       const { error } = await supabase.from("items").update(updates).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Item dikemaskini."); setEditMode(false); setTimeout(() => { window.location.href = window.location.pathname + "?t=" + Date.now(); }, 300); },
+    onSuccess: () => { toast.success("Item dikemaskini."); setEditMode(false); queryClient.invalidateQueries({ queryKey: ["item", id], refetchType: "all" }); queryClient.invalidateQueries({ queryKey: ["items"], refetchType: "all" }); },
     onError: (e: any) => toast.error(e.message || "Gagal mengemaskini item."),
   });
 
   const addBatchMutation = useMutation({
     mutationFn: async (batch: typeof newBatch) => {
       const kuantiti = parseInt(batch.kuantiti);
-      // Check if batch number already exists for this item
       const { data: existing } = await supabase
         .from("item_batches")
         .select("id, kuantiti")
@@ -410,37 +409,36 @@ export default function ItemDetailPage() {
         .eq("nombor_kelompok", batch.nombor_kelompok)
         .maybeSingle();
       if (existing) {
-        // Add to existing batch
         const { error } = await supabase
           .from("item_batches")
           .update({ kuantiti: existing.kuantiti + kuantiti, tarikh_luput: batch.tarikh_luput })
           .eq("id", existing.id);
         if (error) throw error;
-        await supabase.from("batch_adjustments").insert({
+        const { error: adjError } = await supabase.from("batch_adjustments").insert({
           batch_id: existing.id, previous_kuantiti: existing.kuantiti, new_kuantiti: existing.kuantiti + kuantiti,
           change: kuantiti, reason: "Penambahan stok", adjusted_by: profile?.id,
         });
+        if (adjError) throw adjError;
       } else {
-        // Create new batch
         const { data, error } = await supabase.from("item_batches").insert({
           item_id: id, nombor_kelompok: batch.nombor_kelompok, tarikh_luput: batch.tarikh_luput, kuantiti,
         }).select().single();
         if (error) throw error;
-        await supabase.from("batch_adjustments").insert({
+        const { error: adjError } = await supabase.from("batch_adjustments").insert({
           batch_id: data.id, previous_kuantiti: 0, new_kuantiti: kuantiti, change: kuantiti,
           reason: "Stok awal kelompok baharu", adjusted_by: profile?.id,
         });
+        if (adjError) throw adjError;
       }
     },
     onSuccess: () => {
       toast.success("Kelompok berjaya ditambah.");
       setOpenAddBatch(false);
       setNewBatch({ nombor_kelompok: "", tarikh_luput: "", kuantiti: "" });
-      queryClient.invalidateQueries({ queryKey: ["batches", id] });
-      queryClient.invalidateQueries({ queryKey: ["items"] });
-      queryClient.invalidateQueries({ queryKey: ["item", id] });
-      queryClient.invalidateQueries({ queryKey: ["transaction-history", id] });
-      setTimeout(() => { window.location.href = window.location.pathname + "?t=" + Date.now(); }, 300);
+      queryClient.invalidateQueries({ queryKey: ["batches", id], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["items"], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["item", id], refetchType: "all" });
+      queryClient.invalidateQueries({ queryKey: ["transaction-history", id], refetchType: "all" });
     },
     onError: (e: any) => toast.error(e.message || "Gagal menambah kelompok."),
   });
@@ -448,14 +446,15 @@ export default function ItemDetailPage() {
   const updateBatchMutation = useMutation({
     mutationFn: async ({ batchId, kuantiti, previousKuantiti }: { batchId: string; kuantiti: number; previousKuantiti: number }) => {
       const change = kuantiti - previousKuantiti;
-      await supabase.from("batch_adjustments").insert({
+      const { error: adjError } = await supabase.from("batch_adjustments").insert({
         batch_id: batchId, previous_kuantiti: previousKuantiti, new_kuantiti: kuantiti, change,
         reason: "Larasan stok manual", adjusted_by: profile?.id,
       });
+      if (adjError) throw adjError;
       const { error } = await supabase.from("item_batches").update({ kuantiti }).eq("id", batchId);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Kuantiti kelompok dikemaskini."); setEditBatchId(null); setTimeout(() => { window.location.href = window.location.pathname + "?t=" + Date.now(); }, 300); },
+    onSuccess: () => { toast.success("Kuantiti kelompok dikemaskini."); setEditBatchId(null); queryClient.invalidateQueries({ queryKey: ["batches", id], refetchType: "all" }); queryClient.invalidateQueries({ queryKey: ["transaction-history", id], refetchType: "all" }); },
     onError: (e: any) => toast.error(e.message || "Gagal mengemaskini kuantiti."),
   });
 
@@ -465,12 +464,13 @@ export default function ItemDetailPage() {
       if (!current) throw new Error("Kelompok tidak dijumpai.");
       const { error } = await supabase.from("item_batches").update({ kuantiti: 0 }).eq("id", batchId);
       if (error) throw error;
-      await supabase.from("batch_adjustments").insert({
+      const { error: adjError } = await supabase.from("batch_adjustments").insert({
         batch_id: batchId, previous_kuantiti: current.kuantiti, new_kuantiti: 0,
         change: -current.kuantiti, reason: "Pelupusan stok", adjusted_by: profile?.id,
       });
+      if (adjError) throw adjError;
     },
-    onSuccess: () => { toast.success("Stok dilupuskan."); setTimeout(() => { window.location.href = window.location.pathname + "?t=" + Date.now(); }, 300); },
+    onSuccess: () => { toast.success("Stok dilupuskan."); queryClient.invalidateQueries({ queryKey: ["batches", id], refetchType: "all" }); queryClient.invalidateQueries({ queryKey: ["transaction-history", id], refetchType: "all" }); },
     onError: (e: any) => toast.error(e.message || "Gagal melupuskan stok."),
   });
 
