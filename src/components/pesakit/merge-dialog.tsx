@@ -73,6 +73,32 @@ export function MergeDialog({ open, onOpenChange, primaryPatient }: MergeDialogP
         
         for (const secAss of (secAssignments || [])) {
           if (primaryItemIds.has(secAss.item_id)) {
+            // Find primary patient's assignment for the same item
+            const { data: primaryMatch } = await supabase
+              .from("patient_item_assignments")
+              .select("id")
+              .eq("patient_id", primaryPatient.id)
+              .eq("item_id", secAss.item_id)
+              .eq("aktif", true)
+              .maybeSingle();
+            
+            if (primaryMatch) {
+              // Transfer supply records to primary assignment
+              const { error: srErr } = await supabase
+                .from("supply_records")
+                .update({ assignment_id: primaryMatch.id })
+                .eq("assignment_id", secAss.id);
+              if (srErr) throw srErr;
+              
+              // Transfer dose history to primary assignment
+              const { error: dhErr } = await supabase
+                .from("dose_history")
+                .update({ assignment_id: primaryMatch.id })
+                .eq("assignment_id", secAss.id);
+              if (dhErr) throw dhErr;
+            }
+            
+            // Deactivate the secondary assignment
             const { error } = await supabase
               .from("patient_item_assignments")
               .update({ 
@@ -108,6 +134,8 @@ export function MergeDialog({ open, onOpenChange, primaryPatient }: MergeDialogP
       queryClient.invalidateQueries({ queryKey: ["patient", primaryPatient.id] });
       queryClient.invalidateQueries({ queryKey: ["assignments", primaryPatient.id] });
       queryClient.invalidateQueries({ queryKey: ["items-with-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["supply-history"] });
+      queryClient.invalidateQueries({ queryKey: ["dose-history"] });
     },
     onError: (e: any) => toast.error(e.message || "Gagal menggabungkan pesakit."),
   });
