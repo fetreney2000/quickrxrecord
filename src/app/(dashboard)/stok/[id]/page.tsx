@@ -787,7 +787,11 @@ export default function ItemDetailPage() {
                       {editBatchId === batch.id ? (
                         <div className="flex gap-1">
                           <Input type="number" className="w-24 h-7 text-sm" value={editBatchData.kuantiti} onChange={e => setEditBatchData({ kuantiti: e.target.value })} />
-                          <Button size="sm" onClick={() => setPendingBatchAction({ type: "adjust", batch, newKuantiti: parseInt(editBatchData.kuantiti) })}>✓</Button>
+                          <Button size="sm" onClick={() => {
+                            const newVal = parseInt(editBatchData.kuantiti);
+                            if (newVal === batch.kuantiti) { toast.info("Tiada perubahan pada kuantiti."); return; }
+                            setPendingBatchAction({ type: "adjust", batch, newKuantiti: newVal });
+                          }}>✓</Button>
                           <Button size="sm" variant="ghost" onClick={() => setEditBatchId(null)}>✕</Button>
                         </div>
                       ) : batch.kuantiti}
