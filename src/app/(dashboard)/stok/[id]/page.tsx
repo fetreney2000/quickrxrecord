@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { formatDate, getKLDate } from "@/lib/utils";
+import { formatDate, getKLDate, toTitleCaseKeepAcronyms } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { ArrowLeft, Plus, Edit, Trash2, History, Download, FileSpreadsheet, FileText, Search, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Package, Users, Activity, TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
 import { setNavSource } from "@/components/ui/breadcrumb";
@@ -600,10 +600,10 @@ export default function ItemDetailPage() {
         {editMode ? (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Kod Item</Label><Input value={editData.kod_item || ""} onChange={e => setEditData({ ...editData, kod_item: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Nama Item</Label><Input value={editData.nama_item || ""} onChange={e => setEditData({ ...editData, nama_item: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Nama Dagangan</Label><Input value={editData.nama_dagangan || ""} onChange={e => setEditData({ ...editData, nama_dagangan: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Kekuatan</Label><Input value={editData.kekuatan || ""} onChange={e => setEditData({ ...editData, kekuatan: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Kod Item</Label><Input value={editData.kod_item || ""} onChange={e => setEditData({ ...editData, kod_item: e.target.value })} onBlur={e => setEditData({ ...editData, kod_item: e.target.value.trim().toUpperCase() })} /></div>
+              <div className="space-y-2"><Label>Nama Item</Label><Input value={editData.nama_item || ""} onChange={e => setEditData({ ...editData, nama_item: e.target.value })} onBlur={e => setEditData({ ...editData, nama_item: toTitleCaseKeepAcronyms(e.target.value.trim()) })} /></div>
+              <div className="space-y-2"><Label>Nama Dagangan</Label><Input value={editData.nama_dagangan || ""} onChange={e => setEditData({ ...editData, nama_dagangan: e.target.value })} onBlur={e => setEditData({ ...editData, nama_dagangan: toTitleCaseKeepAcronyms(e.target.value.trim()) })} /></div>
+              <div className="space-y-2"><Label>Kekuatan</Label><Input value={editData.kekuatan || ""} onChange={e => setEditData({ ...editData, kekuatan: e.target.value })} onBlur={e => setEditData({ ...editData, kekuatan: e.target.value.trim().toUpperCase() })} /></div>
               <div className="space-y-2"><Label>Kategori Item</Label>
                 <Select value={editData.id_kategori || ""} onValueChange={v => setEditData({ ...editData, id_kategori: v })}>
                   <SelectTrigger><SelectValue placeholder="Pilih kategori" /></SelectTrigger>
@@ -620,10 +620,10 @@ export default function ItemDetailPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Kuota</Label><Input type="number" value={editData.kuota ?? ""} onChange={e => setEditData({ ...editData, kuota: e.target.value ? parseInt(e.target.value) : null })} /></div>
+              <div className="space-y-2"><Label>Jumlah Kuota</Label><Input type="number" value={editData.kuota ?? ""} onChange={e => setEditData({ ...editData, kuota: e.target.value ? parseInt(e.target.value) : null })} /></div>
             </div>
             <div className="flex gap-2">
-              <Button onClick={() => updateItemMutation.mutate(editData)} disabled={updateItemMutation.isPending}>Simpan</Button>
+              <Button onClick={() => updateItemMutation.mutate({ ...editData, kod_item: (editData.kod_item || "").trim().toUpperCase(), nama_item: toTitleCaseKeepAcronyms((editData.nama_item || "").trim()), nama_dagangan: editData.nama_dagangan != null ? toTitleCaseKeepAcronyms(editData.nama_dagangan.trim()) : undefined, kekuatan: editData.kekuatan != null ? editData.kekuatan.trim().toUpperCase() : undefined })} disabled={updateItemMutation.isPending}>Simpan</Button>
               <Button variant="outline" onClick={() => setEditMode(false)}>Batal</Button>
             </div>
           </div>
@@ -791,13 +791,13 @@ export default function ItemDetailPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>Tambah Kelompok Baharu</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div className="space-y-2"><Label>Nombor Kelompok *</Label><Input value={newBatch.nombor_kelompok} onChange={e => setNewBatch({ ...newBatch, nombor_kelompok: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Nombor Kelompok *</Label><Input value={newBatch.nombor_kelompok} onChange={e => setNewBatch({ ...newBatch, nombor_kelompok: e.target.value })} onBlur={e => setNewBatch({ ...newBatch, nombor_kelompok: e.target.value.trim().toUpperCase() })} /></div>
             <div className="space-y-2"><Label>Tarikh Luput *</Label><Input type="date" value={newBatch.tarikh_luput} onChange={e => setNewBatch({ ...newBatch, tarikh_luput: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Kuantiti *</Label><Input type="number" value={newBatch.kuantiti} onChange={e => setNewBatch({ ...newBatch, kuantiti: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Kuantiti *</Label><Input type="number" value={newBatch.kuantiti} onChange={e => setNewBatch({ ...newBatch, kuantiti: e.target.value })} onBlur={e => setNewBatch({ ...newBatch, kuantiti: e.target.value.trim() })} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenAddBatch(false)}>Batal</Button>
-            <Button onClick={() => addBatchMutation.mutate(newBatch)} disabled={!newBatch.nombor_kelompok || !newBatch.tarikh_luput || !newBatch.kuantiti || addBatchMutation.isPending}>
+            <Button onClick={() => addBatchMutation.mutate({ ...newBatch, nombor_kelompok: newBatch.nombor_kelompok.trim().toUpperCase(), kuantiti: newBatch.kuantiti.trim() })} disabled={!newBatch.nombor_kelompok?.trim() || !newBatch.tarikh_luput || !newBatch.kuantiti?.trim() || addBatchMutation.isPending}>
               {addBatchMutation.isPending ? "Menyimpan..." : "Simpan"}
             </Button>
           </DialogFooter>
