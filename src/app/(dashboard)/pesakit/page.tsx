@@ -169,12 +169,12 @@ export default function PesakitPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginTop: "8px" }}>
                 <div>
                   <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><User size={12} /> Nama *</Label>
-                  <Input value={newPatient.nama} onChange={(e) => setNewPatient({ ...newPatient, nama: e.target.value })} onBlur={(e) => setNewPatient({ ...newPatient, nama: toTitleCase(e.target.value.trim()) })} style={inputStyle} placeholder="Nama penuh pesakit" />
+                  <Input value={newPatient.nama} onChange={(e) => setNewPatient({ ...newPatient, nama: e.target.value })} onBlur={(e) => setNewPatient({ ...newPatient, nama: toTitleCase(e.target.value.trim()) })} style={inputStyle} />
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                   <div>
                     <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><IdCard size={12} /> No. KP</Label>
-                    <Input value={newPatient.nombor_kad_pengenalan} onChange={(e) => setNewPatient({ ...newPatient, nombor_kad_pengenalan: e.target.value })} onBlur={(e) => setNewPatient({ ...newPatient, nombor_kad_pengenalan: formatMyKad(e.target.value.trim()) })} style={inputStyle} placeholder="000101-01-0001" />
+                    <Input value={newPatient.nombor_kad_pengenalan} onChange={(e) => setNewPatient({ ...newPatient, nombor_kad_pengenalan: e.target.value })} onBlur={(e) => setNewPatient({ ...newPatient, nombor_kad_pengenalan: formatMyKad(e.target.value.trim()) })} style={inputStyle} />
                   </div>
                   <div>
                     <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><Activity size={12} /> No. Pendaftaran Hospital</Label>
@@ -183,7 +183,7 @@ export default function PesakitPage() {
                 </div>
                 <div>
                   <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px", display: "flex", alignItems: "center", gap: "4px" }}><Phone size={12} /> No. Telefon</Label>
-                  <Input value={newPatient.nombor_telefon} onChange={(e) => setNewPatient({ ...newPatient, nombor_telefon: e.target.value })} onBlur={(e) => setNewPatient({ ...newPatient, nombor_telefon: formatPhone(e.target.value.trim()) })} style={inputStyle} placeholder="012-3456789" />
+                  <Input value={newPatient.nombor_telefon} onChange={(e) => setNewPatient({ ...newPatient, nombor_telefon: e.target.value })} onBlur={(e) => setNewPatient({ ...newPatient, nombor_telefon: formatPhone(e.target.value.trim()) })} style={inputStyle} />
                 </div>
                 <div>
                   <Label style={{ fontSize: "12px", fontWeight: 600, color: "#65676b", marginBottom: "6px" }}>Alamat</Label>
