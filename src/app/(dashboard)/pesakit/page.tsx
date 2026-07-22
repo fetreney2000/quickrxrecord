@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
@@ -44,6 +44,31 @@ export default function PesakitPage() {
   const supabase = createClient();
   const queryClient = useQueryClient();
   const canEdit = hasPermission(profile?.peranan, "manage_patients");
+  const [duplicateWarning, setDuplicateWarning] = useState<{ type: string; patient: Patient } | null>(null);
+  const lookupTimer = useRef<ReturnType<typeof setTimeout>>(null);
+
+  useEffect(() => {
+    if (lookupTimer.current) clearTimeout(lookupTimer.current);
+    const kp = newPatient.nombor_kad_pengenalan.trim();
+    const hosp = newPatient.nombor_pendaftaran_hospital.trim();
+    if (!kp && !hosp) { setDuplicateWarning(null); return; }
+    lookupTimer.current = setTimeout(async () => {
+      try {
+        const filters: string[] = [];
+        if (kp) filters.push(`nombor_kad_pengenalan.eq.${kp}`);
+        if (hosp) filters.push(`nombor_pendaftaran_hospital.eq.${hosp}`);
+        const { data: matches } = await supabase.from("patients")
+          .select("*")
+          .or(filters.join(","))
+          .limit(1);
+        if (matches && matches.length > 0) {
+          setDuplicateWarning({ type: kp ? "No. KP" : "No. Pendaftaran Hospital", patient: matches[0] as Patient });
+        } else {
+          setDuplicateWarning(null);
+        }
+      } catch { setDuplicateWarning(null); }
+    }, 600);
+  }, [newPatient.nombor_kad_pengenalan, newPatient.nombor_pendaftaran_hospital]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["patients", search, page, sort],
@@ -169,6 +194,21 @@ export default function PesakitPage() {
                   <Textarea value={newPatient.catatan} onChange={(e) => setNewPatient({ ...newPatient, catatan: e.target.value })} onBlur={(e) => setNewPatient({ ...newPatient, catatan: e.target.value.trim() })} style={{ ...inputStyle, height: "72px", padding: "10px 14px", resize: "vertical" as const }} />
                 </div>
               </div>
+              {duplicateWarning && (
+                <div style={{ padding: "12px", borderRadius: "10px", background: "rgba(245, 158, 11, 0.1)", border: "1px solid rgba(245, 158, 11, 0.3)", display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <p style={{ fontSize: "12px", fontWeight: 600, color: "#d97706", margin: 0 }}>
+                    ⚠️ Pesakit dengan {duplicateWarning.type} ini sudah didaftarkan.
+                  </p>
+                  <p style={{ fontSize: "12px", color: "#92400e", margin: 0 }}>
+                    {duplicateWarning.patient.nama} —{" "}
+                    <span
+                      onClick={() => { setOpenAdd(false); router.push(`/pesakit/${duplicateWarning.patient.id}`); }}
+                      style={{ color: "#1877f2", cursor: "pointer", textDecoration: "underline", fontWeight: 500 }}
+                    >Lihat butiran pesakit</span>
+                  </p>
+                  <p style={{ fontSize: "11px", color: "#92400e", margin: 0 }}>Anda boleh teruskan pendaftaran jika perlu.</p>
+                </div>
+              )}
               <DialogFooter style={{ gap: "8px", marginTop: "8px" }}>
                 <button onClick={() => setOpenAdd(false)} style={{ padding: "8px 16px", borderRadius: "10px", border: "1.5px solid #dddfe2", background: "#ffffff", color: "#1c1e21", fontSize: "13px", fontWeight: 500, fontFamily: "inherit", cursor: "pointer" }}>Batal</button>
                 <button onClick={() => {
