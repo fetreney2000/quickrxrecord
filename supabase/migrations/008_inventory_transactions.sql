@@ -78,11 +78,6 @@ BEGIN
   INSERT INTO inventory_transactions (item_id, batch_id, jenis, kuantiti, rujukan_id, rujukan_type, catatan)
   VALUES (v_item_id, p_batch_id, 'keluar', p_kuantiti, v_supply_id, 'supply', 'Pembekalan kepada pesakit');
 
-  -- Update assignment dose if changed
-  UPDATE patient_item_assignments
-  SET dos = p_dos, updated_at = now()
-  WHERE id = p_assignment_id AND dos IS DISTINCT FROM p_dos;
-
   RETURN v_supply_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
