@@ -397,7 +397,7 @@ export default function ItemDetailPage() {
       const { error } = await supabase.from("items").update(updates).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Item dikemaskini."); setEditMode(false); setTimeout(() => location.reload(), 3000); },
+    onSuccess: () => { toast.success("Item dikemaskini."); setEditMode(false); setTimeout(() => location.reload(), 6000); },
     onError: (e: any) => toast.error(e.message || "Gagal mengemaskini item."),
   });
 
@@ -437,7 +437,7 @@ export default function ItemDetailPage() {
       toast.success("Kelompok berjaya ditambah.");
       setOpenAddBatch(false);
       setNewBatch({ nombor_kelompok: "", tarikh_luput: "", kuantiti: "" });
-      setTimeout(() => location.reload(), 3000);
+      setTimeout(() => location.reload(), 6000);
     },
     onError: (e: any) => toast.error(e.message || "Gagal menambah kelompok."),
   });
@@ -453,7 +453,7 @@ export default function ItemDetailPage() {
       const { error } = await supabase.from("item_batches").update({ kuantiti }).eq("id", batchId);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Kuantiti kelompok dikemaskini."); setEditBatchId(null); setTimeout(() => location.reload(), 3000); },
+    onSuccess: () => { toast.success("Kuantiti kelompok dikemaskini."); setEditBatchId(null); setTimeout(() => location.reload(), 6000); },
     onError: (e: any) => toast.error(e.message || "Gagal mengemaskini kuantiti."),
   });
 
@@ -469,7 +469,7 @@ export default function ItemDetailPage() {
       });
       if (adjError) throw adjError;
     },
-    onSuccess: () => { toast.success("Stok dilupuskan."); setTimeout(() => location.reload(), 3000); },
+    onSuccess: () => { toast.success("Stok dilupuskan."); setTimeout(() => location.reload(), 6000); },
     onError: (e: any) => toast.error(e.message || "Gagal melupuskan stok."),
   });
 
