@@ -395,7 +395,7 @@ export default function ItemDetailPage() {
       const { error } = await supabase.from("items").update(updates).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Item dikemaskini."); setEditMode(false); queryClient.invalidateQueries({ queryKey: ["item", id] }); queryClient.invalidateQueries({ queryKey: ["items"] }); },
+    onSuccess: () => { toast.success("Item dikemaskini."); setEditMode(false); location.reload(); },
     onError: () => toast.error("Gagal mengemaskini item."),
   });
 
@@ -440,6 +440,7 @@ export default function ItemDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["items"] });
       queryClient.invalidateQueries({ queryKey: ["item", id] });
       queryClient.invalidateQueries({ queryKey: ["transaction-history", id] });
+      location.reload();
     },
     onError: () => toast.error("Gagal menambah kelompok."),
   });
@@ -454,7 +455,7 @@ export default function ItemDetailPage() {
       const { error } = await supabase.from("item_batches").update({ kuantiti }).eq("id", batchId);
       if (error) throw error;
     },
-    onSuccess: () => { toast.success("Kuantiti kelompok dikemaskini."); setEditBatchId(null); queryClient.invalidateQueries({ queryKey: ["batches", id] }); queryClient.invalidateQueries({ queryKey: ["transaction-history", id] }); },
+    onSuccess: () => { toast.success("Kuantiti kelompok dikemaskini."); setEditBatchId(null); location.reload(); },
     onError: () => toast.error("Gagal mengemaskini kuantiti."),
   });
 
@@ -469,7 +470,7 @@ export default function ItemDetailPage() {
         change: -current.kuantiti, reason: "Pelupusan stok", adjusted_by: profile?.id,
       });
     },
-    onSuccess: () => { toast.success("Stok dilupuskan."); queryClient.invalidateQueries({ queryKey: ["batches", id] }); queryClient.invalidateQueries({ queryKey: ["transaction-history", id] }); },
+    onSuccess: () => { toast.success("Stok dilupuskan."); location.reload(); },
     onError: () => toast.error("Gagal melupuskan stok."),
   });
 
