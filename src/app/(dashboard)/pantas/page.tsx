@@ -48,6 +48,7 @@ export default function QuickDispensePage() {
   const [successPatient, setSuccessPatient] = useState<string | null>(null);
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const [registerItemSearch, setRegisterItemSearch] = useState("");
+  const [dialogItemsReady, setDialogItemsReady] = useState(false);
 
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -242,6 +243,7 @@ export default function QuickDispensePage() {
     setSearchResults([]);
     setShowRegisterDialog(false);
     setRegisterItemSearch("");
+    setDialogItemsReady(false);
   };
 
   const clearPatient = () => {
@@ -256,6 +258,7 @@ export default function QuickDispensePage() {
     setSelectedBatchId("");
     setShowRegisterDialog(false);
     setRegisterItemSearch("");
+    setDialogItemsReady(false);
     setTimeout(() => inputRef.current?.focus(), 50);
   };
 
@@ -668,7 +671,12 @@ export default function QuickDispensePage() {
                   </div>
                   <Button
                     size="sm"
-                    onClick={() => { setShowRegisterDialog(true); refetchItems(); }}
+                    onClick={async () => {
+                      setShowRegisterDialog(true);
+                      setDialogItemsReady(false);
+                      await refetchItems();
+                      setDialogItemsReady(true);
+                    }}
                     style={{
                       background: "linear-gradient(135deg, #10b981, #059669)",
                       border: "none", borderRadius: "10px", color: "#fff",
@@ -817,7 +825,7 @@ export default function QuickDispensePage() {
       </motion.div>
 
       {/* Daftar Item Baru Dialog */}
-      <Dialog open={showRegisterDialog} onOpenChange={(v) => { setShowRegisterDialog(v); if (!v) setRegisterItemSearch(""); }}>
+      <Dialog open={showRegisterDialog} onOpenChange={(v) => { setShowRegisterDialog(v); if (!v) { setRegisterItemSearch(""); setDialogItemsReady(false); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -847,7 +855,12 @@ export default function QuickDispensePage() {
               </div>
             </div>
             <div style={{ maxHeight: "280px", overflowY: "auto", borderRadius: "10px", border: "1px solid rgba(0,0,0,0.06)" }}>
-              {filteredRegisterItems.length === 0 ? (
+              {!dialogItemsReady ? (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 16px", gap: "10px" }}>
+                  <Loader2 size={22} color="#10b981" style={{ animation: "spin 1s linear infinite" }} />
+                  <p style={{ fontSize: "12px", color: "#65676b" }}>Menyemak kuota terkini...</p>
+                </div>
+              ) : filteredRegisterItems.length === 0 ? (
                 <p style={{ fontSize: "12px", color: "#65676b", textAlign: "center", padding: "16px" }}>Tiada item tersedia.</p>
               ) : filteredRegisterItems.map((item: any) => {
                 const isOutOfQuota = item.kuota_penuh;
