@@ -102,16 +102,21 @@ export default function QuickDispensePage() {
       if (patErr) throw patErr;
       const activePatientIds = (activePatientRows || []).map((p: any) => p.id);
 
-      const { data: activeAssignments, error: countErr } = await supabase
-        .from("patient_item_assignments")
-        .select("item_id")
-        .in("patient_id", activePatientIds.length > 0 ? activePatientIds : ["none"])
-        .or("aktif.is.null,aktif.eq.true");
-      if (countErr) throw countErr;
-      if (!Array.isArray(activeAssignments)) throw new Error("Gagal memuatkan data penugasan.");
+      const BATCH_SIZE = 200;
+      const allAssignments: any[] = [];
+      for (let i = 0; i < activePatientIds.length; i += BATCH_SIZE) {
+        const batch = activePatientIds.slice(i, i + BATCH_SIZE);
+        const { data: batchData, error: batchErr } = await supabase
+          .from("patient_item_assignments")
+          .select("item_id")
+          .in("patient_id", batch)
+          .or("aktif.is.null,aktif.eq.true");
+        if (batchErr) throw batchErr;
+        if (batchData) allAssignments.push(...batchData);
+      }
 
       const m: Record<string, number> = {};
-      for (const c of activeAssignments) m[c.item_id] = (m[c.item_id] || 0) + 1;
+      for (const c of allAssignments) m[c.item_id] = (m[c.item_id] || 0) + 1;
 
       return itemsList.map(item => {
         const kuotaVal = item.kuota != null ? Number(item.kuota) : null;
