@@ -94,15 +94,11 @@ export default function QuickDispensePage() {
       if (error) throw error;
       const itemsList = data as any[];
 
-      const { data: allAssignments, error: countErr } = await supabase
-        .from("patient_item_assignments")
-        .select("item_id")
-        .or("aktif.is.null,aktif.eq.true");
-      if (countErr) throw countErr;
-      if (!Array.isArray(allAssignments)) throw new Error("Gagal memuatkan data penugasan.");
+      const { data: rpcCounts, error: rpcErr } = await supabase.rpc("count_active_assignments");
+      if (rpcErr) throw rpcErr;
 
       const m: Record<string, number> = {};
-      for (const c of allAssignments) m[c.item_id] = (m[c.item_id] || 0) + 1;
+      for (const row of (rpcCounts || [])) m[row.item_id] = Number(row.active_count) || 0;
 
       return itemsList.map(item => {
         const kuotaVal = item.kuota != null ? Number(item.kuota) : null;
