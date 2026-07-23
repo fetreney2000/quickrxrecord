@@ -26,7 +26,7 @@ Asas sistem adalah kukuh: skema pangkalan data yang bersih dengan penjejakan kel
 
 | # | Ciri | Kepentingan |
 |---|------|-------------|
-| 5 | **Dispens Pantas (Quick Dispense Workflow)** — Aliran semasa memerlukan klik melalui pesakit → tugasan → bekalan. Tambah halaman **"Dispens Pantas"**: satu kotak carian yang mencari pesakit melalui nama/IC/nombor hospital, auto-cadang, kemudian memaparkan borang pendispensan satu skrin (pilih item → pilih kelompok → masukkan kuantiti → sahkan). Staf sepatutnya boleh selesai mendispens dalam masa bawah 10 saat. | Tugasan paling kerap — dilakukan 50+ kali sehari. |
+| 5 | ✅ **Dispens Pantas (Quick Dispense Workflow)** — ~~Aliran semasa memerlukan klik melalui pesakit → tugasan → bekalan. Tambah halaman **"Dispens Pantas"**: satu kotak carian yang mencari pesakit melalui nama/IC/nombor hospital, auto-cadang, kemudian memaparkan borang pendispensan satu skrin (pilih item → pilih kelompok → masukkan kuantiti → sahkan). Staf sepatutnya boleh selesai mendispens dalam masa bawah 10 saat.~~ **DILAKSANAKAN** — Halaman `/pantas` dengan carian pesakit, item kerap (10 teratas), pemilihan kelompok auto-FEFO, dan borang pendispensan satu skrin. | Tugasan paling kerap — dilakukan 50+ kali sehari. |
 | 6 | **Sokongan Imbasan Kod Bar (Barcode)** — Item dan pesakit patut mempunyai label kod bar (dijana oleh sistem). Pendispensan boleh dicetuskan dengan mengimbas gelang pesakit + kod bar ubat. Gunakan Web Barcode Detection API atau mod tangkapan input ringkas. | Mempercepatkan dan mengurangkan ralat. |
 | 7 | **Auto-Pilih Kelompok FEFO** — Semasa mendispens, sistem sepatutnya auto-cadang kelompok mana untuk digunakan berdasarkan FEFO (First Expired, First Out). Pada masa ini staf perlu memilih kelompok secara manual. Fungsi `process_supply` patut menerima `item_id` dan auto-memilih kelompok paling awal luput dengan stok mencukupi. | Mengurangkan pembaziran ubat luput. |
 | 8 | **Item Kerap/Frequent Items** — Pada skrin pendispensan, paparkan baris 10 item paling kerap didispens sebagai butang ketik pantas. Di wad hospital, 15-20 ubat yang sama didispens 80% daripada masa. | Jimat masa carian. |
@@ -97,7 +97,7 @@ Asas sistem adalah kukuh: skema pangkalan data yang bersih dengan penjejakan kel
 
 ### Fasa 1 (Segera — 2-4 minggu)
 Impak harian terbesar + keselamatan pesakit kritikal:
-- **#5, #7, #8** — Dispens Pantas + Auto-Pilih Kelompok FEFO + Item Kerap
+- **#5, #7, #8** — Dispens Pantas + Auto-Pilih Kelompok FEFO + Item Kerap ✅ **#5 dilaksanakan** (halaman `/pantas`, 23 Julai 2026)
 - **#1** — Rekod & Amaran Alergi Ubat (kritikal keselamatan pesakit)
 - **#24** — Mod Gelap (quick win, pakej sudah dipasang)
 

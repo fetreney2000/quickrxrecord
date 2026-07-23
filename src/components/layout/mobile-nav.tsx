@@ -4,10 +4,11 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth, hasPermission } from "@/lib/auth-context";
-import { LayoutDashboard, Stethoscope, Pill, FileText, UserCog, User, Shield } from "lucide-react";
+import { LayoutDashboard, Stethoscope, Pill, FileText, UserCog, User, Shield, Zap } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Utama", icon: LayoutDashboard, color: "#3b82f6", permission: null },
+  { href: "/pantas", label: "Pantas", icon: Zap, color: "#f0932b", permission: "manage_supply" },
   { href: "/pesakit", label: "Pesakit", icon: Stethoscope, color: "#10b981", permission: "view_patients" },
   { href: "/stok", label: "Inventori", icon: Pill, color: "#8b5cf6", permission: "view_items" },
   { href: "/laporan", label: "Laporan", icon: FileText, color: "#f43f5e", permission: "view_reports" },
