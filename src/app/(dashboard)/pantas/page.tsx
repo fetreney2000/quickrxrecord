@@ -86,7 +86,7 @@ export default function QuickDispensePage() {
   }, [searchQuery, searchPatients]);
 
   // Items (all active, for register dialog, includes quota)
-  const { data: items } = useQuery({
+  const { data: items, refetch: refetchItems } = useQuery({
     queryKey: ["items-active"],
     queryFn: async () => {
       const { data, error } = await supabase.from("items").select("id, kod_item, nama_item, kekuatan, id_bentuk, kuota").eq("aktif", true).order("nama_item");
@@ -95,13 +95,19 @@ export default function QuickDispensePage() {
       const { data: counts } = await supabase.from("patient_item_assignments").select("item_id").eq("aktif", true);
       const m: Record<string, number> = {};
       for (const c of (counts || [])) m[c.item_id] = (m[c.item_id] || 0) + 1;
-      return itemsList.map(item => ({
-        ...item,
-        patient_count: m[item.id] || 0,
-        baki_kuota: item.kuota != null ? Math.max(0, item.kuota - (m[item.id] || 0)) : null,
-        kuota_penuh: item.kuota != null && (m[item.id] || 0) >= item.kuota,
-      }));
-    }
+      return itemsList.map(item => {
+        const kuotaVal = item.kuota != null ? Number(item.kuota) : null;
+        const activeCount = Number(m[item.id]) || 0;
+        return {
+          ...item,
+          kuota: kuotaVal,
+          patient_count: activeCount,
+          baki_kuota: kuotaVal != null ? Math.max(0, kuotaVal - activeCount) : null,
+          kuota_penuh: kuotaVal != null && activeCount >= kuotaVal,
+        };
+      });
+    },
+    staleTime: 0,
   });
 
   // Patient's active assignments (with item details)
@@ -662,7 +668,7 @@ export default function QuickDispensePage() {
                   </div>
                   <Button
                     size="sm"
-                    onClick={() => setShowRegisterDialog(true)}
+                    onClick={() => { setShowRegisterDialog(true); refetchItems(); }}
                     style={{
                       background: "linear-gradient(135deg, #10b981, #059669)",
                       border: "none", borderRadius: "10px", color: "#fff",
