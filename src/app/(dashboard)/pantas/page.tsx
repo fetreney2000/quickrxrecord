@@ -94,26 +94,12 @@ export default function QuickDispensePage() {
       if (error) throw error;
       const itemsList = data as any[];
 
-      const { data: activePatientRows, error: patErr } = await supabase
-        .from("patients")
-        .select("id")
-        .or("aktif.is.null,aktif.eq.true")
-        .is("merged_into", null);
-      if (patErr) throw patErr;
-      const activePatientIds = (activePatientRows || []).map((p: any) => p.id);
-
-      const BATCH_SIZE = 200;
-      const allAssignments: any[] = [];
-      for (let i = 0; i < activePatientIds.length; i += BATCH_SIZE) {
-        const batch = activePatientIds.slice(i, i + BATCH_SIZE);
-        const { data: batchData, error: batchErr } = await supabase
-          .from("patient_item_assignments")
-          .select("item_id")
-          .in("patient_id", batch)
-          .or("aktif.is.null,aktif.eq.true");
-        if (batchErr) throw batchErr;
-        if (batchData) allAssignments.push(...batchData);
-      }
+      const { data: allAssignments, error: countErr } = await supabase
+        .from("patient_item_assignments")
+        .select("item_id")
+        .or("aktif.is.null,aktif.eq.true");
+      if (countErr) throw countErr;
+      if (!Array.isArray(allAssignments)) throw new Error("Gagal memuatkan data penugasan.");
 
       const m: Record<string, number> = {};
       for (const c of allAssignments) m[c.item_id] = (m[c.item_id] || 0) + 1;
