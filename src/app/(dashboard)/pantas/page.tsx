@@ -94,7 +94,7 @@ export default function QuickDispensePage() {
       if (error) throw error;
       const itemsList = data as any[];
 
-      const { data: activeAssignments, error: countErr } = await supabase.from("patient_item_assignments").select("item_id").eq("aktif", true);
+      const { data: activeAssignments, error: countErr } = await supabase.from("patient_item_assignments").select("item_id").or("aktif.is.null,aktif.eq.true");
       if (countErr) throw countErr;
       if (!Array.isArray(activeAssignments)) throw new Error("Gagal memuatkan data penugasan.");
 
