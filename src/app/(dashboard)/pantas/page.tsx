@@ -97,7 +97,7 @@ export default function QuickDispensePage() {
       const { data: activePatientRows, error: patErr } = await supabase
         .from("patients")
         .select("id")
-        .eq("aktif", true)
+        .or("aktif.is.null,aktif.eq.true")
         .is("merged_into", null);
       if (patErr) throw patErr;
       const activePatientIds = (activePatientRows || []).map((p: any) => p.id);
