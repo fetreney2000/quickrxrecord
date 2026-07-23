@@ -93,9 +93,14 @@ export default function QuickDispensePage() {
       const { data, error } = await supabase.from("items").select("id, kod_item, nama_item, kekuatan, id_bentuk, kuota").eq("aktif", true).order("nama_item");
       if (error) throw error;
       const itemsList = data as any[];
-      const { data: counts } = await supabase.from("patient_item_assignments").select("item_id").eq("aktif", true);
+
+      const { data: activeAssignments, error: countErr } = await supabase.from("patient_item_assignments").select("item_id").eq("aktif", true);
+      if (countErr) throw countErr;
+      if (!Array.isArray(activeAssignments)) throw new Error("Gagal memuatkan data penugasan.");
+
       const m: Record<string, number> = {};
-      for (const c of (counts || [])) m[c.item_id] = (m[c.item_id] || 0) + 1;
+      for (const c of activeAssignments) m[c.item_id] = (m[c.item_id] || 0) + 1;
+
       return itemsList.map(item => {
         const kuotaVal = item.kuota != null ? Number(item.kuota) : null;
         const activeCount = Number(m[item.id]) || 0;
