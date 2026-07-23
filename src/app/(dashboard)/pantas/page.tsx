@@ -94,7 +94,19 @@ export default function QuickDispensePage() {
       if (error) throw error;
       const itemsList = data as any[];
 
-      const { data: activeAssignments, error: countErr } = await supabase.from("patient_item_assignments").select("item_id").or("aktif.is.null,aktif.eq.true");
+      const { data: activePatientRows, error: patErr } = await supabase
+        .from("patients")
+        .select("id")
+        .eq("aktif", true)
+        .is("merged_into", null);
+      if (patErr) throw patErr;
+      const activePatientIds = (activePatientRows || []).map((p: any) => p.id);
+
+      const { data: activeAssignments, error: countErr } = await supabase
+        .from("patient_item_assignments")
+        .select("item_id")
+        .in("patient_id", activePatientIds.length > 0 ? activePatientIds : ["none"])
+        .or("aktif.is.null,aktif.eq.true");
       if (countErr) throw countErr;
       if (!Array.isArray(activeAssignments)) throw new Error("Gagal memuatkan data penugasan.");
 
