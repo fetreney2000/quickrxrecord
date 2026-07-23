@@ -85,13 +85,22 @@ export default function QuickDispensePage() {
     return () => clearTimeout(timer);
   }, [searchQuery, searchPatients]);
 
-  // Items (all active, for register dialog)
+  // Items (all active, for register dialog, includes quota)
   const { data: items } = useQuery({
     queryKey: ["items-active"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("items").select("id, kod_item, nama_item, kekuatan, id_bentuk").eq("aktif", true).order("nama_item");
+      const { data, error } = await supabase.from("items").select("id, kod_item, nama_item, kekuatan, id_bentuk, kuota").eq("aktif", true).order("nama_item");
       if (error) throw error;
-      return data as any[];
+      const itemsList = data as any[];
+      const { data: counts } = await supabase.from("patient_item_assignments").select("item_id").eq("aktif", true);
+      const m: Record<string, number> = {};
+      for (const c of (counts || [])) m[c.item_id] = (m[c.item_id] || 0) + 1;
+      return itemsList.map(item => ({
+        ...item,
+        patient_count: m[item.id] || 0,
+        baki_kuota: item.kuota != null ? Math.max(0, item.kuota - (m[item.id] || 0)) : null,
+        kuota_penuh: item.kuota != null && (m[item.id] || 0) >= item.kuota,
+      }));
     }
   });
 
@@ -262,6 +271,10 @@ export default function QuickDispensePage() {
   };
 
   const handleRegisterItem = (item: any) => {
+    if (item.kuota_penuh) {
+      toast.warning("Kuota untuk item ini telah penuh. Tidak boleh mendaftar pesakit baharu.");
+      return;
+    }
     setSelectedItem(item);
     setShowRegisterDialog(false);
     setRegisterItemSearch("");
@@ -830,21 +843,37 @@ export default function QuickDispensePage() {
             <div style={{ maxHeight: "280px", overflowY: "auto", borderRadius: "10px", border: "1px solid rgba(0,0,0,0.06)" }}>
               {filteredRegisterItems.length === 0 ? (
                 <p style={{ fontSize: "12px", color: "#65676b", textAlign: "center", padding: "16px" }}>Tiada item tersedia.</p>
-              ) : filteredRegisterItems.map((item: any) => (
+              ) : filteredRegisterItems.map((item: any) => {
+                const isOutOfQuota = item.kuota_penuh;
+                const baki = item.baki_kuota;
+                return (
                 <div
                   key={item.id}
-                  onClick={() => handleRegisterItem(item)}
+                  onClick={() => { if (!isOutOfQuota) handleRegisterItem(item); }}
                   style={{
-                    padding: "10px 14px", borderBottom: "1px solid rgba(0,0,0,0.04)", cursor: "pointer",
-                    transition: "background 0.1s ease", background: "transparent",
+                    padding: "10px 14px", borderBottom: "1px solid rgba(0,0,0,0.04)",
+                    cursor: isOutOfQuota ? "not-allowed" : "pointer",
+                    transition: "background 0.1s ease", background: isOutOfQuota ? "rgba(239, 68, 68, 0.03)" : "transparent",
+                    opacity: isOutOfQuota ? 0.55 : 1,
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(16, 185, 129, 0.04)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                  onMouseEnter={(e) => { if (!isOutOfQuota) e.currentTarget.style.background = "rgba(16, 185, 129, 0.04)"; }}
+                  onMouseLeave={(e) => { if (!isOutOfQuota) e.currentTarget.style.background = isOutOfQuota ? "rgba(239, 68, 68, 0.03)" : "transparent"; }}
                 >
-                  <div style={{ fontSize: "13px", fontWeight: 500, color: "#1c1e21" }}>{getItemDisplayName(item)}</div>
-                  <div style={{ fontSize: "11px", color: "#65676b", marginTop: "1px" }}>{item.kod_item}</div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ fontSize: "13px", fontWeight: 500, color: isOutOfQuota ? "#991b1b" : "#1c1e21" }}>{getItemDisplayName(item)}</div>
+                    {item.kuota != null && (
+                      <Badge variant={isOutOfQuota ? "destructive" : "secondary"} style={{ fontSize: "10px" }}>
+                        {isOutOfQuota ? "Kuota Penuh" : `Kuota: ${baki}/${item.kuota}`}
+                      </Badge>
+                    )}
+                  </div>
+                  <div style={{ fontSize: "11px", color: isOutOfQuota ? "#dc2626" : "#65676b", marginTop: "1px" }}>
+                    {item.kod_item}
+                    {isOutOfQuota && <span style={{ marginLeft: "8px", fontWeight: 500 }}>— Tiada kuota tersedia</span>}
+                  </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
           <DialogFooter>
