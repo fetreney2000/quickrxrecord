@@ -112,6 +112,7 @@ export default function ItemDetailPage() {
       if (error) throw error;
       return data as Item;
     },
+    staleTime: 0,
   });
 
   const { data: forms } = useQuery({
@@ -120,7 +121,7 @@ export default function ItemDetailPage() {
       const { data } = await supabase.from("item_forms").select("id, nama");
       return (data || []) as Pick<ItemForm, "id" | "nama">[];
     },
-    staleTime: 60000,
+    staleTime: 0,
   });
 
   const { data: categories } = useQuery({
@@ -129,7 +130,7 @@ export default function ItemDetailPage() {
       const { data } = await supabase.from("item_categories").select("id, nama");
       return (data || []) as Pick<ItemCategory, "id" | "nama">[];
     },
-    staleTime: 60000,
+    staleTime: 0,
   });
 
   const currentFormName = useMemo(() => {
@@ -154,6 +155,7 @@ export default function ItemDetailPage() {
       if (error) throw error;
       return data as ItemBatch[];
     },
+    staleTime: 0,
   });
 
   const { data: assignedPatients } = useQuery({
@@ -222,6 +224,7 @@ export default function ItemDetailPage() {
         };
       });
     },
+    staleTime: 0,
   });
 
   useEffect(() => {
@@ -282,6 +285,7 @@ export default function ItemDetailPage() {
       return transactions;
     },
     enabled: true,
+    staleTime: 0,
   });
 
   // Sorting

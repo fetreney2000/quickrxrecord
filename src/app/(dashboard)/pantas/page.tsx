@@ -125,6 +125,7 @@ export default function QuickDispensePage() {
       return data as any[];
     },
     enabled: !!selectedPatient,
+    staleTime: 0,
   });
 
   const assignedItems = useMemo(() => {
@@ -146,7 +147,7 @@ export default function QuickDispensePage() {
       const { data } = await supabase.from("item_forms").select("id, nama");
       return (data || []) as Pick<ItemForm, "id" | "nama">[];
     },
-    staleTime: 60000,
+    staleTime: 0,
   });
 
   const formsMap = useMemo(() => {
@@ -185,7 +186,7 @@ export default function QuickDispensePage() {
         .slice(0, FREQUENT_ITEM_COUNT)
         .map(([itemId]) => itemId);
     },
-    staleTime: 300000,
+    staleTime: 0,
   });
 
   const frequentItemData = useMemo(() => {
@@ -214,9 +215,8 @@ export default function QuickDispensePage() {
       return data as ItemBatch[];
     },
     enabled: !!selectedItem,
+    staleTime: 0,
   });
-
-  // Auto-select first batch (FEFO)
   useEffect(() => {
     if (availableBatches && availableBatches.length > 0) {
       setSelectedBatchId(availableBatches[0].id);
@@ -232,7 +232,7 @@ export default function QuickDispensePage() {
       const { data } = await supabase.from("supply_durations").select("*").order("nama");
       return (data || []) as { nama: string }[];
     },
-    staleTime: 300000,
+    staleTime: 0,
   });
 
   const handleSelectPatient = (patient: Patient) => {
