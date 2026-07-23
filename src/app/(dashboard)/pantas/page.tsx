@@ -10,12 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
 import {
   Zap, Search, Loader2, User, ChevronDown, Package, X, Pill, CheckCircle2, ArrowRight,
-  Hash, Calendar, Clock, MessageSquare
+  Hash, Calendar, Clock, MessageSquare, Plus, ListPlus
 } from "lucide-react";
 import type { Patient, Item, ItemBatch, ItemForm } from "@/types";
 
@@ -45,6 +46,8 @@ export default function QuickDispensePage() {
   const [selectedBatchId, setSelectedBatchId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [successPatient, setSuccessPatient] = useState<string | null>(null);
+  const [showRegisterDialog, setShowRegisterDialog] = useState(false);
+  const [registerItemSearch, setRegisterItemSearch] = useState("");
 
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -82,7 +85,7 @@ export default function QuickDispensePage() {
     return () => clearTimeout(timer);
   }, [searchQuery, searchPatients]);
 
-  // Items
+  // Items (all active, for register dialog)
   const { data: items } = useQuery({
     queryKey: ["items-active"],
     queryFn: async () => {
@@ -91,6 +94,36 @@ export default function QuickDispensePage() {
       return data as any[];
     }
   });
+
+  // Patient's active assignments (with item details)
+  const { data: patientAssignments } = useQuery({
+    queryKey: ["patient-assignments", selectedPatient?.id],
+    queryFn: async () => {
+      if (!selectedPatient) return [];
+      const { data, error } = await supabase
+        .from("patient_item_assignments")
+        .select("id, item_id, dos, item:items(id, kod_item, nama_item, kekuatan, id_bentuk)")
+        .eq("patient_id", selectedPatient.id)
+        .eq("aktif", true)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: !!selectedPatient,
+  });
+
+  const assignedItems = useMemo(() => {
+    if (!patientAssignments) return [];
+    return patientAssignments.map((a: any) => ({
+      ...a.item,
+      assignment_id: a.id,
+      assignment_dos: a.dos,
+    }));
+  }, [patientAssignments]);
+
+  const assignedItemIds = useMemo(() => {
+    return new Set(assignedItems.map((i: any) => i.id));
+  }, [assignedItems]);
 
   const { data: forms } = useQuery({
     queryKey: ["item_forms"],
@@ -143,8 +176,11 @@ export default function QuickDispensePage() {
   const frequentItemData = useMemo(() => {
     if (!frequentItems || !items) return [];
     const itemMap = new Map(items.map((i: any) => [i.id, i]));
-    return frequentItems.map(id => itemMap.get(id)).filter(Boolean) as any[];
-  }, [frequentItems, items]);
+    return frequentItems
+      .filter(id => assignedItemIds.has(id))
+      .map(id => itemMap.get(id))
+      .filter(Boolean) as any[];
+  }, [frequentItems, items, assignedItemIds]);
 
   // Availaible batches for selected item (FEFO sorted)
   const { data: availableBatches } = useQuery({
@@ -189,6 +225,8 @@ export default function QuickDispensePage() {
     setShowResults(false);
     setSearchQuery("");
     setSearchResults([]);
+    setShowRegisterDialog(false);
+    setRegisterItemSearch("");
   };
 
   const clearPatient = () => {
@@ -201,6 +239,8 @@ export default function QuickDispensePage() {
     setTempohUnit("Hari");
     setCatatan("");
     setSelectedBatchId("");
+    setShowRegisterDialog(false);
+    setRegisterItemSearch("");
     setTimeout(() => inputRef.current?.focus(), 50);
   };
 
@@ -214,49 +254,63 @@ export default function QuickDispensePage() {
     setCatatan("");
   };
 
+  const handleSelectAssignedItem = (item: any) => {
+    setSelectedItem(item);
+    if (item.assignment_dos) {
+      setDose(item.assignment_dos);
+    }
+  };
+
+  const handleRegisterItem = (item: any) => {
+    setSelectedItem(item);
+    setShowRegisterDialog(false);
+    setRegisterItemSearch("");
+  };
+
   const handleSubmit = async () => {
     if (!selectedPatient || !selectedItem || !quantity.trim() || !selectedBatchId || !dose.trim()) return;
     setSubmitting(true);
     try {
-      // 1. Find or create assignment
-      const { data: existingAssignments } = await supabase
-        .from("patient_item_assignments")
-        .select("id")
-        .eq("patient_id", selectedPatient.id)
-        .eq("item_id", selectedItem.id)
-        .eq("aktif", true)
-        .limit(1);
+      // Use existing assignment_id if available, otherwise find/create
+      let assignmentId: string = selectedItem.assignment_id || "";
 
-      let assignmentId: string;
-
-      if (existingAssignments && existingAssignments.length > 0) {
-        assignmentId = existingAssignments[0].id;
-      } else {
-        const today = new Date().toISOString().split("T")[0];
-        const { data: newAssignment, error: assignError } = await supabase
+      if (!assignmentId) {
+        const { data: existingAssignments } = await supabase
           .from("patient_item_assignments")
-          .insert({
-            patient_id: selectedPatient.id,
-            item_id: selectedItem.id,
+          .select("id")
+          .eq("patient_id", selectedPatient.id)
+          .eq("item_id", selectedItem.id)
+          .eq("aktif", true)
+          .limit(1);
+
+        if (existingAssignments && existingAssignments.length > 0) {
+          assignmentId = existingAssignments[0].id;
+        } else {
+          const today = new Date().toISOString().split("T")[0];
+          const { data: newAssignment, error: assignError } = await supabase
+            .from("patient_item_assignments")
+            .insert({
+              patient_id: selectedPatient.id,
+              item_id: selectedItem.id,
+              dos: dose.trim().toUpperCase(),
+              tarikh_mula_guna: today,
+              dimulakan_oleh: profile?.id,
+              kakitangan_farmasi_perekod: profile?.id,
+            })
+            .select("id");
+
+          if (assignError) throw assignError;
+          assignmentId = newAssignment![0].id;
+
+          await supabase.from("dose_history").insert({
+            assignment_id: assignmentId,
+            tarikh: today,
             dos: dose.trim().toUpperCase(),
-            tarikh_mula_guna: today,
-            dimulakan_oleh: profile?.id,
-            kakitangan_farmasi_perekod: profile?.id,
-          })
-          .select("id");
-
-        if (assignError) throw assignError;
-        assignmentId = newAssignment![0].id;
-
-        // Create initial dose history
-        await supabase.from("dose_history").insert({
-          assignment_id: assignmentId,
-          tarikh: today,
-          dos: dose.trim().toUpperCase(),
-          aktif: true,
-          dikemaskini_oleh: profile?.id,
-          catatan: "Bekalan kali pertama (Dispens Pantas)",
-        });
+            aktif: true,
+            dikemaskini_oleh: profile?.id,
+            catatan: "Bekalan kali pertama (Dispens Pantas)",
+          });
+        }
       }
 
       // 2. Call supply API
@@ -285,9 +339,11 @@ export default function QuickDispensePage() {
       });
 
       setSuccessPatient(selectedPatient.nama);
+      queryClient.invalidateQueries({ queryKey: ["patient-assignments", selectedPatient.id] });
       queryClient.invalidateQueries({ queryKey: ["frequent-items"] });
       queryClient.invalidateQueries({ queryKey: ["batches"] });
       queryClient.invalidateQueries({ queryKey: ["pantas-batches"] });
+      queryClient.invalidateQueries({ queryKey: ["items-active"] });
 
       // Clear form, keep patient
       clearForm();
@@ -299,16 +355,28 @@ export default function QuickDispensePage() {
     setSubmitting(false);
   };
 
-  const filteredItems = useMemo(() => {
-    if (!items) return [];
-    if (!itemSearch.trim()) return items;
+  const filteredAssignedItems = useMemo(() => {
+    if (!assignedItems) return [];
+    if (!itemSearch.trim()) return assignedItems;
     const q = itemSearch.toLowerCase();
-    return items.filter((i: any) =>
+    return assignedItems.filter((i: any) =>
+      (i.nama_item && i.nama_item.toLowerCase().includes(q)) ||
+      (i.kod_item && i.kod_item.toLowerCase().includes(q)) ||
+      (i.kekuatan && i.kekuatan.toLowerCase().includes(q))
+    );
+  }, [assignedItems, itemSearch]);
+
+  const filteredRegisterItems = useMemo(() => {
+    if (!items) return [];
+    const availableItems = items.filter((i: any) => !assignedItemIds.has(i.id));
+    if (!registerItemSearch.trim()) return availableItems;
+    const q = registerItemSearch.toLowerCase();
+    return availableItems.filter((i: any) =>
       i.nama_item.toLowerCase().includes(q) ||
       i.kod_item.toLowerCase().includes(q) ||
       (i.kekuatan && i.kekuatan.toLowerCase().includes(q))
     );
-  }, [items, itemSearch]);
+  }, [items, assignedItemIds, registerItemSearch]);
 
   const selectedBatch = useMemo(() => {
     if (!availableBatches || !selectedBatchId) return null;
@@ -481,7 +549,7 @@ export default function QuickDispensePage() {
               </div>
             </div>
 
-            {/* Item Selection */}
+            {/* Item Selection — only assigned items */}
             {!selectedItem ? (
               <div style={{
                 borderRadius: "16px", border: "1px solid rgba(0, 0, 0, 0.08)", background: "#ffffff",
@@ -490,43 +558,47 @@ export default function QuickDispensePage() {
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
                   <Pill size={20} color="#1877f2" />
                   <p style={{ fontSize: "14px", fontWeight: 700, color: "#1c1e21" }}>Pilih Ubat</p>
+                  <Badge variant="secondary" style={{ fontSize: "10px", marginLeft: "4px" }}>{assignedItems.length} didaftarkan</Badge>
                 </div>
 
-                {/* Frequent Items */}
+                {/* Frequent Items (from patient's assigned items) */}
                 {frequentItemData.length > 0 && (
                   <div style={{ marginBottom: "16px" }}>
                     <p style={{ fontSize: "11px", fontWeight: 600, color: "#65676b", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Item Kerap</p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
-                      {frequentItemData.map((item: any) => (
-                        <button
-                          key={item.id}
-                          onClick={() => setSelectedItem(item)}
-                          style={{
-                            padding: "8px 14px", borderRadius: "10px",
-                            border: "1px solid rgba(24, 119, 242, 0.15)", background: "rgba(24, 119, 242, 0.04)",
-                            cursor: "pointer", fontSize: "12px", fontWeight: 500, color: "#1877f2",
-                            fontFamily: "inherit", transition: "all 0.15s ease",
-                            whiteSpace: "nowrap",
-                          }}
-                          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(24, 119, 242, 0.1)"; e.currentTarget.style.borderColor = "rgba(24, 119, 242, 0.3)"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(24, 119, 242, 0.04)"; e.currentTarget.style.borderColor = "rgba(24, 119, 242, 0.15)"; }}
-                        >
-                          {item.nama_item} {item.kekuatan && <span style={{ fontSize: "11px", opacity: 0.7 }}>{item.kekuatan}</span>}
-                        </button>
-                      ))}
+                      {frequentItemData.map((item: any) => {
+                        const assigned = assignedItems.find((a: any) => a.id === item.id);
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => handleSelectAssignedItem(assigned || item)}
+                            style={{
+                              padding: "8px 14px", borderRadius: "10px",
+                              border: "1px solid rgba(24, 119, 242, 0.15)", background: "rgba(24, 119, 242, 0.04)",
+                              cursor: "pointer", fontSize: "12px", fontWeight: 500, color: "#1877f2",
+                              fontFamily: "inherit", transition: "all 0.15s ease",
+                              whiteSpace: "nowrap",
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(24, 119, 242, 0.1)"; e.currentTarget.style.borderColor = "rgba(24, 119, 242, 0.3)"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(24, 119, 242, 0.04)"; e.currentTarget.style.borderColor = "rgba(24, 119, 242, 0.15)"; }}
+                          >
+                            {item.nama_item} {item.kekuatan && <span style={{ fontSize: "11px", opacity: 0.7 }}>{item.kekuatan}</span>}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
 
-                {/* Item Search */}
-                <div style={{ position: "relative" }}>
+                {/* Search assigned items */}
+                <div style={{ position: "relative", marginBottom: assignedItems.length > 8 ? "0" : "0" }}>
                   <div style={{ display: "flex", alignItems: "center", height: "44px", borderRadius: "12px", border: "1.5px solid rgba(24, 119, 242, 0.15)", background: "rgba(24, 119, 242, 0.03)" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "44px", height: "44px", flexShrink: 0 }}>
                       <Search size={16} color="#9ca3af" />
                     </div>
                     <input
                       type="search"
-                      placeholder="Cari ubat..."
+                      placeholder="Cari dalam item didaftarkan..."
                       style={{
                         flex: 1, height: "100%", border: "none", background: "transparent", outline: "none",
                         fontSize: "13px", color: "#1c1e21", fontFamily: "inherit", paddingRight: "12px",
@@ -537,25 +609,56 @@ export default function QuickDispensePage() {
                   </div>
                 </div>
 
-                {/* Item List */}
+                {/* Assigned Items List */}
                 <div style={{ maxHeight: "280px", overflowY: "auto", borderRadius: "10px", border: "1px solid rgba(0,0,0,0.06)", marginTop: "12px" }}>
-                  {filteredItems.length === 0 ? (
-                    <p style={{ fontSize: "12px", color: "#65676b", textAlign: "center", padding: "16px" }}>Tiada ubat dijumpai.</p>
-                  ) : filteredItems.map((item: any) => (
+                  {filteredAssignedItems.length === 0 ? (
+                    <p style={{ fontSize: "12px", color: "#65676b", textAlign: "center", padding: "16px" }}>
+                      {assignedItems.length === 0 ? "Pesakit ini belum mempunyai sebarang item didaftarkan." : "Tiada padanan."}
+                    </p>
+                  ) : filteredAssignedItems.map((item: any) => (
                     <div
                       key={item.id}
-                      onClick={() => setSelectedItem(item)}
+                      onClick={() => handleSelectAssignedItem(item)}
                       style={{
-                        padding: "10px 14px", borderBottom: "1px solid rgba(0,0,0,0.04)", cursor: "pointer",
+                        padding: "12px 14px", borderBottom: "1px solid rgba(0,0,0,0.04)", cursor: "pointer",
                         transition: "background 0.1s ease", background: "transparent",
                       }}
                       onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(24, 119, 242, 0.04)"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                     >
                       <div style={{ fontSize: "13px", fontWeight: 500, color: "#1c1e21" }}>{getItemDisplayName(item)}</div>
-                      <div style={{ fontSize: "11px", color: "#65676b", marginTop: "1px" }}>{item.kod_item}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "2px" }}>
+                        <span style={{ fontSize: "11px", color: "#65676b" }}>{item.kod_item}</span>
+                        {item.assignment_dos && (
+                          <span style={{ fontSize: "11px", color: "#1877f2", fontWeight: 500 }}>Dos: {item.assignment_dos}</span>
+                        )}
+                      </div>
                     </div>
                   ))}
+                </div>
+
+                {/* Daftar Item Baru */}
+                <div style={{
+                  marginTop: "14px", padding: "12px 14px", borderRadius: "10px",
+                  background: "rgba(16, 185, 129, 0.04)", border: "1px dashed rgba(16, 185, 129, 0.25)",
+                  display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px",
+                }}>
+                  <div>
+                    <p style={{ fontSize: "12px", fontWeight: 600, color: "#065f46" }}>Item tidak tersenarai?</p>
+                    <p style={{ fontSize: "11px", color: "#059669" }}>Daftar item baharu untuk pesakit ini dan teruskan pendispensan.</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => setShowRegisterDialog(true)}
+                    style={{
+                      background: "linear-gradient(135deg, #10b981, #059669)",
+                      border: "none", borderRadius: "10px", color: "#fff",
+                      fontSize: "12px", fontWeight: 600, flexShrink: 0,
+                      boxShadow: "0 2px 8px rgba(16, 185, 129, 0.25)",
+                    }}
+                  >
+                    <Plus size={14} style={{ marginRight: "4px" }} /> Daftar Item
+                  </Button>
                 </div>
               </div>
             ) : (
@@ -693,6 +796,64 @@ export default function QuickDispensePage() {
           </div>
         )}
       </motion.div>
+
+      {/* Daftar Item Baru Dialog */}
+      <Dialog open={showRegisterDialog} onOpenChange={(v) => { setShowRegisterDialog(v); if (!v) setRegisterItemSearch(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" /> Daftar Item Baharu
+            </DialogTitle>
+            <DialogDescription>
+              Pilih item untuk didaftarkan kepada <strong>{selectedPatient?.nama}</strong>. Item akan didaftarkan dan anda boleh terus mendispens.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div style={{ position: "relative" }}>
+              <div style={{ display: "flex", alignItems: "center", height: "44px", borderRadius: "12px", border: "1.5px solid rgba(16, 185, 129, 0.2)", background: "rgba(16, 185, 129, 0.03)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "44px", height: "44px", flexShrink: 0 }}>
+                  <Search size={16} color="#9ca3af" />
+                </div>
+                <input
+                  type="search"
+                  placeholder="Cari ubat untuk didaftarkan..."
+                  style={{
+                    flex: 1, height: "100%", border: "none", background: "transparent", outline: "none",
+                    fontSize: "13px", color: "#1c1e21", fontFamily: "inherit", paddingRight: "12px",
+                  }}
+                  value={registerItemSearch}
+                  onChange={(e) => setRegisterItemSearch(e.target.value)}
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div style={{ maxHeight: "280px", overflowY: "auto", borderRadius: "10px", border: "1px solid rgba(0,0,0,0.06)" }}>
+              {filteredRegisterItems.length === 0 ? (
+                <p style={{ fontSize: "12px", color: "#65676b", textAlign: "center", padding: "16px" }}>Tiada item tersedia.</p>
+              ) : filteredRegisterItems.map((item: any) => (
+                <div
+                  key={item.id}
+                  onClick={() => handleRegisterItem(item)}
+                  style={{
+                    padding: "10px 14px", borderBottom: "1px solid rgba(0,0,0,0.04)", cursor: "pointer",
+                    transition: "background 0.1s ease", background: "transparent",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(16, 185, 129, 0.04)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                >
+                  <div style={{ fontSize: "13px", fontWeight: 500, color: "#1c1e21" }}>{getItemDisplayName(item)}</div>
+                  <div style={{ fontSize: "11px", color: "#65676b", marginTop: "1px" }}>{item.kod_item}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowRegisterDialog(false); setRegisterItemSearch(""); }}>
+              Batal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <style>{`
         @-webkit-keyframes spin { from { -webkit-transform: rotate(0deg); transform: rotate(0deg); } to { -webkit-transform: rotate(360deg); transform: rotate(360deg); } }
