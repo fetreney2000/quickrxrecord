@@ -30,7 +30,7 @@ Asas sistem adalah kukuh: skema pangkalan data yang bersih dengan penjejakan kel
 | 6 | **Sokongan Imbasan Kod Bar (Barcode)** — Item dan pesakit patut mempunyai label kod bar (dijana oleh sistem). Pendispensan boleh dicetuskan dengan mengimbas gelang pesakit + kod bar ubat. Gunakan Web Barcode Detection API atau mod tangkapan input ringkas. | Mempercepatkan dan mengurangkan ralat. |
 | 7 | **Auto-Pilih Kelompok FEFO** — Semasa mendispens, sistem sepatutnya auto-cadang kelompok mana untuk digunakan berdasarkan FEFO (First Expired, First Out). Pada masa ini staf perlu memilih kelompok secara manual. Fungsi `process_supply` patut menerima `item_id` dan auto-memilih kelompok paling awal luput dengan stok mencukupi. | Mengurangkan pembaziran ubat luput. |
 | 8 | **Item Kerap/Frequent Items** — Pada skrin pendispensan, paparkan baris 10 item paling kerap didispens sebagai butang ketik pantas. Di wad hospital, 15-20 ubat yang sama didispens 80% daripada masa. | Jimat masa carian. |
-| 9 | **Navigasi Papan Kekunci** — Pengguna kuasa sepatutnya boleh menavigasi keseluruhan aliran pendispensan melalui papan kekunci: Tab antara medan, Enter untuk sahkan, Escape untuk batal. Ini lebih pantas daripada tetikus/sentuh untuk pengguna desktop. | Produktiviti pengguna kuasa. |
+| 9 | ✅ **Navigasi Papan Kekunci** — ~~Pengguna kuasa sepatutnya boleh menavigasi keseluruhan aliran pendispensan melalui papan kekunci: Tab antara medan, Enter untuk sahkan, Escape untuk batal. Ini lebih pantas daripada tetikus/sentuh untuk pengguna desktop.~~ **DILAKSANAKAN** — Escape untuk undur (clearForm/clearPatient), Enter untuk sahkan bekalan, semua dialog utama menyokong Enter. | Produktiviti pengguna kuasa. |
 
 ---
 

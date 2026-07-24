@@ -306,7 +306,7 @@ profile?.id, catatan: "Bekalan kali pertama" }); if (dhError) throw dhError; } }
                 <DialogTrigger asChild>
                   <Button size="sm" onClick={e => e.stopPropagation()}><Plus className="mr-1 h-3.5 w-3.5" />Tambah Item</Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && selectedItemId && !addAssignmentMutation.isPending && !(selectedItemId && activeItemIds.has(selectedItemId))) { e.preventDefault(); addAssignmentMutation.mutate({ ...newAssignment, dos: newAssignment.dos.trim().toUpperCase(), catatan_penggunaan: newAssignment.catatan_penggunaan.trim(), item_id: selectedItemId }); } }}>
                   <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="h-5 w-5" /> Tambah Item</DialogTitle></DialogHeader>
                   <div className="space-y-4 py-2">
                     <div className="relative">
@@ -567,7 +567,7 @@ profile?.id, catatan: "Bekalan kali pertama" }); if (dhError) throw dhError; } }
       </Dialog>
 
       <Dialog open={!!openSupply} onOpenChange={() => setOpenSupply(null)}>
-        <DialogContent>
+        <DialogContent onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && openSupply && currentAssignment && supplyData.batch_id && supplyData.kuantiti.trim() && !supplyMutation.isPending) { e.preventDefault(); supplyMutation.mutate({ ...supplyData, kuantiti: supplyData.kuantiti.trim(), catatan_bekalan: supplyData.catatan_bekalan.trim(), assignment_id: openSupply, dos: currentAssignment.dos || "" }); } }}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Package className="h-5 w-5" /> Bekal Ubat</DialogTitle>
             <DialogDescription>Rekodkan bekalan ubat untuk pesakit ini.</DialogDescription>

@@ -906,7 +906,7 @@ export default function ItemDetailPage() {
 
       {/* Add Batch Dialog */}
       <Dialog open={openAddBatch} onOpenChange={setOpenAddBatch}>
-        <DialogContent>
+        <DialogContent onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && newBatch.nombor_kelompok?.trim() && newBatch.tarikh_luput && newBatch.kuantiti?.trim() && !addBatchMutation.isPending) { e.preventDefault(); addBatchMutation.mutate({ ...newBatch, nombor_kelompok: newBatch.nombor_kelompok.trim().toUpperCase(), kuantiti: newBatch.kuantiti.trim() }); } }}>
           <DialogHeader><DialogTitle>Tambah Kelompok Baharu</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2"><Label>Nombor Kelompok *</Label><Input value={newBatch.nombor_kelompok} onChange={e => setNewBatch({ ...newBatch, nombor_kelompok: e.target.value })} onBlur={e => setNewBatch({ ...newBatch, nombor_kelompok: e.target.value.trim().toUpperCase() })} /></div>

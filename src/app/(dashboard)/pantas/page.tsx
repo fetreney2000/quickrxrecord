@@ -58,6 +58,18 @@ export default function QuickDispensePage() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
+  // Keyboard navigation: Escape to go back
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !showRegisterDialog) {
+        if (selectedItem) clearForm();
+        else if (selectedPatient) clearPatient();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [selectedItem, selectedPatient, showRegisterDialog]);
+
   if (!canSupply) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "50vh" }}>
@@ -493,7 +505,11 @@ export default function QuickDispensePage() {
                   onBlur={() => { setFocused(false); setTimeout(() => setShowResults(false), 200); }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && searchResults.length > 0) {
+                      e.preventDefault();
                       handleSelectPatient(searchResults[0]);
+                    } else if (e.key === "Escape") {
+                      setSearchQuery("");
+                      setSearchResults([]);
                     }
                   }}
                 />
@@ -695,7 +711,17 @@ export default function QuickDispensePage() {
               </div>
             ) : (
               /* Dispensing Form */
-              <div style={{
+              <div
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+                    const t = e.target as HTMLElement;
+                    if (t.tagName !== "BUTTON" && !t.closest("[role=listbox],[role=option]")) {
+                      e.preventDefault();
+                      handleSubmit();
+                    }
+                  }
+                }}
+                style={{
                 borderRadius: "16px", border: "1px solid rgba(0, 0, 0, 0.08)", background: "#ffffff",
                 padding: isMobile ? "16px" : "20px", boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
               }}>
