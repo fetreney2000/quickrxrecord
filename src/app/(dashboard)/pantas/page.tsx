@@ -418,7 +418,7 @@ export default function QuickDispensePage() {
           <Zap size={22} color="white" />
         </div>
         <div>
-          <h1 style={{ fontSize: isMobile ? "18px" : "22px", fontWeight: 700, color: "#1c1e21", letterSpacing: "-0.01em", lineHeight: 1.2 }}>Dispens Pantas</h1>
+          <h1 style={{ fontSize: isMobile ? "18px" : "22px", fontWeight: 700, color: "#1c1e21", letterSpacing: "-0.01em", lineHeight: 1.2 }}>Dispen Pantas</h1>
           <p style={{ fontSize: "12px", color: "#65676b", marginTop: "2px" }}>Cari pesakit &middot; Pilih ubat &middot; Bekal</p>
         </div>
       </motion.div>
@@ -481,7 +481,7 @@ export default function QuickDispensePage() {
                 <input
                   ref={inputRef}
                   type="search"
-                  placeholder="Cari pesakit..."
+                  
                   style={{
                     flex: 1, height: "100%", border: "none", background: "transparent", outline: "none",
                     fontSize: "14px", fontWeight: 500, color: "#1c1e21", fontFamily: "inherit", paddingRight: "12px",
@@ -624,7 +624,7 @@ export default function QuickDispensePage() {
                     </div>
                     <input
                       type="search"
-                      placeholder="Cari dalam item didaftarkan..."
+                      placeholder=""
                       style={{
                         flex: 1, height: "100%", border: "none", background: "transparent", outline: "none",
                         fontSize: "13px", color: "#1c1e21", fontFamily: "inherit", paddingRight: "12px",
@@ -714,36 +714,50 @@ export default function QuickDispensePage() {
                   </Button>
                 </div>
 
-                {/* Batch Info (FEFO) */}
-                <div style={{
-                  padding: "10px 14px", borderRadius: "10px", background: "rgba(245, 158, 11, 0.06)", border: "1px solid rgba(245, 158, 11, 0.15)",
-                  marginBottom: "16px", fontSize: "12px",
-                }}>
-                  {!availableBatches || availableBatches.length === 0 ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#dc2626" }}>
-                      <X size={14} />
-                      <span>Tiada kelompok tersedia untuk item ini.</span>
-                    </div>
-                  ) : (
-                    <>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-                        <Package size={14} color="#f59e0b" />
-                        <span style={{ fontWeight: 600, color: "#92400e" }}>Kelompok Auto (FEFO)</span>
-                        {availableBatches.length > 1 && (
-                          <span style={{ fontSize: "11px", color: "#65676b" }}>— {availableBatches.length} kelompok tersedia</span>
+                {/* Available Batches (FEFO, selectable) */}
+                <div style={{ marginBottom: "16px" }}>
+                  <Label style={{ fontSize: "12px", color: "#65676b", marginBottom: "8px", display: "block" }}>Pilih Kelompok (FEFO)</Label>
+                  <div style={{ maxHeight: "180px", overflowY: "auto", borderRadius: "10px", border: "1px solid rgba(0,0,0,0.08)" }}>
+                    {!availableBatches || availableBatches.length === 0 ? (
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#dc2626", padding: "12px 14px" }}>
+                        <X size={14} />
+                        <span style={{ fontSize: "12px" }}>Tiada kelompok tersedia untuk item ini.</span>
+                      </div>
+                    ) : availableBatches.map((b: ItemBatch) => (
+                      <div
+                        key={b.id}
+                        onClick={() => setSelectedBatchId(b.id)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: "10px",
+                          padding: "10px 14px", borderBottom: "1px solid rgba(0,0,0,0.04)",
+                          cursor: "pointer", transition: "background 0.1s ease",
+                          background: selectedBatchId === b.id ? "rgba(245, 158, 11, 0.06)" : "transparent",
+                        }}
+                      >
+                        <div style={{
+                          width: "18px", height: "18px", borderRadius: "50%",
+                          border: "2px solid",
+                          borderColor: selectedBatchId === b.id ? "#f59e0b" : "#d1d5db",
+                          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                        }}>
+                          {selectedBatchId === b.id && <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#f59e0b" }} />}
+                        </div>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: "13px", fontWeight: selectedBatchId === b.id ? 600 : 500, color: "#1c1e21" }}>
+                            {b.nombor_kelompok}
+                          </div>
+                          <div style={{ fontSize: "11px", color: "#65676b", marginTop: "1px" }}>
+                            Luput: {formatDate(b.tarikh_luput)} | Stok: {b.kuantiti}
+                          </div>
+                        </div>
+                        {selectedBatchId === b.id && (
+                          <Badge variant="secondary" style={{ fontSize: "10px", background: "rgba(245, 158, 11, 0.1)", color: "#92400e", border: "1px solid rgba(245, 158, 11, 0.2)" }}>
+                            FEFO
+                          </Badge>
                         )}
                       </div>
-                      {selectedBatch && (
-                        <div style={{ color: "#78350f", paddingLeft: "22px" }}>
-                          <span style={{ fontWeight: 500 }}>{selectedBatch.nombor_kelompok}</span>
-                          <span style={{ margin: "0 6px", color: "#d1d5db" }}>|</span>
-                          <span>Luput: {formatDate(selectedBatch.tarikh_luput)}</span>
-                          <span style={{ margin: "0 6px", color: "#d1d5db" }}>|</span>
-                          <span>Stok: {selectedBatch.kuantiti}</span>
-                        </div>
-                      )}
-                    </>
-                  )}
+                    ))}
+                  </div>
                 </div>
 
                 {/* Form Fields */}
@@ -754,7 +768,7 @@ export default function QuickDispensePage() {
                       value={dose}
                       onChange={(e) => setDose(e.target.value)}
                       onBlur={(e) => setDose(e.target.value.trim().toUpperCase())}
-                      placeholder="cth: 1 BIJI SEHARI"
+                      placeholder=""
                       style={{ height: "42px", fontSize: "13px" }}
                     />
                   </div>
@@ -774,7 +788,7 @@ export default function QuickDispensePage() {
                         type="number"
                         value={tempohNilai}
                         onChange={(e) => setTempohNilai(e.target.value)}
-                        placeholder="30"
+                        placeholder=""
                         style={{ height: "42px", fontSize: "13px", flex: 1 }}
                       />
                       <Select value={tempohUnit} onValueChange={setTempohUnit}>
@@ -792,7 +806,7 @@ export default function QuickDispensePage() {
                     <Input
                       value={catatan}
                       onChange={(e) => setCatatan(e.target.value)}
-                      placeholder="(pilihan)"
+                      placeholder=""
                       style={{ height: "42px", fontSize: "13px" }}
                     />
                   </div>
@@ -847,7 +861,7 @@ export default function QuickDispensePage() {
                 </div>
                 <input
                   type="search"
-                  placeholder="Cari ubat untuk didaftarkan..."
+                  placeholder=""
                   style={{
                     flex: 1, height: "100%", border: "none", background: "transparent", outline: "none",
                     fontSize: "13px", color: "#1c1e21", fontFamily: "inherit", paddingRight: "12px",
