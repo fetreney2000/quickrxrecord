@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Roboto } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/lib/auth-context";
 import { QueryProvider } from "@/lib/query-provider";
 import { Toaster } from "sonner";
@@ -37,14 +36,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <meta name="application-name" content="QuickRxRecord v4" />
       </head>
       <body className="font-sans antialiased">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <QueryProvider>
-            <AuthProvider>
-              {children}
-              <Toaster position="top-right" richColors />
-            </AuthProvider>
-          </QueryProvider>
-        </ThemeProvider>
+        <QueryProvider>
+          <AuthProvider>
+            {children}
+            <Toaster position="top-right" richColors />
+          </AuthProvider>
+        </QueryProvider>
         <script
           dangerouslySetInnerHTML={{
             __html: `

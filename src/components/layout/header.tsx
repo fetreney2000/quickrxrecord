@@ -2,13 +2,10 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { useQuery } from "@tanstack/react-query";
-import { Search, Loader2, Sun, Moon, Bell, AlertTriangle, Package, Calendar } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import type { Patient } from "@/types";
-import { formatDate } from "@/lib/utils";
 
 export function Header() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -19,63 +16,6 @@ export function Header() {
   const { profile } = useAuth();
   const router = useRouter();
   const supabase = createClient();
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-
-  useEffect(() => { setMounted(true); }, []);
-
-  /* ── Notification Center Queries ─────────────────────────────── */
-  const { data: notifications } = useQuery({
-    queryKey: ["header-notifications"],
-    queryFn: async () => {
-      const alerts: { id: string; type: "expiry" | "low_stock"; message: string; detail: string; urgency: "critical" | "warning" }[] = [];
-
-      // Low stock alerts
-      const { data: items } = await supabase
-        .from("items")
-        .select("id, nama_item, kuota, item_batches(kuantiti)")
-        .eq("aktif", true);
-
-      for (const item of (items || []) as any[]) {
-        const totalStock = item.item_batches?.reduce((s: number, b: any) => s + (b.kuantiti || 0), 0) || 0;
-        if (item.kuota && totalStock < item.kuota) {
-          alerts.push({
-            id: `low-${item.id}`,
-            type: "low_stock",
-            message: `Stok rendah: ${item.nama_item}`,
-            detail: `${totalStock} unit (kuota: ${item.kuota})`,
-            urgency: "warning",
-          });
-        }
-      }
-
-      // Expiry alerts (within 30 days)
-      const thirtyDays = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-      const { data: expiring } = await supabase
-        .from("item_batches")
-        .select("id, nombor_kelompok, tarikh_luput, kuantiti, items!inner(nama_item)")
-        .lt("tarikh_luput", thirtyDays)
-        .gt("kuantiti", 0)
-        .order("tarikh_luput", { ascending: true })
-        .limit(20);
-
-      for (const b of (expiring || []) as any[]) {
-        alerts.push({
-          id: `exp-${b.id}`,
-          type: "expiry",
-          message: `Akan luput: ${b.items?.nama_item}`,
-          detail: `Kelompok ${b.nombor_kelompok} luput ${b.tarikh_luput} (${b.kuantiti} unit)`,
-          urgency: "critical",
-        });
-      }
-
-      // Sort: critical first
-      alerts.sort((a, b) => (a.urgency === "critical" ? -1 : 1));
-      return alerts.slice(0, 20);
-    },
-    staleTime: 60_000,
-  });
 
   const searchPatients = useCallback(async (query: string) => {
     if (query.length < 2) { setSearchResults([]); return; }
@@ -112,25 +52,7 @@ export function Header() {
 
       <div style={styles.headerInner}>
         {/* Left spacer */}
-        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "8px" }}>
-          {/* Dark mode toggle */}
-          {mounted && (
-            <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              title={theme === "dark" ? "Tukar ke mod terang" : "Tukar ke mod gelap"}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center",
-                width: "36px", height: "36px", borderRadius: "10px",
-                border: "1px solid rgba(0,0,0,0.1)", background: "transparent",
-                cursor: "pointer", transition: "all 0.2s ease", color: "#65676b",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.04)"; e.currentTarget.style.color = "#1c1e21"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#65676b"; }}
-            >
-              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
-          )}
-        </div>
+        <div style={{ flex: 1 }} />
 
         {/* Search bar */}
         <div style={styles.searchWrapper}>
@@ -196,99 +118,8 @@ export function Header() {
           )}
         </div>
 
-        {/* Right spacer with notification bell */}
-        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "8px" }}>
-          {/* Notification bell */}
-          <div style={{ position: "relative" }}>
-            <button
-              onClick={() => setShowNotifications(!showNotifications)}
-              title="Pusat Notifikasi"
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center",
-                width: "36px", height: "36px", borderRadius: "10px",
-                border: "1px solid rgba(0,0,0,0.1)", background: showNotifications ? "rgba(24,119,242,0.06)" : "transparent",
-                cursor: "pointer", transition: "all 0.2s ease", color: showNotifications ? "#1877f2" : "#65676b",
-                position: "relative",
-              }}
-              onMouseEnter={(e) => { if (!showNotifications) { e.currentTarget.style.background = "rgba(0,0,0,0.04)"; e.currentTarget.style.color = "#1c1e21"; } }}
-              onMouseLeave={(e) => { if (!showNotifications) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#65676b"; } }}
-            >
-              <Bell size={16} />
-              {notifications && notifications.length > 0 && (
-                <span style={{
-                  position: "absolute", top: "4px", right: "4px",
-                  width: "8px", height: "8px", borderRadius: "50%",
-                  background: notifications.some(n => n.urgency === "critical") ? "#ef4444" : "#f59e0b",
-                  border: "1.5px solid #ffffff",
-                }} />
-              )}
-            </button>
-
-            {/* Notification dropdown */}
-            {showNotifications && (
-              <>
-                <div style={{ position: "fixed", inset: 0, zIndex: 48 }} onClick={() => setShowNotifications(false)} />
-                <div style={{
-                  position: "absolute", top: "calc(100% + 8px)", right: 0,
-                  width: "380px", maxHeight: "480px", overflowY: "auto",
-                  background: "#ffffff", border: "1px solid rgba(0,0,0,0.08)",
-                  borderRadius: "14px", boxShadow: "0 12px 40px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06)",
-                  zIndex: 50, padding: "4px",
-                }}>
-                  <div style={{ padding: "12px 16px 8px", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <span style={{ fontSize: "13px", fontWeight: 700, color: "#1c1e21" }}>Pusat Notifikasi</span>
-                      {notifications && (
-                        <span style={{ fontSize: "11px", fontWeight: 600, color: "#65676b", background: "rgba(0,0,0,0.04)", padding: "2px 8px", borderRadius: "8px" }}>
-                          {notifications.length}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {notifications && notifications.length > 0 ? (
-                    notifications.map((n) => (
-                      <div
-                        key={n.id}
-                        style={{
-                          display: "flex", alignItems: "flex-start", gap: "10px",
-                          padding: "10px 14px", borderRadius: "10px",
-                          cursor: "pointer", transition: "background 0.15s ease",
-                          margin: "2px 0",
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.03)"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                      >
-                        <div style={{
-                          width: "32px", height: "32px", borderRadius: "9px",
-                          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                          background: n.type === "expiry" ? "rgba(234, 88, 12, 0.1)" : "rgba(245, 158, 11, 0.1)",
-                        }}>
-                          {n.type === "expiry" ? <Calendar size={14} color="#ea580c" /> : <Package size={14} color="#d97706" />}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: "12px", fontWeight: 600, color: n.urgency === "critical" ? "#dc2626" : "#1c1e21" }}>
-                            {n.message}
-                          </div>
-                          <div style={{ fontSize: "11px", color: "#65676b", marginTop: "1px" }}>
-                            {n.detail}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div style={{ padding: "32px 16px", textAlign: "center" }}>
-                      <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: "rgba(34,197,94,0.1)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px" }}>
-                        <AlertTriangle size={16} color="#22c55e" />
-                      </div>
-                      <div style={{ fontSize: "12px", fontWeight: 600, color: "#1c1e21" }}>Tiada Notifikasi</div>
-                      <div style={{ fontSize: "11px", color: "#9ca3af" }}>Semua terkawal — tiada isu dikesan.</div>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+        {/* Right spacer */}
+        <div style={{ flex: 1 }} />
       </div>
 
       <style>{`
