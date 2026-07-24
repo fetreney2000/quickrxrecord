@@ -8,13 +8,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatDate } from "@/lib/utils";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { motion } from "framer-motion";
-import { FileSpreadsheet, FileText, BarChart3, Package, Activity, AlertTriangle, Users } from "lucide-react";
+import { FileSpreadsheet, FileText, BarChart3, Package, Activity } from "lucide-react";
 import { toast } from "sonner";
 
 export default function LaporanPage() {
   const supabase = createClient();
-  const [activeTab, setActiveTab] = useState<"inventory" | "transactions" | "defaulter">("inventory");
-  const [defaulterThreshold, setDefaulterThreshold] = useState(90); // default 3 months in days
+  const [activeTab, setActiveTab] = useState<"inventory" | "transactions">("inventory");
 
   const { data: inventoryData, isLoading: inventoryLoading } = useQuery({
     queryKey: ["report-inventory"],
@@ -34,120 +33,6 @@ export default function LaporanPage() {
       if (error) throw error;
       return data;
     },
-  });
-
-  /* ── Defaulter Report Query ──────────────────────────────────── */
-  const { data: defaulterData, isLoading: defaulterLoading } = useQuery({
-    queryKey: ["report-defaulter"],
-    queryFn: async () => {
-      // Get all active assignments with patient and item info
-      const { data: assignments } = await supabase
-        .from("patient_item_assignments")
-        .select("id, patient_id, item_id, dos, tarikh_mula_guna, tarikh_tamat_guna, patient:patients(nama, nombor_kad_pengenalan, nombor_pendaftaran_hospital), item:items(nama_item, kekuatan, kod_item)")
-        .eq("aktif", true)
-        .is("patient.merged_into", null)
-        .eq("patient.aktif", true)
-        .order("patient_id");
-
-      if (!assignments?.length) return [];
-
-      // Get the last supply record for each assignment
-      const { data: supplyRecords } = await supabase
-        .from("supply_records")
-        .select("id, assignment_id, tarikh_dibekal, tempoh_dibekal, kuantiti")
-        .in("assignment_id", assignments.map((a: any) => a.id))
-        .order("tarikh_dibekal", { ascending: false });
-
-      // Build map of assignment_id → latest supply
-      const latestSupplyMap = new Map<string, any>();
-      for (const s of (supplyRecords || [])) {
-        if (!latestSupplyMap.has(s.assignment_id)) {
-          latestSupplyMap.set(s.assignment_id, s);
-        }
-      }
-
-      /** Parse "tempoh_dibekal" string e.g. "30 Hari", "1 Bulan", "2 Minggu" → days */
-      function parseSupplyDays(tempoh: string | null): number {
-        if (!tempoh) return 0;
-        const parts = tempoh.trim().split(/\s+/);
-        const num = parseFloat(parts[0]) || 0;
-        const unit = (parts[1] || "").toLowerCase();
-        switch (unit) {
-          case "hari": return num;
-          case "minggu": return num * 7;
-          case "bulan": return Math.round(num * 30);
-          case "tahun": return Math.round(num * 365);
-          default: return num; // assume "hari" if unit unknown
-        }
-      }
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const result: any[] = [];
-
-      for (const a of (assignments as any[])) {
-        const patient = a.patient as any;
-        const item = a.item as any;
-        const lastSupply = latestSupplyMap.get(a.id);
-
-        if (!lastSupply) {
-          // No supply ever — patient is assigned but never dispensed
-          const startDate = a.tarikh_mula_guna ? new Date(a.tarikh_mula_guna) : null;
-          const daysSinceStart = startDate ? Math.ceil((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) : null;
-          if (daysSinceStart !== null && daysSinceStart > 30) {
-            result.push({
-              patientId: a.patient_id,
-              assignmentId: a.id,
-              nama: patient?.nama || "-",
-              ic: patient?.nombor_kad_pengenalan || "-",
-              hn: patient?.nombor_pendaftaran_hospital || "-",
-              itemNama: item?.nama_item || "-",
-              itemKod: item?.kod_item || "-",
-              kekuatan: item?.kekuatan || "-",
-              dos: a.dos || "-",
-              lastSupplyDate: null,
-              tempohDibekal: "-",
-              expectedRefill: null,
-              daysOverdue: daysSinceStart,
-              status: "Tiada Bekalan",
-            });
-          }
-          continue;
-        }
-
-        const supplyDays = parseSupplyDays(lastSupply.tempoh_dibekal);
-        if (supplyDays <= 0) continue;
-
-        const lastSupplyDate = new Date(lastSupply.tarikh_dibekal);
-        lastSupplyDate.setHours(0, 0, 0, 0);
-        const expectedRefill = new Date(lastSupplyDate.getTime() + supplyDays * 24 * 60 * 60 * 1000);
-        const daysOverdue = Math.ceil((today.getTime() - expectedRefill.getTime()) / (1000 * 60 * 60 * 24));
-
-        result.push({
-          patientId: a.patient_id,
-          assignmentId: a.id,
-          nama: patient?.nama || "-",
-          ic: patient?.nombor_kad_pengenalan || "-",
-          hn: patient?.nombor_pendaftaran_hospital || "-",
-          itemNama: item?.nama_item || "-",
-          itemKod: item?.kod_item || "-",
-          kekuatan: item?.kekuatan || "-",
-          dos: a.dos || "-",
-          lastSupplyDate: lastSupply.tarikh_dibekal,
-          tempohDibekal: lastSupply.tempoh_dibekal || "-",
-          expectedRefill: expectedRefill.toISOString().split("T")[0],
-          daysOverdue,
-          status: daysOverdue <= 0 ? "Patuh" : `Lewat ${daysOverdue} hari`,
-        });
-      }
-
-      // Sort: most overdue first, filter only overdue beyond threshold
-      return result
-        .filter((r: any) => r.daysOverdue >= defaulterThreshold)
-        .sort((a: any, b: any) => b.daysOverdue - a.daysOverdue);
-    },
-    enabled: activeTab === "defaulter",
   });
 
   const exportToExcel = async (data: any[], filename: string, columnLabels?: Record<string, string>) => {
@@ -289,7 +174,6 @@ export default function LaporanPage() {
         {[
           { key: "inventory" as const, label: "Inventori", icon: Package },
           { key: "transactions" as const, label: "Transaksi", icon: Activity },
-          { key: "defaulter" as const, label: "Defaulter", icon: Users },
         ].map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
             style={{
@@ -308,106 +192,7 @@ export default function LaporanPage() {
 
       {/* Content */}
       <motion.div key={activeTab} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.12 }}>
-        {activeTab === "defaulter" ? (
-          <div style={{ position: "relative", borderRadius: "16px" }}>
-            <div style={{ position: "absolute", inset: 0, borderRadius: "16px", padding: "1px", background: "linear-gradient(135deg, rgba(234, 88, 12, 0.15), rgba(220, 38, 38, 0.1), rgba(234, 88, 12, 0.08))", WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)", WebkitMaskComposite: "xor", maskComposite: "exclude", pointerEvents: "none" }} />
-            <div style={{ borderRadius: "16px", background: "rgba(255, 255, 255, 0.85)", WebkitBackdropFilter: "blur(12px)", backdropFilter: "blur(12px)", border: "1px solid rgba(255, 255, 255, 0.5)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)", overflow: "hidden" }}>
-              <div style={{ height: "3px", background: "linear-gradient(90deg, #ea580c, #dc2626, #ea580c)", backgroundSize: "200% 100%", animation: "gradientShift 4s ease infinite" }} />
-              <div style={{ padding: "16px 24px", borderBottom: "1px solid rgba(221, 223, 226, 0.5)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <AlertTriangle size={16} color="#ea580c" />
-                  <span style={{ fontSize: "15px", fontWeight: 700, color: "#1c1e21" }}>Laporan Pesakit Tercicir (Defaulter)</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#65676b" }}>
-                    <span>Ambang Lewat:</span>
-                    <select value={defaulterThreshold} onChange={(e) => setDefaulterThreshold(parseInt(e.target.value))}
-                      style={{ padding: "4px 8px", borderRadius: "6px", border: "1px solid #dddfe2", fontSize: "12px", fontFamily: "inherit", background: "#fff", color: "#1c1e21", cursor: "pointer" }}>
-                      {Array.from({ length: 10 }, (_, i) => i + 3).map(m => <option key={m} value={m * 30}>{m} Bulan</option>)}
-                    </select>
-                  </div>
-                  <button onClick={() => {
-                    const flatData = (defaulterData || []).map((d: any) => ({
-                      nama: d.nama, ic: d.ic, hn: d.hn, item: d.itemNama, kod: d.itemKod, kekuatan: d.kekuatan,
-                      dos: d.dos, tarikh_akhir_bekal: d.lastSupplyDate || "-", tempoh: d.tempohDibekal,
-                      jangka_isi_semula: d.expectedRefill || "-", hari_lewat: d.daysOverdue, status: d.status,
-                    }));
-                    exportToExcel(flatData, "Laporan_Defaulter");
-                  }} style={styles.exportBtn}><FileSpreadsheet size={14} /> Excel</button>
-                  <button onClick={() => {
-                    const flatData = (defaulterData || []).map((d: any) => ({
-                      nama: d.nama, ic: d.ic, hn: d.hn, item: d.itemNama, kod: d.itemKod,
-                      dos: d.dos, tarikh_akhir_bekal: d.lastSupplyDate || "-", tempoh: d.tempohDibekal,
-                      jangka_isi_semula: d.expectedRefill || "-", hari_lewat: d.daysOverdue,
-                    }));
-                    exportToPDF(flatData, "Laporan Defaulter", {
-                      nama: "Nama", ic: "IC", hn: "No. Hospital", item: "Item", kod: "Kod",
-                      dos: "Dos", tarikh_akhir_bekal: "Tarikh Akhir Bekal", tempoh: "Tempoh",
-                      jangka_isi_semula: "Jangka Isi Semula", hari_lewat: "Hari Lewat",
-                    });
-                  }} style={styles.exportBtn}><FileText size={14} /> PDF</button>
-                </div>
-              </div>
-              {defaulterLoading ? (
-                <div style={{ padding: "60px 24px", textAlign: "center" }}>
-                  <div style={{ width: "32px", height: "32px", border: "3px solid rgba(234, 88, 12, 0.15)", borderTopColor: "#ea580c", borderRadius: "50%", margin: "0 auto 12px", animation: "spin 1s linear infinite" }} />
-                  <p style={{ fontSize: "13px", color: "#65676b" }}>Mengira pesakit tercicir...</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      {["Pesakit", "IC / HN", "Item", "Dos", "Tarikh Akhir Bekal", "Tempoh", "Jangka Isi Semula", "Hari Lewat", "Status"].map(h => (
-                        <TableHead key={h} style={{ fontSize: "11px", fontWeight: 600, color: "#65676b", textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</TableHead>
-                      ))}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {defaulterData?.map((d: any, idx: number) => (
-                      <TableRow key={idx} style={d.daysOverdue > 30 ? { background: "rgba(220, 38, 38, 0.04)" } : {}}>
-                        <TableCell style={{ fontWeight: 500, fontSize: "13px" }}>{d.nama}</TableCell>
-                        <TableCell style={{ fontSize: "12px" }}>
-                          <div style={{ fontWeight: 500 }}>{d.ic}</div>
-                          <div style={{ fontSize: "10px", color: "#9ca3af", fontFamily: "monospace" }}>{d.hn}</div>
-                        </TableCell>
-                        <TableCell style={{ fontSize: "13px" }}>
-                          <div style={{ fontWeight: 500 }}>{d.itemNama}</div>
-                          <div style={{ fontSize: "10px", color: "#9ca3af" }}>{d.itemKod} {d.kekuatan}</div>
-                        </TableCell>
-                        <TableCell style={{ fontSize: "13px" }}>{d.dos}</TableCell>
-                        <TableCell style={{ fontSize: "12px", whiteSpace: "nowrap" }}>{d.lastSupplyDate ? formatDate(d.lastSupplyDate) : "-"}</TableCell>
-                        <TableCell style={{ fontSize: "12px" }}>{d.tempohDibekal}</TableCell>
-                        <TableCell style={{ fontSize: "12px", whiteSpace: "nowrap" }}>{d.expectedRefill || "-"}</TableCell>
-                        <TableCell style={{ fontSize: "13px", fontWeight: 700, color: d.daysOverdue > 30 ? "#dc2626" : d.daysOverdue > 14 ? "#ea580c" : "#f59e0b" }}>
-                          {d.daysOverdue}
-                        </TableCell>
-                        <TableCell>
-                          <Badge style={{
-                            fontSize: "10px",
-                            background: d.daysOverdue > 30 ? "rgba(220, 38, 38, 0.1)" : d.daysOverdue > 14 ? "rgba(234, 88, 12, 0.08)" : "rgba(245, 158, 11, 0.08)",
-                            color: d.daysOverdue > 30 ? "#dc2626" : d.daysOverdue > 14 ? "#ea580c" : "#d97706",
-                            border: "none",
-                          }}>
-                            {d.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {(!defaulterData || defaulterData.length === 0) && (
-                      <TableRow>
-                        <TableCell colSpan={9} style={{ padding: "48px 16px", textAlign: "center", fontSize: "13px", color: "#65676b" }}>
-                          <AlertTriangle size={28} style={{ margin: "0 auto 8px", color: "#16a34a" }} />
-                          <p style={{ fontWeight: 600 }}>Tiada pesakit tercicir</p>
-                          <p style={{ fontSize: "11px", color: "#9ca3af" }}>Semua pesakit mematuhi jadual isi semula dalam ambang {defaulterThreshold} hari.</p>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
-          </div>
-        ) : activeTab === "inventory" ? (
+        {activeTab === "inventory" ? (
           <div style={{ position: "relative", borderRadius: "16px" }}>
             <div style={{ position: "absolute", inset: 0, borderRadius: "16px", padding: "1px", background: "linear-gradient(135deg, rgba(244, 63, 94, 0.15), rgba(24, 119, 242, 0.1), rgba(124, 58, 237, 0.08))", WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)", WebkitMaskComposite: "xor", maskComposite: "exclude", pointerEvents: "none" }} />
             <div style={{ borderRadius: "16px", background: "rgba(255, 255, 255, 0.85)", WebkitBackdropFilter: "blur(12px)", backdropFilter: "blur(12px)", border: "1px solid rgba(255, 255, 255, 0.5)", boxShadow: "0 4px 16px rgba(0,0,0,0.06)", overflow: "hidden" }}>
