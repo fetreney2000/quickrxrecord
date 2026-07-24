@@ -104,6 +104,15 @@ export default function ItemDetailPage() {
   const [editBatchId, setEditBatchId] = useState<string | null>(null);
   const [editBatchData, setEditBatchData] = useState({ kuantiti: "" });
   const [pendingBatchAction, setPendingBatchAction] = useState<{ type: string; batch: ItemBatch; newKuantiti?: number } | null>(null);
+  const [adjustmentReason, setAdjustmentReason] = useState("pelarasan_stok");
+  const reasonLabels: Record<string, string> = {
+    pelarasan_stok: "Pelarasan Stok",
+    rosak: "Rosak",
+    luput: "Pelupusan Luput",
+    hilang: "Hilang",
+    dijumpai: "Dijumpai",
+    pelupusan: "Pelupusan Stok",
+  };
 
   const { data: item } = useQuery({
     queryKey: ["item", id],
@@ -448,11 +457,11 @@ export default function ItemDetailPage() {
   });
 
   const updateBatchMutation = useMutation({
-    mutationFn: async ({ batchId, kuantiti, previousKuantiti }: { batchId: string; kuantiti: number; previousKuantiti: number }) => {
+    mutationFn: async ({ batchId, kuantiti, previousKuantiti, reason }: { batchId: string; kuantiti: number; previousKuantiti: number; reason: string }) => {
       const change = kuantiti - previousKuantiti;
       const { error: adjError } = await supabase.from("batch_adjustments").insert({
         batch_id: batchId, previous_kuantiti: previousKuantiti, new_kuantiti: kuantiti, change,
-        reason: "Larasan stok manual", adjusted_by: profile?.id,
+        reason, adjusted_by: profile?.id,
       });
       if (adjError) throw adjError;
       const { error } = await supabase.from("item_batches").update({ kuantiti }).eq("id", batchId);
@@ -463,14 +472,14 @@ export default function ItemDetailPage() {
   });
 
   const deleteBatchMutation = useMutation({
-    mutationFn: async (batchId: string) => {
+    mutationFn: async ({ batchId, reason }: { batchId: string; reason: string }) => {
       const { data: current } = await supabase.from("item_batches").select("kuantiti, nombor_kelompok").eq("id", batchId).single();
       if (!current) throw new Error("Kelompok tidak dijumpai.");
       const { error } = await supabase.from("item_batches").update({ kuantiti: 0 }).eq("id", batchId);
       if (error) throw error;
       const { error: adjError } = await supabase.from("batch_adjustments").insert({
         batch_id: batchId, previous_kuantiti: current.kuantiti, new_kuantiti: 0,
-        change: -current.kuantiti, reason: "Pelupusan stok", adjusted_by: profile?.id,
+        change: -current.kuantiti, reason, adjusted_by: profile?.id,
       });
       if (adjError) throw adjError;
     },
@@ -796,6 +805,7 @@ export default function ItemDetailPage() {
                             const newVal = parseInt(editBatchData.kuantiti);
                             if (newVal === batch.kuantiti) { toast.info("Tiada perubahan pada kuantiti."); return; }
                             setPendingBatchAction({ type: "adjust", batch, newKuantiti: newVal });
+                            setAdjustmentReason("pelarasan_stok");
                           }}>✓</Button>
                           <Button size="sm" variant="ghost" onClick={() => setEditBatchId(null)}>✕</Button>
                         </div>
@@ -806,7 +816,7 @@ export default function ItemDetailPage() {
                       <TableCell>
                         <div className="flex gap-1">
                           <Button size="sm" variant="ghost" onClick={() => { setEditBatchId(batch.id); setEditBatchData({ kuantiti: String(batch.kuantiti) }); }}><Edit className="h-3 w-3" /></Button>
-                          <Button size="sm" variant="ghost" onClick={() => setPendingBatchAction({ type: "dispose", batch })}><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                          <Button size="sm" variant="ghost" onClick={() => { setPendingBatchAction({ type: "dispose", batch }); setAdjustmentReason("pelupusan"); }}><Trash2 className="h-3 w-3 text-destructive" /></Button>
                         </div>
                       </TableCell>
                     )}
@@ -851,6 +861,18 @@ export default function ItemDetailPage() {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label style={{ fontSize: "12px", color: "#65676b" }}>Kod Sebab</Label>
+                <Select value={adjustmentReason} onValueChange={setAdjustmentReason}>
+                  <SelectTrigger style={{ height: "40px", fontSize: "13px" }}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(reasonLabels).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {pendingBatchAction.type === "dispose" && (
                 <div style={{ padding: "12px", borderRadius: "10px", background: "rgba(239, 68, 68, 0.06)", border: "1px solid rgba(239, 68, 68, 0.15)" }}>
                   <p className="text-xs font-semibold text-destructive" style={{ marginBottom: "4px" }}>⚠️ Kesan Pelupusan:</p>
@@ -889,15 +911,16 @@ export default function ItemDetailPage() {
           )}
           <DialogFooter style={{ gap: "8px", marginTop: "8px" }}>
             <Button variant="outline" onClick={() => setPendingBatchAction(null)}>Batal</Button>
-            <Button variant={pendingBatchAction?.type === "dispose" ? "destructive" : "default"} disabled={updateBatchMutation.isPending || deleteBatchMutation.isPending} onClick={() => {
-              if (!pendingBatchAction) return;
-              if (pendingBatchAction.type === "dispose") {
-                deleteBatchMutation.mutate(pendingBatchAction.batch.id);
-              } else if (pendingBatchAction.type === "adjust") {
-                updateBatchMutation.mutate({ batchId: pendingBatchAction.batch.id, kuantiti: pendingBatchAction.newKuantiti!, previousKuantiti: pendingBatchAction.batch.kuantiti });
-              }
-              setPendingBatchAction(null);
-            }}>
+             <Button variant={pendingBatchAction?.type === "dispose" ? "destructive" : "default"} disabled={updateBatchMutation.isPending || deleteBatchMutation.isPending} onClick={() => {
+               if (!pendingBatchAction) return;
+               const reason = reasonLabels[adjustmentReason] || adjustmentReason;
+               if (pendingBatchAction.type === "dispose") {
+                 deleteBatchMutation.mutate({ batchId: pendingBatchAction.batch.id, reason });
+               } else if (pendingBatchAction.type === "adjust") {
+                 updateBatchMutation.mutate({ batchId: pendingBatchAction.batch.id, kuantiti: pendingBatchAction.newKuantiti!, previousKuantiti: pendingBatchAction.batch.kuantiti, reason });
+               }
+               setPendingBatchAction(null);
+             }}>
               {(updateBatchMutation.isPending || deleteBatchMutation.isPending) ? "Memproses..." : "Saya Faham, Teruskan"}
             </Button>
           </DialogFooter>

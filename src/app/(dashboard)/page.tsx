@@ -4,7 +4,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { Users, Package, TrendingUp, AlertTriangle, Activity } from "lucide-react";
+import { Users, Package, TrendingUp, AlertTriangle, Activity, Calendar, Clock } from "lucide-react";
 import { motion, useInView } from "framer-motion";
 
 /* ── Animated Counter ────────────────────────────────────────────── */
@@ -98,6 +98,30 @@ export default function DashboardPage() {
         totalStock,
         lowStockCount,
       };
+    },
+  });
+
+  const { data: expiryItems } = useQuery({
+    queryKey: ["expiry-dashboard"],
+    queryFn: async () => {
+      const { data: batches } = await supabase
+        .from("item_batches")
+        .select("nombor_kelompok, tarikh_luput, kuantiti, item_id, items(nama_item, kekuatan, kod_item)")
+        .gt("kuantiti", 0)
+        .order("tarikh_luput", { ascending: true });
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return (batches || []).map((b: any) => {
+        const expiry = new Date(b.tarikh_luput);
+        const daysLeft = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        let urgency: "critical" | "warning" | "safe";
+        if (daysLeft < 0) urgency = "critical";
+        else if (daysLeft <= 30) urgency = "critical";
+        else if (daysLeft <= 90) urgency = "warning";
+        else urgency = "safe";
+        return { ...b, daysLeft, urgency };
+      });
     },
   });
 
@@ -262,6 +286,95 @@ export default function DashboardPage() {
             </div>
           </motion.div>
         ))}
+      </div>
+
+      {/* Expiry Dashboard */}
+      <div style={{ marginTop: "32px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+          <div style={{ width: "40px", height: "40px", borderRadius: "11px", background: "linear-gradient(135deg, #ea580c, #f97316)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(234, 88, 12, 0.25)" }}>
+            <Calendar size={20} color="white" />
+          </div>
+          <div>
+            <h2 style={{ fontSize: "16px", fontWeight: 700, color: "#1c1e21", lineHeight: 1.3 }}>Papan Pemuka Luput</h2>
+            <p style={{ fontSize: "11px", color: "#65676b" }}>Pantau kelompok ubat yang akan tamat tempoh</p>
+          </div>
+        </div>
+
+        {/* Color-coded summary badges */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "16px" }}>
+          {[
+            { label: "Kritikal (<30 Hari)", color: "#dc2626", bg: "rgba(220, 38, 38, 0.08)", border: "rgba(220, 38, 38, 0.2)", count: (expiryItems || []).filter((e: any) => e.urgency === "critical").length },
+            { label: "Amaran (30-90 Hari)", color: "#ea580c", bg: "rgba(234, 88, 12, 0.08)", border: "rgba(234, 88, 12, 0.2)", count: (expiryItems || []).filter((e: any) => e.urgency === "warning").length },
+            { label: "Selamat (>90 Hari)", color: "#16a34a", bg: "rgba(22, 163, 74, 0.06)", border: "rgba(22, 163, 74, 0.15)", count: (expiryItems || []).filter((e: any) => e.urgency === "safe").length },
+          ].map(cat => (
+            <div key={cat.label} style={{
+              padding: "10px 16px", borderRadius: "12px",
+              background: cat.bg, border: `1px solid ${cat.border}`,
+              display: "flex", alignItems: "center", gap: "8px",
+            }}>
+              <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: cat.color }} />
+              <span style={{ fontSize: "12px", color: cat.color, fontWeight: 600 }}>{cat.label}</span>
+              <span style={{ fontSize: "16px", fontWeight: 800, color: cat.color }}>{cat.count}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Expiry table */}
+        <div style={{ borderRadius: "14px", border: "1px solid rgba(0,0,0,0.06)", background: "#ffffff", overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+              <thead>
+                <tr style={{ background: "rgba(0,0,0,0.02)", borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
+                  <th style={{ padding: "10px 14px", textAlign: "left", fontWeight: 600, color: "#65676b", fontSize: "11px" }}>Nama Item</th>
+                  <th style={{ padding: "10px 14px", textAlign: "left", fontWeight: 600, color: "#65676b", fontSize: "11px" }}>Kelompok</th>
+                  <th style={{ padding: "10px 14px", textAlign: "left", fontWeight: 600, color: "#65676b", fontSize: "11px" }}>Tarikh Luput</th>
+                  <th style={{ padding: "10px 14px", textAlign: "center", fontWeight: 600, color: "#65676b", fontSize: "11px" }}>Stok</th>
+                  <th style={{ padding: "10px 14px", textAlign: "center", fontWeight: 600, color: "#65676b", fontSize: "11px" }}>Hari</th>
+                  <th style={{ padding: "10px 14px", textAlign: "center", fontWeight: 600, color: "#65676b", fontSize: "11px" }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(expiryItems || []).slice(0, 50).map((item: any, idx: number) => {
+                  const urgencyColors: Record<string, { bg: string; text: string; dot: string }> = {
+                    critical: { bg: "rgba(220, 38, 38, 0.06)", text: "#dc2626", dot: "#dc2626" },
+                    warning: { bg: "rgba(234, 88, 12, 0.04)", text: "#ea580c", dot: "#ea580c" },
+                    safe: { bg: "rgba(22, 163, 74, 0.03)", text: "#16a34a", dot: "#16a34a" },
+                  };
+                  const c = urgencyColors[item.urgency];
+                  return (
+                    <tr key={idx} style={{ borderBottom: "1px solid rgba(0,0,0,0.04)", background: c.bg }}>
+                      <td style={{ padding: "8px 14px", fontSize: "12px", fontWeight: 500, color: "#1c1e21" }}>
+                        {item.items?.nama_item || "-"} {item.items?.kekuatan && <span style={{ fontSize: "10px", color: "#65676b" }}>{item.items.kekuatan}</span>}
+                        <div style={{ fontSize: "10px", color: "#9ca3af" }}>{item.items?.kod_item}</div>
+                      </td>
+                      <td style={{ padding: "8px 14px", fontFamily: "monospace", fontSize: "11px", color: "#374151" }}>{item.nombor_kelompok}</td>
+                      <td style={{ padding: "8px 14px", fontSize: "11px", color: "#374151" }}>{item.tarikh_luput}</td>
+                      <td style={{ padding: "8px 14px", textAlign: "center", fontSize: "11px", fontWeight: 500, color: "#374151" }}>{item.kuantiti}</td>
+                      <td style={{ padding: "8px 14px", textAlign: "center", fontSize: "11px", fontWeight: 600, color: c.text }}>
+                        {item.daysLeft < 0 ? "Luput" : item.daysLeft}
+                      </td>
+                      <td style={{ padding: "8px 14px", textAlign: "center" }}>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                          <div style={{ width: "6px", height: "6px", borderRadius: "50%", background: c.dot }} />
+                          <span style={{ fontSize: "10px", fontWeight: 600, color: c.text }}>
+                            {item.urgency === "critical" ? "Kritikal" : item.urgency === "warning" ? "Amaran" : "Selamat"}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {(!expiryItems || expiryItems.length === 0) && (
+                  <tr>
+                    <td colSpan={6} style={{ padding: "32px 16px", textAlign: "center", fontSize: "13px", color: "#9ca3af" }}>
+                      Tiada kelompok ubat ditemui.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <style>{`
