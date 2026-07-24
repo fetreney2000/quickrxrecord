@@ -14,7 +14,7 @@ import { toast } from "sonner";
 export default function LaporanPage() {
   const supabase = createClient();
   const [activeTab, setActiveTab] = useState<"inventory" | "transactions" | "defaulter">("inventory");
-  const [defaulterThreshold, setDefaulterThreshold] = useState(7); // days past expected refill
+  const [defaulterThreshold, setDefaulterThreshold] = useState(90); // default 3 months in days
 
   const { data: inventoryData, isLoading: inventoryLoading } = useQuery({
     queryKey: ["report-inventory"],
@@ -323,7 +323,7 @@ export default function LaporanPage() {
                     <span>Ambang Lewat:</span>
                     <select value={defaulterThreshold} onChange={(e) => setDefaulterThreshold(parseInt(e.target.value))}
                       style={{ padding: "4px 8px", borderRadius: "6px", border: "1px solid #dddfe2", fontSize: "12px", fontFamily: "inherit", background: "#fff", color: "#1c1e21", cursor: "pointer" }}>
-                      {[1, 3, 5, 7, 14, 21, 30].map(d => <option key={d} value={d}>{d} hari</option>)}
+                      {Array.from({ length: 10 }, (_, i) => i + 3).map(m => <option key={m} value={m * 30}>{m} Bulan</option>)}
                     </select>
                   </div>
                   <button onClick={() => {
