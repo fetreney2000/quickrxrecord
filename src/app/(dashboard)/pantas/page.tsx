@@ -750,11 +750,6 @@ export default function QuickDispensePage() {
                             Luput: {formatDate(b.tarikh_luput)} | Stok: {b.kuantiti}
                           </div>
                         </div>
-                        {selectedBatchId === b.id && (
-                          <Badge variant="secondary" style={{ fontSize: "10px", background: "rgba(245, 158, 11, 0.1)", color: "#92400e", border: "1px solid rgba(245, 158, 11, 0.2)" }}>
-                            FEFO
-                          </Badge>
-                        )}
                       </div>
                     ))}
                   </div>
@@ -766,9 +761,9 @@ export default function QuickDispensePage() {
                     <Label style={{ fontSize: "12px", color: "#65676b" }}>Dos</Label>
                     <Input
                       value={dose}
-                      onChange={(e) => setDose(e.target.value)}
-                      onBlur={(e) => setDose(e.target.value.trim().toUpperCase())}
+                      readOnly
                       placeholder=""
+                      className="opacity-60"
                       style={{ height: "42px", fontSize: "13px" }}
                     />
                   </div>
