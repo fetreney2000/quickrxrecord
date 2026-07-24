@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
@@ -8,27 +8,21 @@ import { Users, Package, TrendingUp, AlertTriangle, Activity, Calendar, Clock } 
 import { motion, useInView } from "framer-motion";
 
 /* ── Animated Counter ────────────────────────────────────────────── */
-function AnimatedNumber({ value, duration = 2 }: { value: number | string; duration?: number }) {
+function AnimatedNumber({ value, duration = 0.8 }: { value: number | string; duration?: number }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const isInView = useInView(ref, { once: true });
+  const isInView = useInView(ref, { once: true, margin: "0px 0px -50px 0px" });
   const num = typeof value === "number" ? value : parseInt(value) || 0;
 
   return (
     <motion.span
       ref={ref}
-      initial={{ opacity: 0 }}
-      animate={isInView ? { opacity: 1 } : { opacity: 0 }}
-      transition={{ duration: 0.3 }}
+      initial={{ opacity: 0, scale: 0.6 }}
+      animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.6 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
       style={{ display: "inline-block" }}
     >
       {isInView ? (
-        <motion.span
-          initial={{ opacity: 0, scale: 0.5 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-        >
-          <CountingNumber to={num} duration={duration} />
-        </motion.span>
+        <CountingNumber to={num} duration={duration} />
       ) : "0"}
     </motion.span>
   );
@@ -36,20 +30,22 @@ function AnimatedNumber({ value, duration = 2 }: { value: number | string; durat
 
 function CountingNumber({ to, duration }: { to: number; duration: number }) {
   const [count, setCount] = React.useState(0);
-  const ref = useRef<number>(0);
+  const rafRef = useRef<number>(0);
   const startTime = useRef<number>(0);
 
   React.useEffect(() => {
     if (to === 0) { setCount(0); return; }
     startTime.current = performance.now();
-    ref.current = requestAnimationFrame(function animate(now: number) {
+    rafRef.current = requestAnimationFrame(function animate(now: number) {
       const elapsed = now - startTime.current;
       const progress = Math.min(elapsed / (duration * 1000), 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
+      // Snappier ease-out curve (expo-like)
+      const eased = progress >= 1 ? 1 : 1 - Math.pow(1 - progress, 4);
       setCount(Math.floor(eased * to));
-      if (progress < 1) ref.current = requestAnimationFrame(animate);
+      if (progress < 1) rafRef.current = requestAnimationFrame(animate);
+      else setCount(to); // ensure exact final value
     });
-    return () => cancelAnimationFrame(ref.current);
+    return () => cancelAnimationFrame(rafRef.current);
   }, [to, duration]);
 
   return <>{count.toLocaleString()}</>;
@@ -59,9 +55,7 @@ function CountingNumber({ to, duration }: { to: number; duration: number }) {
 export default function DashboardPage() {
   const { profile } = useAuth();
   const supabase = createClient();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => { setMounted(true); }, []);
+  const [mounted] = useState(true); // immediately animate — no extra render cycle
 
   const { data: stats } = useQuery({
     queryKey: ["dashboard-stats"],
@@ -142,7 +136,7 @@ export default function DashboardPage() {
       gradient: "linear-gradient(135deg, #059669, #10b981)",
       glowColor: "rgba(5, 150, 105, 0.3)",
       subtitle: "Item ubat didaftarkan",
-      delay: 0.03,
+      delay: 0.04,
     },
     {
       title: "Bekalan Hari Ini",
@@ -160,7 +154,7 @@ export default function DashboardPage() {
       gradient: "linear-gradient(135deg, #ea580c, #f97316)",
       glowColor: "rgba(234, 88, 12, 0.3)",
       subtitle: "Kelompok akan tamat tempoh",
-      delay: 0.03,
+      delay: 0.12,
     },
     {
       title: "Jumlah Stok",
@@ -169,7 +163,7 @@ export default function DashboardPage() {
       gradient: "linear-gradient(135deg, #0891b2, #06b6d4)",
       glowColor: "rgba(8, 145, 178, 0.3)",
       subtitle: "Unit stok keseluruhan",
-      delay: 0.6,
+      delay: 0.16,
     },
     {
       title: "Stok Rendah",
@@ -178,7 +172,7 @@ export default function DashboardPage() {
       gradient: "linear-gradient(135deg, #dc2626, #ef4444)",
       glowColor: "rgba(220, 38, 38, 0.3)",
       subtitle: "Item di bawah kuota",
-      delay: 0.75,
+      delay: 0.20,
     },
   ];
 
@@ -191,33 +185,33 @@ export default function DashboardPage() {
       <motion.div
         className="dash-header"
         style={styles.header}
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: -15 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
       >
         <div style={styles.headerLeft}>
           <motion.div
             style={styles.headerIcon}
-            initial={{ scale: 0, rotate: -180 }}
+            initial={{ scale: 0, rotate: -90 }}
             animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", damping: 15, stiffness: 200, delay: 0.02 }}
+            transition={{ type: "spring", damping: 18, stiffness: 300, delay: 0.01 }}
           >
             <Activity size={20} color="white" />
           </motion.div>
           <div>
             <motion.h1
               style={styles.headerTitle}
-              initial={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, x: -15 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.03, duration: 0.4 }}
+              transition={{ delay: 0.02, duration: 0.25 }}
             >
               Selamat Datang, {profile?.nama}
             </motion.h1>
             <motion.p
               style={styles.headerSubtitle}
-              initial={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, x: -15 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.08, duration: 0.4 }}
+              transition={{ delay: 0.04, duration: 0.25 }}
             >
               Papan Pemuka QuickRxRecord v4
             </motion.p>
@@ -228,12 +222,12 @@ export default function DashboardPage() {
           style={styles.statusBadge}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5, duration: 0.3 }}
+          transition={{ delay: 0.2, duration: 0.25 }}
         >
           <motion.div
             style={styles.statusDot}
             animate={{ opacity: [1, 0.3, 1] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
           />
           <span style={styles.statusText}>Sistem Beroperasi</span>
         </motion.div>
@@ -245,16 +239,16 @@ export default function DashboardPage() {
           <motion.div
             key={card.title}
             style={styles.statCardOuter}
-            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+            initial={{ opacity: 0, y: 30, scale: 0.97 }}
             animate={mounted ? { opacity: 1, y: 0, scale: 1 } : {}}
             transition={{
-              delay: 0.2 + card.delay,
-              duration: 0.6,
+              delay: 0.1 + card.delay,
+              duration: 0.4,
               type: "spring",
-              damping: 20,
-              stiffness: 100,
+              damping: 25,
+              stiffness: 200,
             }}
-            whileHover={{ y: -6, scale: 1.02, transition: { duration: 0.25 } }}
+            whileHover={{ y: -4, scale: 1.02, transition: { duration: 0.15 } }}
           >
             <div style={styles.statCardInner}>
               <div style={{ ...styles.statCardBg, background: card.gradient }} />
@@ -265,19 +259,19 @@ export default function DashboardPage() {
                 <div style={styles.statCardText}>
                   <p style={styles.statCardTitle}>{card.title}</p>
                   <div style={styles.statCardValue}>
-                    <AnimatedNumber value={card.value} duration={1.5} />
+                    <AnimatedNumber value={card.value} duration={0.8} />
                   </div>
                   <p style={styles.statCardSubtitle}>{card.subtitle}</p>
                 </div>
                 <motion.div
                   style={styles.statCardIcon}
-                  initial={{ scale: 0, rotate: -180 }}
+                  initial={{ scale: 0, rotate: -90 }}
                   animate={mounted ? { scale: 1, rotate: 0 } : {}}
                   transition={{
                     type: "spring",
-                    damping: 15,
-                    stiffness: 200,
-                    delay: 0.02 + card.delay,
+                    damping: 18,
+                    stiffness: 300,
+                    delay: 0.01 + card.delay,
                   }}
                 >
                   <card.icon size={24} color="white" />
