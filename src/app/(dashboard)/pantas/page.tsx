@@ -289,6 +289,7 @@ export default function QuickDispensePage() {
       return;
     }
     setSelectedItem(item);
+    setDose("");
     setShowRegisterDialog(false);
     setRegisterItemSearch("");
   };
@@ -761,9 +762,8 @@ export default function QuickDispensePage() {
                     <Label style={{ fontSize: "12px", color: "#65676b" }}>Dos</Label>
                     <Input
                       value={dose}
-                      readOnly
+                      {...(selectedItem?.assignment_dos ? { readOnly: true, className: "opacity-60" } : { onChange: (e) => setDose(e.target.value), onBlur: (e) => setDose(e.target.value.trim().toUpperCase()) })}
                       placeholder=""
-                      className="opacity-60"
                       style={{ height: "42px", fontSize: "13px" }}
                     />
                   </div>
